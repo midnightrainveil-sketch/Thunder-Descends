@@ -8,7 +8,7 @@ three.js; the production build is a single self-contained `dist/index.html`.
 | Input | Action |
 |---|---|
 | WASD | Move (screen-relative) |
-| Mouse | Aim (the upper body follows the cursor) |
+| Mouse | Aim attacks and skills (the hero faces where he moves otherwise) |
 | Hold left mouse | 3-hit combo — about half the swings crit into a **whip strike** |
 | Q | Thunderclaw: aim (time slows), click to fire, right-click / Esc cancels |
 | E | Shatter → Overdrive on hit |

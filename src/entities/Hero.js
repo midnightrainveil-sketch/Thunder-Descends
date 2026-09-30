@@ -391,13 +391,20 @@ export class Hero {
     }
 
     // Aim: upper body follows the mouse ground point quickly.
-    if (input.groundValid && !this.dead && !ctl.lockAim) {
-      const dx = input.groundPoint.x - this.position.x;
-      const dz = input.groundPoint.z - this.position.z;
-      if (dx * dx + dz * dz > 0.04) {
-        const target = Math.atan2(dx, dz);
-        this.aimYaw += wrap(target - this.aimYaw) * (1 - Math.exp(-A.aimTurnRate * dt));
+    // Facing: the hero faces where he moves (screen-relative WASD under the fixed camera). He turns
+    // toward the mouse only while attacking, whipping or using a skill (attacks / skills aim there);
+    // standing still he keeps his last facing.
+    if (!this.dead && !ctl.lockAim) {
+      const combat = this.combo.active || this.whip?.active || this.skills?.active;
+      let target = null;
+      if (combat && input.groundValid) {
+        const dx = input.groundPoint.x - this.position.x;
+        const dz = input.groundPoint.z - this.position.z;
+        if (dx * dx + dz * dz > 0.04) target = Math.atan2(dx, dz);
+      } else if (wish.lengthSq() > 0) {
+        target = Math.atan2(wish.x, wish.z);
       }
+      if (target !== null) this.aimYaw += wrap(target - this.aimYaw) * (1 - Math.exp(-A.aimTurnRate * dt));
     }
     this.aim.set(Math.sin(this.aimYaw), 0, Math.cos(this.aimYaw));
 

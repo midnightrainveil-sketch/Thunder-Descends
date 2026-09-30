@@ -49,7 +49,7 @@ Base stats (all in config.js):
 | Crit damage | ×2.0 |
 | Hurt i-frames | 0.4 s |
 
-Controls: WASD move (screen-relative: W = away from camera). The hero's upper body always faces the mouse's ground point (legs follow the movement direction, twisting up to ±60° from the aim). Left mouse (hold) = basic attack toward the mouse. Q / E / R = skills. Esc / P = pause (Esc cancels Q aiming first). Enter = restart from game over.
+Controls: WASD move (screen-relative: W = away from camera). The hero faces his movement direction; while attacking or using a skill he turns toward the mouse's ground point (legs follow the movement, twisting up to ±60°). Left mouse (hold) = basic attack toward the mouse. Q / E / R = skills. Esc / P = pause (Esc cancels Q aiming first). Enter = restart from game over.
 
 Basic attack: 3-hit combo (damage ×1.0, ×1.0, ×1.4), sector hitbox range 2.4 m, 120° arc toward the aim. Combo resets after 0.9 s without attacking. Input is buffered (a click during the current swing queues the next).
 

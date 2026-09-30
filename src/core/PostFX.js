@@ -3,6 +3,22 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+
+// Safety net before bloom: any NaN / Inf / negative pixel (a degenerate triangle, a bad shader
+// value on some GPU) is replaced so the bloom blur can't spread it into a black screen.
+const SanitizeShader = {
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      if (any(isnan(c)) || any(isinf(c))) c = vec4(0.0, 0.0, 0.0, 1.0);
+      gl_FragColor = clamp(c, 0.0, 64.0);
+    }`,
+};
 import { GradePass } from './GradePass.js';
 import { CONFIG } from '../config.js';
 
@@ -28,7 +44,9 @@ export class PostFX {
     this.bloomPass = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 1, 0.5, 1);
     this.gradePass = new GradePass();
     this.outputPass = new OutputPass();
+    this.sanitizePass = new ShaderPass(SanitizeShader);
     this.composer.addPass(this.renderPass);
+    this.composer.addPass(this.sanitizePass);
     this.composer.addPass(this.bloomPass);
     this.composer.addPass(this.gradePass);
     this.composer.addPass(this.outputPass);

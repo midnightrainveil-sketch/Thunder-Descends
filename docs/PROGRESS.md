@@ -675,3 +675,15 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - `README.txt`: how to play and the controls.
 - Verified: the zip checks clean, file modes are kept, the extracted `index.html` runs from `file://` with no errors, and `sh -n play-linux.sh` passes.
 - The skill regression tests pass with the new model.
+
+---
+
+## Fixes — black screen, movement facing
+
+- **Black screen while moving (sometimes).**
+  - Cause: hidden bones (the Demontime blade plates) were collapsed to scale 1e-4, not 0. Their microscopic triangles on the swinging sword could occasionally cover a pixel. Flat shading derives normals from screen-space derivatives, which are zero there, so the pixel shaded as NaN, and the bloom blur spread that NaN over the whole frame.
+  - Fixes:
+    - `Rig.setBoneVisible(false)` now uses exactly zero scale; zero-area triangles are never rasterized.
+    - A sanitize pass (`PostFX`, RenderPass → sanitize → bloom) replaces any NaN / Inf pixel and clamps HDR to [0, 64], a safety net for any GPU.
+- **The hero didn't face his movement.** He now faces the WASD direction (screen-relative under the fixed camera: A = screen-left, D = screen-right, W = up, S = down). He turns toward the mouse only while attacking, whipping or using a skill, and keeps his last facing when idle. The spec §5 controls line was updated.
+- Verified with fixed-step tests: A / D / W / S / W+A face −90° / 90° / 180° / 0° / −135°, an attack turns toward the mouse, and releasing it returns to the movement facing. The skill regression passes.

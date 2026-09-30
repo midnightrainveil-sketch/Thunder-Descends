@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
 const _m = new THREE.Matrix4();
+const _rot = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
 const _dq = new THREE.Quaternion();
 const _p = new THREE.Vector3();
@@ -52,9 +53,10 @@ export class Shatter {
       const bi = rig.index[part.joint];
       const bone = rig.bones[part.joint];
       // Bones hidden via setBoneVisible have ~0 scale: skip their boxes.
-      if (bone.matrixWorld.elements[0] ** 2 + bone.matrixWorld.elements[1] ** 2 + bone.matrixWorld.elements[2] ** 2 < 1e-4) continue;
+      const e = bone.matrixWorld.elements;
+      if (e[0] ** 2 + e[1] ** 2 + e[2] ** 2 < 1e-4) continue;
       _m.multiplyMatrices(bone.matrixWorld, inv[bi]);
-      _q.setFromRotationMatrix(bone.matrixWorld);
+      _q.setFromRotationMatrix(_rot.extractRotation(bone.matrixWorld));
       for (const b of part.boxes) {
         const o = part.origin;
         _p.set((b.p[0] + b.s[0] / 2 + o[0]) * vs, (b.p[1] + b.s[1] / 2 + o[1]) * vs, (b.p[2] + b.s[2] / 2 + o[2]) * vs).applyMatrix4(_m);

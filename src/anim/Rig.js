@@ -177,12 +177,15 @@ export class Rig {
     if (color) this.flashColor.value.set(color);
   }
 
-  // Hide/show a bone's geometry (and its children's) by scaling it to ~0.
+  // Hide/show a bone's geometry (and its children's) by collapsing it to exactly zero scale.
+  // Zero-area triangles are never rasterized; a tiny non-zero scale (the old 1e-4) could still
+  // hit a pixel now and then, and flat shading's derivative normals there came out NaN, which
+  // the bloom blur spread into a full black screen.
   setBoneVisible(name, visible) {
     const b = this.bones[name];
     const r = this.rest[this.index[name]];
     if (visible) b.scale.copy(r.scale);
-    else b.scale.setScalar(1e-4);
+    else b.scale.setScalar(0);
   }
 
   // Reset every bone to its rest pose (the animator writes on top of this each frame).

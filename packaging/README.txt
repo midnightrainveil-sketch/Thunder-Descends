@@ -10,7 +10,8 @@ Needs a desktop browser with WebGL2 (Chrome, Edge, Firefox, Chromium). Fonts loa
 Google Fonts when online; offline, built-in fallback fonts are used.
 
 CONTROLS
-  WASD ............ move          Mouse ........... aim
+  WASD ............ move (the hero faces where he moves)
+  Mouse ........... aim attacks and skills
   Hold left mouse . 3-hit combo (crits become whip strikes)
   Q ............... Thunderclaw (aim, click to fire, right-click/Esc cancels)
   E ............... Shatter -> Overdrive      R ... Demontime
