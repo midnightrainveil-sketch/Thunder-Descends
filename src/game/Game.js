@@ -1,6 +1,5 @@
 import { CONFIG } from '../config.js';
-import { Lighting } from '../world/Lighting.js';
-import { PlaceholderArena } from '../world/PlaceholderArena.js';
+import { ArenaMap } from '../world/ArenaMap.js';
 import { Hero } from '../entities/Hero.js';
 import { MouseReticle } from '../fx/MouseReticle.js';
 import { buildVoxelTest } from '../voxel/models/VoxelTest.js';
@@ -14,9 +13,8 @@ export class Game {
     this.postFX = postFX;
     const scene = engine.scene;
 
-    this.lighting = new Lighting(scene);
-    this.arena = new PlaceholderArena();
-    scene.add(this.arena.group);
+    this.map = new ArenaMap({ scene, rig });
+    this.lighting = this.map.lighting; // debug panel compatibility
 
     this.hero = new Hero();
     scene.add(this.hero.group);
@@ -35,12 +33,17 @@ export class Game {
 
   update(time, input) {
     this.hero.update(time.heroDt, input, this.rig);
-    this.arena.update(time.worldDt, time.worldTime);
+    this.map.update(time, this.rig.activeCamera);
     this.voxelTest.visible = CONFIG.voxel.test.enabled;
   }
 
   updateFX(time, input) {
     this.reticle.update(time.realDt, input);
+  }
+
+  // The fixed camera was refit (resize or debug edit).
+  onCameraChanged() {
+    this.map.onCameraChanged();
   }
 
   // Photo mode hides gameplay actors (enemies join in Stage 3).

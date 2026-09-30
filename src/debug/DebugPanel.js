@@ -7,8 +7,11 @@ import { Stats } from './Stats.js';
 // lil-gui debug panel (toggle with `) + FPS/draw-call counter + debug hotkeys (spec §14).
 // Hotkeys only work while debug is on.
 export class DebugPanel {
-  constructor({ engine, rig, postFX, time, game, ui }) {
+  constructor({ engine, rig, postFX, time, game, ui, input }) {
     this.engine = engine;
+    this.input = input;
+    this._extra = '';
+    this._extraT = 0;
     this.rig = rig;
     this.postFX = postFX;
     this.time = time;
@@ -27,8 +30,21 @@ export class DebugPanel {
 
   setEnabled(on) {
     this.enabled = on;
-    this.gui.show(on);
-    this.stats.setVisible(on);
+    const visible = on && !this.flags?.photo;
+    this.gui.show(visible);
+    this.stats.setVisible(visible);
+  }
+
+  // Extra stats line: environment draw calls (recomputed a couple of times per second).
+  statsExtra() {
+    const now = performance.now();
+    if (now - this._extraT > CONFIG.debug.statsInterval * 1000) {
+      this._extraT = now;
+      const d = this.game.map.countDrawCalls();
+      const v = this.game.map.grove.violationCount;
+      this._extra = `env calls ${d.main} + ${d.shadow} shadow` + (CONFIG.map.debug.canopyCheck ? `\ncanopy over play ${v}` : '');
+    }
+    return this._extra;
   }
 
   // ── Orbit camera (O) ───────────────────────────────────────────────────
@@ -72,6 +88,7 @@ export class DebugPanel {
     }
     if (input.wasPressed('KeyO')) this.toggleOrbit();
     if (input.wasPressed('KeyF')) this.togglePhoto();
+    if (input.wasPressed('KeyI')) this.petalImpulseAtMouse();
 
     // TODO(Stage 3): 1/2/3 spawn Ronin/Teppo/Tate, K kill all, G god mode, N next wave, C reset cooldowns.
     // TODO(Stage 5): 4/5/6 spawn bosses, L gain a level.
@@ -93,10 +110,12 @@ export class DebugPanel {
     for (const code in stubs) if (input.wasPressed(code)) console.info(`[debug] ${code}: ${stubs[code]} — not implemented yet`);
   }
 
+  // Photo mode: hide the hero, reticle, UI and the debug overlay (F again to return).
   togglePhoto(on = !this.flags.photo) {
     this.flags.photo = on;
     this.game.setPhotoMode(on);
     this.ui.setHidden(on);
+    this.setEnabled(this.enabled);
   }
 
   // ── Timed previews (real time) ─────────────────────────────────────────
@@ -146,7 +165,10 @@ export class DebugPanel {
     this.gui = gui;
     this.flags = { orbit: false, photo: false };
     const C = CONFIG;
-    const refit = () => this.rig.fit();
+    const refit = () => {
+      this.rig.fit();
+      this.game.onCameraChanged();
+    };
 
     // Camera
     const cam = gui.addFolder('Camera');
@@ -281,14 +303,18 @@ export class DebugPanel {
     const applyL = () => this.game.lighting.applySettings();
     light.add(C.lighting, 'moonIntensity', 0, 8, 0.05).onChange(applyL);
     light.addColor(C.lighting, 'moonColor').onChange(applyL);
+    light.add(C.lighting, 'moonFollowsSky').name('moon follows sky').onChange(applyL);
+    light.add(C.lighting, 'moonElevationDeg', 10, 85, 0.5).name('moon elevation°').onChange(applyL);
     light.add(C.lighting.moonDir, 'x', -1, 1, 0.01).name('moon dir x').onChange(applyL);
     light.add(C.lighting.moonDir, 'y', 0.1, 2, 0.01).name('moon dir y').onChange(applyL);
     light.add(C.lighting.moonDir, 'z', -1, 1, 0.01).name('moon dir z').onChange(applyL);
-    light.add(C.lighting, 'hemiIntensity', 0, 4, 0.05).onChange(applyL);
+    light.add(C.lighting, 'hemiIntensity', 0, 5, 0.05).onChange(applyL);
+    light.addColor(C.lighting, 'hemiSky').onChange(applyL);
     light.add(C.lighting, 'rimIntensity', 0, 5, 0.05).onChange(applyL);
     light.add(C.lighting, 'shadowRadius', 0, 8, 0.1).onChange(applyL);
-    light.add(C.render, 'fogDensity', 0, 0.03, 0.0005).onChange(() => this.engine.applySettings());
     light.close();
+
+    this._buildMapFolder(gui);
 
     // Voxel
     const vox = gui.addFolder('Voxel');
@@ -297,9 +323,92 @@ export class DebugPanel {
 
     const help = gui.addFolder('Hotkeys');
     help.add({ t: 'T time · O orbit · F photo' }, 't').name('keys').disable();
+    help.add({ t: 'I petal impulse at mouse' }, 't').name('map').disable();
     help.close();
   }
 }
+
+DebugPanel.prototype.petalImpulseAtMouse = function () {
+  const P = CONFIG.map.debugTests;
+  if (!this.input.groundValid) return;
+  this.game.map.petalImpulse(this.input.groundPoint, P.impulseRadius, P.impulseStrength);
+};
+
+DebugPanel.prototype._buildMapFolder = function (gui) {
+  const C = CONFIG;
+  const M = C.map;
+  const map = this.game.map;
+  const f = gui.addFolder('Map');
+
+  const wind = f.addFolder('Wind');
+  wind.add(M.wind, 'strength', 0, 6, 0.05);
+  wind.add(M.wind, 'dirDeg', 0, 360, 1).name('direction°');
+  wind.add(M.wind, 'gustFreq', 0, 1, 0.01).name('gust frequency');
+  wind.add(M.wind, 'gustStrength', 0, 3, 0.05).name('gust strength');
+  wind.close();
+
+  const pet = f.addFolder('Petals');
+  pet.add(C.quality, 'petalCount', 0, 2000, 50).name('pool size').onFinishChange(() => map.rebuildPetals());
+  pet.add(M.petals, 'spawnRate', 0, 200, 1).name('spawn / s');
+  pet.add(M.petals, 'floorCarpet', 0, 1500, 10).name('floor carpet').onFinishChange(() => map.rebuildPetals());
+  pet.add(M.petals, 'offscreenFrac', 0, 1, 0.01).name('off-screen share');
+  pet.add(M.petals, 'flutterAmp', 0, 2, 0.01).name('flutter');
+  pet.add(M.debugTests, 'impulseStrength', 0, 20, 0.1).name('test strength');
+  pet.add({ f: () => this.petalImpulseAtMouse() }, 'f').name('Impulse at mouse (I)');
+  pet.add({
+    f: () => {
+      const h = this.game.hero;
+      map.petalSweep(h.position, h.aim, 170, 5.5, M.debugTests.impulseStrength);
+    },
+  }, 'f').name('Sweep test (whip arc)');
+  pet.add({ f: () => map.petalVortex(this.game.hero.position, 4, M.debugTests.impulseStrength * 0.6) }, 'f').name('Vortex test');
+  pet.close();
+
+  const trees = f.addFolder('Trees');
+  const rebuild = () => map.rebuildTrees();
+  trees.add(M.trees, 'seed', 0, 99999, 1).onFinishChange(rebuild);
+  trees.add({ f: () => { M.trees.seed = Math.floor(Math.random() * 99999); rebuild(); trees.controllers.forEach((c) => c.updateDisplay()); } }, 'f').name('Re-roll seed');
+  trees.add(M.trees, 'density', 0.6, 1.4, 0.01).name('canopy density').onFinishChange(rebuild);
+  trees.add(M.trees, 'colorBalance', 0, 1, 0.01).name('pink ↔ pale').onFinishChange(rebuild);
+  trees.add(M.trees, 'swayAmp', 0, 0.3, 0.005).name('sway amount');
+  trees.add(M.trees, 'swaySpeed', 0, 4, 0.05).name('sway speed');
+  trees.add(M.trees, 'emissiveLift', 0, 0.2, 0.005).name('blossom lift').onChange((v) => (map.grove.blossomMat.userData.liftUniforms.uLift.value = v));
+  trees.add(C.quality, 'treeShadows').name('tree shadows').onChange(() => map.grove.applyShadows());
+  trees.add(M.debug, 'canopyCheck').name('canopy check').onChange(() => map.grove.updateCheck());
+  trees.close();
+
+  const lan = f.addFolder('Lanterns');
+  lan.add(M.lanterns, 'flickerAmount', 0, 0.8, 0.01).name('flicker');
+  lan.add(M.lanterns, 'flickerSpeed', 0, 30, 0.1).name('flicker speed');
+  lan.add(M.lanterns, 'emissive', 0, 6, 0.05).name('fire glow');
+  lan.add(M.lanterns, 'lightIntensity', 0, 20, 0.1).name('point light');
+  lan.add(M.lanterns, 'lightDistance', 1, 25, 0.5).name('light distance');
+  lan.add(M.lanterns, 'poolIntensity', 0, 1.5, 0.01).name('light pools');
+  lan.close();
+
+  const seams = f.addFolder('Seams');
+  seams.add(M.seams, 'rest', 0, 4, 0.01).name('intensity');
+  seams.add(M.seams, 'pulse', 0, 6, 0.05).name('pulse');
+  seams.add(M.seams, 'pulsePeriod', 1, 20, 0.1).name('pulse period s');
+  seams.add(M.seams, 'pulseSpeed', 0.5, 20, 0.1).name('pulse speed');
+  seams.close();
+
+  const atm = f.addFolder('Atmosphere');
+  atm.add(M.mist, 'density', 0, 3, 0.01).name('mist density');
+  atm.add(C.quality, 'mistLayers', 0, 4, 1).name('mist layers').onFinishChange(() => map.rebuildMist());
+  atm.addColor(M.mist, 'color').name('mist color');
+  atm.add(C.render, 'fogDensity', 0, 0.02, 0.0002).name('fog').onChange(() => this.engine.applySettings());
+  atm.addColor(C.render, 'fogColor').name('fog color').onChange(() => this.engine.applySettings());
+  const moon = () => this.game.onCameraChanged();
+  atm.add(M.sky.moon.screen, 'x', -1, 1, 0.01).name('moon x (screen)').onChange(moon);
+  atm.add(M.sky.moon.screen, 'y', -1, 1, 0.01).name('moon y (screen)').onChange(moon);
+  atm.add(M.sky.moon, 'size', 0.02, 0.3, 0.005).name('moon size').onChange(moon);
+  atm.add(M.sky.moon, 'intensity', 0, 3, 0.01).name('moon brightness');
+  atm.add(M.sky.clouds, 'opacity', 0, 1, 0.01).name('cloud opacity');
+  atm.add(M.sky.clouds, 'speed', 0, 30, 0.1).name('cloud speed');
+  atm.close();
+  f.close();
+};
 
 const easeOutCubic = (k) => 1 - Math.pow(1 - k, 3);
 const easeInCubic = (k) => k * k * k;

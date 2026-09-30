@@ -20,8 +20,9 @@ const time = new GameTime();
 const input = new Input(engine.renderer.domElement);
 const postFX = new PostFX(engine, rig);
 const game = new Game({ engine, rig, postFX });
+engine.onResize(() => game.onCameraChanged()); // after rig.resize (handlers run in order)
 const ui = new UI(uiRoot);
-const debug = new DebugPanel({ engine, rig, postFX, time, game, ui });
+const debug = new DebugPanel({ engine, rig, postFX, time, game, ui, input });
 
 // Frame order: input → time → game update → FX update → camera → render → UI.
 const loop = new Loop((rawDt) => {
@@ -43,7 +44,7 @@ const loop = new Loop((rawDt) => {
   postFX.render();
 
   ui.update(time.realDt);
-  debug.stats.update(rawDt, engine.renderer, time);
+  debug.stats.update(rawDt, engine.renderer, time, debug.statsExtra());
   input.endFrame();
 });
 loop.start();

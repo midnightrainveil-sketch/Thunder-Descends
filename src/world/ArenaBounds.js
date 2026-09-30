@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { ARENA_RADIUS, CONFIG } from '../config.js';
 
-// Arena bounds helpers (spec §2). The play area is a true circle of ARENA_RADIUS on XZ.
-// These stay when the placeholder arena is replaced in Stage 1.
+const DEG = Math.PI / 180;
+
+// Arena bounds helpers (spec §2). The play area is a true circle of ARENA_RADIUS on XZ, just
+// inside the stepped floor edge. Angles are measured in degrees from +Z (front) toward +X (right).
 
 // Clamp pos (Vector3, XZ used) in place so a body of `radius` stays inside. Returns true if clamped.
 export function clampToArena(pos, radius = 0) {
@@ -45,4 +47,47 @@ export function randomRimPoint(minDistFrom = null, minDist = 0, out = new THREE.
     }
   }
   return out.set(bx, 0, bz);
+}
+
+// Direction (XZ unit vector) for an arena angle in degrees.
+export function arenaDir(angleDeg, out = new THREE.Vector3()) {
+  const a = angleDeg * DEG;
+  return out.set(Math.sin(a), 0, Math.cos(a));
+}
+
+// The 4 balustrade gaps = enemy spawn gates (spec §4).
+// Each gate: { name, angleDeg, dir (outward unit), rim (point in the gap on the balustrade ring),
+//              spawn (point just inside the play circle), inward (unit, toward the center), halfAngle }
+function buildGates() {
+  const A = CONFIG.arena;
+  const railR = CONFIG.map.balustrade.radius;
+  return A.gates.map((g) => {
+    const dir = arenaDir(g.angleDeg);
+    return {
+      name: g.name,
+      angleDeg: g.angleDeg,
+      dir,
+      rim: dir.clone().multiplyScalar(railR),
+      spawn: dir.clone().multiplyScalar(ARENA_RADIUS - A.gateSpawnInset),
+      inward: dir.clone().negate(),
+      halfAngle: Math.asin(Math.min(1, A.gateWidth / 2 / railR)),
+    };
+  });
+}
+
+export const spawnGates = buildGates();
+
+export function getSpawnGate(name) {
+  return spawnGates.find((g) => g.name === name) || null;
+}
+
+// True if the arena angle (degrees) falls inside a balustrade gap.
+export function isInGate(angleDeg, padRad = 0) {
+  const a = angleDeg * DEG;
+  for (const g of spawnGates) {
+    let d = a - g.angleDeg * DEG;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    if (Math.abs(d) < g.halfAngle + padRad) return true;
+  }
+  return false;
 }

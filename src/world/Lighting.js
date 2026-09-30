@@ -1,11 +1,15 @@
 import * as THREE from 'three';
-import { CONFIG, ARENA_RADIUS } from '../config.js';
+import { CONFIG } from '../config.js';
 
-// Night lighting (spec §4): dim blue hemisphere fill, cool moonlight (only shadow caster)
-// with a shadow frustum fitted tightly around the arena, and a subtle back/rim light.
+const DEG = Math.PI / 180;
+
+// Night lighting (spec §4): dim blue hemisphere fill, cool moonlight (the only shadow caster)
+// coming from the sky moon's direction (behind-left by default) with a shadow frustum fitted to
+// the arena plus the nearest trees, and a subtle back/rim light. Lantern point lights live in Rim.
 export class Lighting {
-  constructor(scene) {
+  constructor(scene, sky = null) {
     const L = CONFIG.lighting;
+    this.sky = sky;
     this.hemi = new THREE.HemisphereLight(L.hemiSky, L.hemiGround, L.hemiIntensity);
     this.hemi.name = 'hemiFill';
 
@@ -19,6 +23,7 @@ export class Lighting {
     this.rim.castShadow = false;
 
     scene.add(this.hemi, this.moon, this.moon.target, this.rim, this.rim.target);
+    this.moonDirection = new THREE.Vector3();
     this.applySettings();
   }
 
@@ -30,7 +35,14 @@ export class Lighting {
 
     this.moon.color.set(L.moonColor);
     this.moon.intensity = L.moonIntensity;
-    const d = new THREE.Vector3(L.moonDir.x, L.moonDir.y, L.moonDir.z).normalize();
+    const d = this.moonDirection;
+    if (L.moonFollowsSky && this.sky) {
+      const az = this.sky.moonAzimuth();
+      const el = L.moonElevationDeg * DEG;
+      d.set(az.x * Math.cos(el), Math.sin(el), az.z * Math.cos(el));
+    } else {
+      d.set(L.moonDir.x, L.moonDir.y, L.moonDir.z).normalize();
+    }
     this.moon.position.copy(d).multiplyScalar(L.moonDistance);
     this.moon.target.updateMatrixWorld();
     this.moon.updateMatrixWorld();
@@ -42,7 +54,8 @@ export class Lighting {
     this._fitShadow();
   }
 
-  // Fit the orthographic shadow camera to the light-space bounds of the arena cylinder.
+  // Fit the orthographic shadow camera to the light-space bounds of a cylinder covering the
+  // arena and the nearest trees.
   _fitShadow() {
     const L = CONFIG.lighting;
     const sh = this.moon.shadow;
@@ -58,13 +71,13 @@ export class Lighting {
     const view = new THREE.Matrix4().lookAt(this.moon.position, this.moon.target.position, new THREE.Vector3(0, 1, 0));
     view.setPosition(this.moon.position);
     const inv = view.clone().invert();
-    const r = ARENA_RADIUS + L.shadowMargin;
+    const r = L.shadowRadiusFit;
     const p = new THREE.Vector3();
     let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity, zmin = Infinity, zmax = -Infinity;
     const steps = 48;
     for (let i = 0; i < steps; i++) {
       const a = (i / steps) * Math.PI * 2;
-      for (const y of [-0.5, L.shadowHeight]) {
+      for (const y of [-2, L.shadowHeight]) {
         p.set(Math.sin(a) * r, y, Math.cos(a) * r).applyMatrix4(inv);
         xmin = Math.min(xmin, p.x); xmax = Math.max(xmax, p.x);
         ymin = Math.min(ymin, p.y); ymax = Math.max(ymax, p.y);
@@ -76,7 +89,6 @@ export class Lighting {
     cam.right = xmax;
     cam.bottom = ymin;
     cam.top = ymax;
-    // Camera looks down −Z in its own space: distances are −z.
     cam.near = Math.max(0.1, -zmax - 2);
     cam.far = -zmin + 2;
     cam.updateProjectionMatrix();

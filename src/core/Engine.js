@@ -25,7 +25,7 @@ export class Engine {
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(new THREE.Color(R.fogColor), R.fogDensity);
-    scene.background = makeGradientSky(R.skyTop, R.skyHorizon);
+    scene.background = new THREE.Color(R.fogColor); // the sky dome (world/Sky.js) covers the frame
     this.scene = scene;
 
     this.width = container.clientWidth;
@@ -58,20 +58,4 @@ export class Engine {
     this.renderer.setSize(this.width, this.height);
     for (const fn of this._resizeHandlers) fn(this.width, this.height);
   }
-}
-
-// Placeholder vertical gradient background (the real sky arrives in Stage 1).
-function makeGradientSky(top, horizon) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 2;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d');
-  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  g.addColorStop(0, top);
-  g.addColorStop(1, horizon);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
 }

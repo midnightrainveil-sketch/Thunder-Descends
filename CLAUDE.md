@@ -16,3 +16,5 @@ Before starting any stage, read docs/GAME_SPEC.md and docs/PROGRESS.md. If I cha
 - Clocks: world clock (`time.worldDt`) for enemies/projectiles/world FX/petals/trees/lanterns, hero clock (`time.heroDt`) for the hero, his skills, FX and cooldowns, real time (`time.realDt`) for UI and camera shake. Shaders that animate read `time.worldTime`.
 - Voxel models are lists of integer boxes `{p, s, c, e?}` built with `buildPart()` from `src/voxel/VoxelBuilder.js`; never hand-build character or prop geometry.
 - Objects that must stay in color inside the Demontime ring opt in with `postFX.addToMask(object)`.
+- The map lives in `src/world/ArenaMap.js` (`game.map`): use `game.map.groundHeightAt(x, z)`, the petal API (`petalImpulse`, `petalSweep`, `petalVortex`) and `spawnGates` from `src/world/ArenaBounds.js`. Gameplay ground decals go at y ≥ 0.04 m (tiles ≤ 0.02, seams 0.022, lantern pools 0.03).
+- Map composition (moon, pagoda, sky gradient, mountains) is tuned for the fixed camera; check changes from the game camera, not the orbit camera.
