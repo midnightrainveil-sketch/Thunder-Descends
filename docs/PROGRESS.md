@@ -314,3 +314,115 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 7. **M** opens the model viewer. Model → hero / ronin / teppo / tate, pick any clip, use speed / pause / scrub, and tick *pivots* to see every joint (knees, elbows and wrists sit at the joints). **M** again returns to the game.
 8. Post → *Test time-stop ring*: the hero and his trail stay in color, and the enemies turn gray.
 9. Run `npm run build`, then open `dist/index.html` directly.
+
+---
+
+## Stage 3 — Combat, whip-crit passive, FX, enemy AI, waves and EXP
+
+### What was built
+- **Combat core** (`src/combat/`):
+  - `Hitbox.js`: 2D floor-plane tests `hitCircle`, `hitSector` (angular slack from the target's radius), `hitRect`, `relativeYaw`, plus `AttackInstance` (each target is hit once per attack).
+  - `Combat.js` routes all damage and hit feel through one place:
+    - `heroHitsEnemy(enemy, { mult, crit, knockback, stun, from, hitstop, shake })` applies crits, ±10% damage jitter, the Tate frontal block and all hit feedback.
+    - `enemyHitsHero(source, damage, knockback, from)` handles i-frames, god mode, knockback, a red screen flash, crimson numbers and death.
+    - `killEnemy(enemy, pushDir)` spawns the shatter and EXP shards and calls `onKill`.
+    - `slamImpact(center, radius)`.
+  - **Tate block**: hits from within its frontal 120° do −80% unless it's stunned. Feedback is small orange "BLOCKED n" text, orange sparks and a shield-seam flash, with reduced knockback and no stun.
+  - **Stun** interrupts actions and cancels the telegraph, and there's a short immunity after it ends. The combo finisher staggers for 0.35 s.
+  - **Knockback** is a decaying velocity clamped to the arena.
+  - **Enemies never overlap** each other or the hero: a hard positional resolve in `Game`, on top of soft separation steering.
+- **Hero combat** (`src/entities/Hero.js`):
+  - `hero.stats` holds `{ maxHp, hp, atk, critRate, critDamage, attackSpeed }`.
+  - Every swing rolls crit when it starts. Damage lands between the clip's `hitStart` and `hitEnd` with a sector of 2.4 m / 120°, multiplied ×1.0 / 1.0 / 1.4 per step, plus a crescent slash arc per step. Clip speed = attack speed, so the hit windows scale with it.
+  - Getting hit: flash, knockback, 0.4 s i-frames and a flinch.
+  - Death: death clip, both clocks tween to 0.2× slow-mo, the screen desaturates, then after 1.4 s the **DEFEATED — Press Enter to retry** overlay shows run stats. Enter resets the run (`game.restart()`).
+- **Whip strike** (`src/combat/WhipStrike.js`), the crit passive:
+  - The 8 real blade segments detach. Each frame they're placed on a curved chain from the sword guard to a tip that sweeps 170° in 0.28 s. The reach shoots out to 5.5 m in the first 0.08 s.
+  - Each chain point samples the tip's path with a delay that grows toward the hand, so every segment trails the next like a whip, with a travelling wave along it.
+  - Segments grow ×2.2 into chunky plates while flying and the blade edge glows brighter.
+  - Visuals: jagged cyan lightning between consecutive segments (re-rolled every frame), a bright tip ribbon, a faint 170° crescent along the reach, and tip sparks.
+  - Retract in 0.15 s (ease-in back to the animated pose), then a snap click-flash (blade glow ×4 plus a small star).
+  - Hit test: enemies within the current reach whose angle the tip swept this frame. Each hit does crit damage with 0.07 s hitstop, shake, a camera zoom punch, a big white-cyan crit number and a lightning bolt to the target.
+  - Petals are swept along the arc. The next swing waits for the snap.
+- **FX library** (`src/fx/`, all pooled and reusable, entry point `game.fx`):
+  - `Particles` is two InstancedMesh cube pools (additive glow and lit solid), each particle on the world or hero clock. Emitters: `sparks` (velocity-stretched streaks), `hitStar`, `dust`, `debris` (bouncing), `embers`.
+  - `SlashArcs`: crescent arcs built in the shader with radius, thickness, span, tilt, sweep direction, a bright head and fade.
+  - `RibbonTrail` (generalized from `BladeTrail`): the hero's blade trail and the whip tip trail.
+  - `Lightning`: camera-facing jagged bolts with a hot core and colored halo, flickering, fire-and-forget or following their ends.
+  - `Decals`: floor telegraphs (circle / sector / rect) that fill over the windup, pulse near the end, flash when they resolve, and can be cancelled. They sit at y = 0.045.
+  - `Shockwaves`: expanding floor rings plus the orange spawn beam.
+  - `Shatter`: a dead enemy's voxel boxes become up to 100 tumbling, bouncing cubes that shrink away. Emissive boxes become embers.
+  - `ExpShards`: cyan cubes pop out, then home in on the hero.
+  - `DamageNumbers`: DOM, pooled. Normal is white, crits are bigger and white-cyan with a pop and jitter, hero damage is crimson, plus "BLOCKED" and "LEVEL UP" labels.
+  - Hit flash: `rig.setFlash`, 80 ms white, kept just under the bloom threshold.
+- **Enemy AI** (`src/entities/Enemy.js`, world clock): a state machine of approach → attack (windup telegraph → strike) → cooldown → approach, plus stunned. Facing locks during the windup (it tracks briefly first).
+  - **Ronin**: closes to 1.4 m and circles while on cooldown. Within 1.9 m it winds up for 0.45 s with a sector decal, then slashes a 1.6 m / 100° sector with a lunge. Cooldown 1.4 s.
+  - **Teppo**: keeps 6–8 m away (backs off, closes in, or strafes, and won't back into the rim). The aim is a 0.7 s telegraph line that tracks for the first 60%, then locks. It fires a 9 m/s bolt (`src/combat/Projectiles.js`) with a muzzle flash and ember trail. Cooldown 2.4 s.
+  - **Tate**: advances with its shield up. Within 2.4 m it telegraphs a 2.2 m slam circle for 0.94 s, centered 0.9 m in front of it and tracking for the first 40%. The impact adds rings, dust, debris, shake and a petal impulse. Cooldown 2.6 s.
+  - Eyes flare through the telegraph and dim when stunned.
+- **Waves** (`src/game/Waves.js`):
+  - Wave w has 3 + ⌊1.2w⌋ enemies, spawned one at a time while fewer than 2 are alive. Spawn telegraphs in flight count as alive.
+  - Each spawn shows a 1 s orange beam and ring at a gate ≥ 5 m from the hero, or a rim point if no gate qualifies.
+  - Type unlocks: Ronin from wave 1, Teppo from 2, Tate from 3, with weighted picks.
+  - Scaling per wave: HP ×1.14^(w−1), damage ×1.07^(w−1), speed +1.5% per wave (max +30%).
+  - After a clear: 2.5 s break, +20% HP, and a "WAVE N" banner.
+  - Boss waves (5 / 10 / 15) are regular waves until the bosses arrive in Stage 5.
+- **Progression** (`src/game/Progression.js`): EXP to next level = 40 + 25·(L−1). A level-up gives +8% ATK and +5% max HP, heals 25%, adds 1 pending upgrade (cards in Stage 5), and plays a burst: cyan rings, rising sparks, "LEVEL UP" text and the HUD level flashes.
+- **HUD** (`src/ui/HUD.js`, top-left, text-first): HP bar, level and EXP bar, wave and enemies left, crit %, and pending upgrades, plus the centered wave banner and the death overlay. The debug stats counter moved to the bottom-left.
+- **Debug**:
+  - Hotkeys: **1/2/3** spawn with the telegraph, **K** kills all (shatter + EXP), **G** god mode, **N** next wave, **L** level up.
+  - Hero folder: god mode, crit rate, level up, full heal, take 50 damage.
+  - Enemies folder: kill all, remove all, *AI enabled*, *waves running*, next wave, stun all.
+  - The model viewer now pauses the game clocks.
+
+### API for later stages
+- `game.combat.heroHitsEnemy(enemy, { mult, crit, knockback, stun, from, hitstop, shake })`, `enemyHitsHero(...)`, `killEnemy(...)`.
+- `enemy.stun(s)`, `enemy.blocks(fromPos)`, `enemy.takeDamage(...)`. Enemies expose `position`, `radius`, `hp`, `state`.
+- `game.fx.particles.*`, `.slashes.spawn`, `.lightning.bolt`, `.decals.show`, `.shock.ring` / `.beam`, `.shatter.burst`, `.exp.drop`, `.numbers.show`.
+- `game.spawnEnemy(type, { wave, scale, instant })`, `game.killAll()`, `game.restart()`, `game.waves.skip()`, `game.progression.levelUp()`.
+
+### Files
+- New:
+  - `src/combat/{Hitbox,Combat,WhipStrike,Projectiles}.js`
+  - `src/fx/{FX,Particles,SlashArc,Lightning,Decals,Shockwave,Shatter,ExpShards,DamageNumbers}.js`
+  - `src/game/{Waves,Progression}.js`, `src/ui/HUD.js`
+- Changed:
+  - `src/entities/{Hero,Enemy}.js`, `src/game/Game.js`, `src/main.js`, `src/config.js`
+  - `src/fx/BladeTrail.js` (now `RibbonTrail` + `BladeTrail`), `src/anim/Rig.js` (softer flash)
+  - `src/debug/{DebugPanel,ModelViewer,Stats}.js`, `src/ui/UI.js`
+  - `docs/GAME_SPEC.md` (§8 EXP shards fly to the hero)
+
+### Key tunables (`src/config.js`)
+| Path | Default | What |
+|---|---|---|
+| `CONFIG.whip.{reach, arcDeg, sweep, extend, retract, lag}` | 5.5 / 170 / 0.28 / 0.08 / 0.15 / 0.055 | Whip shape and timing |
+| `CONFIG.whip.{segScale, bladeGlow, linkWidth, linkIntensity, tipTrail}` | 2.2 / 2.2 / 0.13 / 4.5 / … | Whip look |
+| `CONFIG.whip.{hitstop, shake, punch, knockback}` | 0.07 / 0.42 / 0.035 / 6 | Whip hit feel |
+| `CONFIG.combat.{heroHitstop, heroShake, finisherShake, heroKnockback, comboStun}` | 0.035 / 0.14 / 0.22 / [2.2, 2.2, 4.5] / [0, 0, 0.35] | Normal hit feel |
+| `CONFIG.combat.{hurtKnockback, hurtShake, deathSlowmo, deathOverlayDelay}` | 5 / 0.35 / 0.2 / 1.4 | Getting hit and death |
+| `CONFIG.enemies.<type>.*` | per spec | HP, damage, speed, ranges, cooldowns, bolt, slam, block |
+| `CONFIG.waves.*` / `CONFIG.progression.*` | per spec | Counts, scaling, breaks, unlocks, EXP curve |
+| `CONFIG.fx.*` | pools | Pool sizes, decal height / color, shatter physics, EXP homing, numbers |
+
+### Verification
+- **Headless fixed-step simulation** of the real game loop with a bot that chases the nearest enemy and holds attack. 150 s reached wave 5 and level 5. Whip strikes were 76 of 151 attacks (≈ 50%), and the counts (28 kills, 177 hits) track the expected rates. No errors.
+- **Forced death**: slow-mo, then the overlay, then Enter restarts at wave 1 with full HP and normal time scale.
+- **Per-type AI traces**: every type attacks and lands hits. The Ronin backs off to its hold range after a lunge.
+
+### Known issues / notes
+- **60 fps with full FX is unverified on a GPU.** Only SwiftShader was available. Per frame there are about 14 new draw calls when all pools are active; most pools draw nothing when idle.
+- **The whip is placed procedurally in world space**, locked to the aim at the swing's start, so turning mid-whip doesn't bend it.
+- **The Teppo can be slippery** for a bot at 0.45× attack move speed. For a player, walking up to it without attacking catches it easily.
+- **Upgrade cards, full HUD, title and pause screens and bosses** are Stage 5. Pending upgrades are only counted for now.
+
+### How to test
+1. `npm run dev`. "WAVE 1" appears and Ronin drop in through orange beams at the gates. Hold left click toward them.
+2. About half of the swings become whip strikes: the blade flies apart into a lightning-linked chain sweeping 170° to 5.5 m, with a hitstop, shake and big crit numbers, then snaps back with a flash. Normal swings show a crescent and white numbers.
+3. Enemy telegraphs:
+   - Ronin: sector decal plus eye flare, then a slash with a lunge.
+   - Teppo (wave 2+): keeps its distance, draws a red aim line, then fires an orange bolt you can sidestep.
+   - Tate (wave 3+): hit it from the front for "BLOCKED". Get behind it, or stagger it with the combo finisher (and later Q/E). Its slam circle fills for 0.9 s.
+4. Kills shatter into cubes, and the EXP cubes fly to you. Level-ups show "LEVEL UP" and the HUD counts pending upgrades.
+5. Clear a wave to get the break, the heal and the next banner. Die to get slow-mo, then **DEFEATED**; press **Enter** to retry.
+6. Debug (`` ` ``): **1/2/3** spawn, **K** kills all, **G** god mode, **N** next wave, **L** level up. The Hero folder has crit rate (1.0 = whip every swing), and the Enemies folder has AI on/off.
+7. Run `npm run build`, then open `dist/index.html`.

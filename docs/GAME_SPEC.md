@@ -84,7 +84,7 @@ Cast (2.2 s, hero invulnerable, input locked):
 Buff (7 s, on the hero clock): bulkier blade (≈1.6× thicker, extra plates along the spine, white-cyan edge, crimson core glow), attack speed +60%, cooldowns tick 2× faster, crit rate 100% (every basic attack is a whip strike), crackling cyan and crimson aura. When it ends, the extra plates dissolve into nanobot cubes.
 
 ## 8. Enemies (base values at wave 1)
-All enemies are rust-red/black/bronze armored robots with adult proportions (~0.95× hero height unless noted), orange emissive eyes and seams, the same block scale and simplicity as the hero. Every attack has a readable telegraph (eye flare + red/orange ground decal). Hit flash white 80 ms, small knockback. On death the model shatters into voxel chunks that bounce and fade, and drops EXP shards (small cyan cubes that magnetize to the hero within 3 m).
+All enemies are rust-red/black/bronze armored robots with adult proportions (~0.95× hero height unless noted), orange emissive eyes and seams, the same block scale and simplicity as the hero. Every attack has a readable telegraph (eye flare + red/orange ground decal). Hit flash white 80 ms, small knockback. On death the model shatters into voxel chunks that bounce and fade, and drops EXP shards (small cyan cubes that pop out, then fly to the hero; instantly within 3 m).
 
 | Enemy | HP | Damage | Speed | Behavior | EXP | From wave |
 |---|---|---|---|---|---|---|

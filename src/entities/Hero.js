@@ -5,6 +5,8 @@ import { buildHeroRig, HERO_BLADE_SEGMENTS } from '../voxel/models/HeroModel.js'
 import { Animator, EASE } from '../anim/Animator.js';
 import { heroClips, HERO_UPPER_MASK } from '../anim/clips/heroClips.js';
 import { BladeTrail } from '../fx/BladeTrail.js';
+import { WhipStrike } from '../combat/WhipStrike.js';
+import { AttackInstance, hitSector, relativeYaw } from '../combat/Hitbox.js';
 
 const DEG = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -27,7 +29,9 @@ class Spring {
 // KUROGANE. Runs on the hero clock (time.heroDt).
 // Legs face the movement direction (within ±twistMax of the aim) or the aim when idle/backpedalling;
 // the upper body always twists toward the mouse ground point. Left mouse (hold) runs the 3-hit
-// combo (no damage until Stage 3). Emits 'hitStart' / 'hitEnd' through `onEvent`.
+// combo: damage between the clip's hitStart / hitEnd (sector 2.4 m / 120°), or — on a crit — a
+// whip strike (5.5 m / 170° sweep). Getting hit: flash, knockback, i-frames. Emits 'hitStart' /
+// 'hitEnd' through `onEvent`. `ctx` (the Game) gives access to enemies, combat and FX.
 export class Hero {
   constructor() {
     const H = CONFIG.hero;
@@ -53,19 +57,23 @@ export class Hero {
     this.runDir = 1;
     this.time = 0;
     this.dead = false;
-    this.attackSpeed = 1; // playback multiplier (Stage 4 buffs)
+    this.stats = {};
+    this.resetStats();
+    this.iFrames = 0;
+    this.flash = 0;
+    this.ctx = null;
+    this.attack = new AttackInstance();
 
-    this.combo = { active: false, step: 0, buffered: false, ended: false, sinceEnd: 0 };
+    this.combo = { active: false, step: 0, buffered: false, ended: false, sinceEnd: 0, crit: false, queued: false };
     this.attacking = false;
     this.onEvent = null; // (name, clip) — Stage 3 hooks hit detection here
 
     this.trail = new BladeTrail();
-    this.animator.on('hitStart', (clip) => {
-      this.trail.start();
-      this.onEvent?.('hitStart', clip);
-    });
+    this.whip = null; // created in attachFX (needs the FX pools)
+    this.animator.on('hitStart', (clip) => this._onHitStart(clip));
     this.animator.on('hitEnd', (clip) => {
       this.trail.stop();
+      this.attack.active = false;
       this.onEvent?.('hitEnd', clip);
     });
 
@@ -94,10 +102,35 @@ export class Hero {
     this.animator.update(0);
   }
 
+  // Base stats (spec §5); progression multiplies atk / maxHp later.
+  resetStats() {
+    const H = CONFIG.hero;
+    Object.assign(this.stats, { maxHp: H.maxHp, hp: H.maxHp, atk: H.atk, critRate: H.critRate, critDamage: H.critDamage, attackSpeed: 1 });
+  }
+
+  get radius() {
+    return CONFIG.hero.radius;
+  }
+
+  get attackSpeed() {
+    return this.stats.attackSpeed;
+  }
+
+  set attackSpeed(v) {
+    this.stats.attackSpeed = v;
+  }
+
+  // Needs the game's FX pools (whip lightning, slash arcs).
+  attachFX(ctx) {
+    this.ctx = ctx;
+    this.whip = new WhipStrike(this, ctx.fx);
+  }
+
   // ── Actions ──────────────────────────────────────────────────────────────
   _startAttack() {
     const A = CONFIG.hero.anim;
     const clip = ATTACKS[this.combo.step];
+    this.combo.crit = Math.random() < this.stats.critRate; // every basic attack rolls crit (spec §6)
     this.upper.play(clip, { fade: A.attackFade, speed: this.attackSpeed, onEnd: () => (this.combo.ended = true) });
     this.upper.weightFade = A.attackFade;
     this.combo.active = true;
@@ -110,8 +143,87 @@ export class Hero {
     this.combo.active = false;
     this.combo.sinceEnd = 0;
     this.attacking = false;
+    this.attack.active = false;
     this.trail.stop();
     this.upper.fadeOut(CONFIG.hero.anim.upperFadeOut);
+  }
+
+  // Swing reaches its hit window: plain slash (sector + crescent) or whip strike on a crit.
+  _onHitStart(clip) {
+    const step = ATTACKS.indexOf(clip);
+    this.attack.reset();
+    this.attack.step = step;
+    this.attack.crit = this.combo.crit;
+    const dir = step === 1 ? -1 : 1; // attack 2 is the backhand (left → right)
+    if (this.combo.crit && this.whip) {
+      this.attack.active = false; // the whip's sweep does the hitting
+      this.whip.start(dir);
+      const W = CONFIG.whip;
+      this.ctx?.map.petalSweep(this.position, this.aim, W.arcDeg, W.reach, W.petalStrength, dir);
+    } else {
+      this.trail.start();
+      const A = CONFIG.hero.anim;
+      const [hs, he] = A.hitWindows[step];
+      const sweep = ((he - hs) * A.attackDurations[step]) / this.attackSpeed;
+      const tilt = [28, -12, 80][step];
+      this.ctx?.fx.slashes.spawn({
+        pos: this._v2.set(this.position.x, 1.05, this.position.z), yaw: this.aimYaw, tiltDeg: tilt, radius: CONFIG.hero.combo.range - 0.1,
+        thickness: step === 2 ? 1.1 : 0.85, arcDeg: CONFIG.hero.combo.arcDeg, dir: step === 2 ? -1 : dir, sweep, intensity: step === 2 ? 3.2 : 2.6,
+      });
+      this.ctx?.map.petalSweep(this.position, this.aim, CONFIG.hero.combo.arcDeg, CONFIG.hero.combo.range + 0.5, 2, dir);
+    }
+    this.onEvent?.('hitStart', clip);
+  }
+
+  // Enemy damage landed (Combat decides god mode / amount).
+  takeHit(damage, dir, knockback) {
+    if (this.dead) return;
+    this.stats.hp = Math.max(0, this.stats.hp - damage);
+    this.iFrames = CONFIG.hero.hurtIFrames;
+    this.flash = 1;
+    this.velocity.x += dir.x * knockback;
+    this.velocity.z += dir.z * knockback;
+    if (this.stats.hp > 0) this.playHurt();
+  }
+
+  heal(amount) {
+    if (this.dead) return;
+    this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + amount);
+  }
+
+  // Combat hit tests for the current attack (hero clock, after the pose update).
+  _combat() {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const H = CONFIG.hero;
+    const C = CONFIG.combat;
+    const atk = this.attack;
+    const step = atk.step ?? 0;
+    if (atk.active) {
+      const arc = H.combo.arcDeg * DEG;
+      for (const e of ctx.enemies) {
+        if (e.dead || !hitSector(this.position.x, this.position.z, this.aimYaw, H.combo.range, arc, e) || !atk.once(e)) continue;
+        ctx.combat.heroHitsEnemy(e, { mult: H.combo.damage[step], crit: false, knockback: C.heroKnockback[step], stun: C.comboStun[step], shake: step === 2 ? C.finisherShake : C.heroShake });
+      }
+    }
+    const w = this.whip;
+    if (w && w.sweeping) {
+      const W = CONFIG.whip;
+      const lo = Math.min(w.prevTipAngle, w.tipAngle);
+      const hi = Math.max(w.prevTipAngle, w.tipAngle);
+      for (const e of ctx.enemies) {
+        if (e.dead || atk.hit.has(e)) continue;
+        const d = Math.hypot(e.position.x - w.origin.x, e.position.z - w.origin.z);
+        if (d > w.reachNow + e.radius) continue;
+        const rel = relativeYaw(w.origin.x, w.origin.z, w.yaw0, e);
+        const slack = d > e.radius ? Math.asin(Math.min(1, e.radius / d)) : Math.PI;
+        if (rel < lo - slack || rel > hi + slack) continue;
+        atk.once(e);
+        ctx.combat.heroHitsEnemy(e, { from: w.origin, mult: H.combo.damage[step], crit: true, knockback: W.knockback, stun: C.comboStun[step], hitstop: W.hitstop, shake: W.shake });
+        ctx.fx.lightning.bolt(w.tip, this._v2.set(e.position.x, 1.1, e.position.z), { life: 0.12, width: 0.09, jitter: 0.3, intensity: 4 });
+        ctx.rig.punch(W.punch, 0.18);
+      }
+    }
   }
 
   playHurt() {
@@ -125,6 +237,7 @@ export class Hero {
     if (this.dead) return;
     this.dead = true;
     this._endCombo();
+    this.whip?.cancel();
     this.overlay.fadeOut(0.1);
     this.base.play('death', { fade: 0.12 });
   }
@@ -132,6 +245,26 @@ export class Hero {
   revive() {
     this.dead = false;
     this.base.setBlend({ idle: 1, run: 0 });
+  }
+
+  // Full reset for a new run.
+  reset() {
+    const H = CONFIG.hero;
+    this.resetStats();
+    this.revive();
+    this.position.set(H.spawn.x, 0, H.spawn.z);
+    this.velocity.set(0, 0, 0);
+    this.aimYaw = this.legYaw = Math.PI;
+    this.iFrames = 0;
+    this.flash = 0;
+    this.rig.setFlash(0);
+    this._endCombo();
+    this.combo.step = 0;
+    this.combo.ended = false;
+    this.combo.queued = false;
+    this.whip?.cancel();
+    this.trail.clear();
+    this.overlay.fadeOut(0);
   }
 
   // Debug: the claw hand flies out toward the aim and back (proves clawHand / chainAnchor).
@@ -150,6 +283,9 @@ export class Hero {
     const H = CONFIG.hero;
     const A = H.anim;
     this.time += dt;
+    this.iFrames = Math.max(0, this.iFrames - dt);
+    this.flash = Math.max(0, this.flash - dt / CONFIG.enemies.hurtFlash);
+    this.rig.setFlash(this.flash, '#ff9aa6');
 
     // Movement: screen-relative WASD, slower while attacking.
     let ix = 0;
@@ -216,12 +352,17 @@ export class Hero {
     if (!this.dead) {
       const pressed = input.wasButtonPressed(0);
       const held = input.isButtonDown(0);
+      const whipBusy = this.whip?.active;
       if (this.combo.active) {
         if (pressed) this.combo.buffered = true;
       } else {
-        this.combo.sinceEnd += dt;
+        if (!whipBusy) this.combo.sinceEnd += dt;
         if (this.combo.sinceEnd > H.combo.resetTime) this.combo.step = 0;
-        if ((pressed || held) && !this.clawTest) this._startAttack();
+        if (pressed) this.combo.queued = true;
+        if ((this.combo.queued || held) && !this.clawTest && !whipBusy) {
+          this.combo.queued = false;
+          this._startAttack();
+        }
       }
     }
 
@@ -235,7 +376,8 @@ export class Hero {
 
     this.animator.update(dt);
 
-    if (this.combo.ended && !this.dead) {
+    // The next swing waits for a whip to snap back.
+    if (this.combo.ended && !this.dead && !this.whip?.active) {
       this.combo.ended = false;
       this.combo.step = (this.combo.step + 1) % ATTACKS.length;
       if (this.combo.buffered || input.isButtonDown(0)) this._startAttack();
@@ -245,6 +387,8 @@ export class Hero {
     this._procedural(dt, speed);
     this.group.updateMatrixWorld(true);
     this._tests(dt);
+    this.whip?.update(dt);
+    this._combat();
 
     // Trail from blade base to tip.
     const B = this.rig.bones;

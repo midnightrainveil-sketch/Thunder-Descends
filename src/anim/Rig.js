@@ -132,7 +132,7 @@ export class Rig {
         .replace('#include <common>', '#include <common>\nuniform float uFlash;\nuniform vec3 uFlashColor;')
         .replace(
           '#include <opaque_fragment>',
-          'outgoingLight = mix(outgoingLight, uFlashColor * 1.6, uFlash);\n#include <opaque_fragment>',
+          'outgoingLight = mix(outgoingLight, uFlashColor * 0.95, uFlash * 0.8);\n#include <opaque_fragment>',
         );
     };
     mat.customProgramCacheKey = () => 'rigOpaque';

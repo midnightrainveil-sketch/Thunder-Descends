@@ -7,7 +7,8 @@ export class Stats {
     Object.assign(this.el.style, {
       position: 'absolute',
       left: '12px',
-      top: '10px',
+      bottom: '38px', // bottom-left: the HUD owns the top-left corner
+
       padding: '6px 9px',
       font: '11px/1.45 var(--font-num)',
       color: '#bff4ff',

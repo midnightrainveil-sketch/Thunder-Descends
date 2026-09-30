@@ -181,10 +181,48 @@ export const CONFIG = {
 
   // ── Enemies (spec §8 base values; AI arrives in Stage 3) ────────────────────
   enemies: {
-    ronin: { hp: 120, damage: 18, speed: 3.2, exp: 10, radius: 0.45, walkAnimSpeedRef: 1.9 },
-    teppo: { hp: 90, damage: 22, speed: 2.8, exp: 12, radius: 0.45, walkAnimSpeedRef: 1.9 },
-    tate: { hp: 260, damage: 35, speed: 2.2, exp: 20, radius: 0.6, walkAnimSpeedRef: 1.7 },
-    stopDistance: 2, // m, debug walkers stop this far from the hero
+    // Base values at wave 1 (spec §8) + per-type AI (Stage 3).
+    ronin: {
+      hp: 120, damage: 18, speed: 3.2, exp: 10, radius: 0.45, walkAnimSpeedRef: 1.9,
+      engageRange: 1.9, // m, starts the windup when the hero is this close
+      holdRange: 1.4, // m, approaches no closer than this
+      slashRange: 1.6, // m, sector hitbox reach
+      slashArcDeg: 100, // sector hitbox arc
+      cooldown: 1.4, // s between attacks
+      lunge: 2.6, // m/s forward burst on the strike
+      knockback: 4, // m/s pushed into the hero
+    },
+    teppo: {
+      hp: 90, damage: 22, speed: 2.8, exp: 12, radius: 0.45, walkAnimSpeedRef: 1.9,
+      keepMin: 6, keepMax: 8, // m, preferred distance band from the hero
+      strafe: 0.5, // × speed while inside the band
+      fireRange: 11, // m, only aims when the hero is within this
+      cooldown: 2.4, // s between shots
+      aimTrack: 0.6, // share of the aim telegraph during which it still tracks the hero, then locks
+      boltSpeed: 9, // m/s
+      boltRadius: 0.18, // m
+      boltLife: 3, // s
+      lineLength: 12, // m, aim telegraph line length
+      lineWidth: 0.35, // m
+      knockback: 3,
+    },
+    tate: {
+      hp: 260, damage: 35, speed: 2.2, exp: 20, radius: 0.6, walkAnimSpeedRef: 1.7,
+      engageRange: 2.4, // m, starts the slam when the hero is this close
+      holdRange: 1.5,
+      slamRadius: 2.2, // m (spec §8)
+      slamOffset: 0.9, // m in front of the Tate where the slam circle is centered
+      cooldown: 2.6, // s between slams
+      blockArcDeg: 120, // frontal shield arc
+      blockReduction: 0.8, // damage blocked from the front unless stunned
+      knockback: 7,
+    },
+    stopDistance: 2, // m, legacy walker stop distance (debug walkers)
+    stunImmuneAfter: 0.4, // s after a stun ends before another stun can land
+    knockbackDrag: 9, // 1/s, knockback velocity decay
+    hurtFlash: 0.08, // s white hit flash (spec §8)
+    eyeFlareDecay: 1.6, // 1/s
+    spawnBeam: 1.0, // s spawn telegraph (orange beam + ring)
     turnRate: 7, // 1/s
     accel: 12, // m/s²
     spawnMinDist: 5, // m from the hero (spec §9)
@@ -202,6 +240,88 @@ export const CONFIG = {
       eyeFlare: 3.2, // eye glow multiplier during telegraphs
       shieldBrace: 0.85, // Tate shield counter-rotation vs. left-arm pitch (1 = always vertical)
     },
+  },
+
+  // ── Combat (Stage 3) ────────────────────────────────────────────────────
+  combat: {
+    heroHitstop: 0.035, // s, normal hit
+    heroShake: 0.14, // trauma per normal hit
+    finisherShake: 0.22,
+    heroKnockback: [2.2, 2.2, 4.5], // m/s per combo step
+    comboStun: [0, 0, 0.35], // s stagger per combo step (finisher interrupts windups)
+    damageJitter: 0.1, // ±10% damage variance
+    hurtKnockback: 5, // m/s pushed away when the hero is hit
+    hurtShake: 0.35,
+    hurtHitstop: 0.05,
+    blockedKnockback: 0.6, // × knockback when the Tate blocks
+    deathSlowmo: 0.2, // time scale after the hero dies
+    deathSlowmoTween: 0.35, // s
+    deathOverlayDelay: 1.4, // s (real) before "Press Enter to retry"
+  },
+
+  // Passive — whip strike on crit (spec §6).
+  whip: {
+    reach: 5.5, // m
+    arcDeg: 170, // sweep + hitbox arc
+    sweep: 0.28, // s extend + sweep
+    extend: 0.08, // s of the sweep spent reaching full length
+    retract: 0.15, // s snap back
+    lag: 0.055, // s the segment nearest the hand trails the tip
+    height: 1.05, // m, chain height above the floor at the tip
+    sag: 0.18, // m, wave amplitude along the chain
+    hitstop: 0.07, // s
+    shake: 0.42, // trauma
+    punch: 0.035, // camera zoom punch
+    knockback: 6, // m/s
+    petalStrength: 5, // petal sweep strength along the arc
+    snapFlash: 4, // blade glow multiplier at the snap
+    segScale: 2.2, // segments grow into chunky plates while flying (reads from the game camera)
+    bladeGlow: 2.2, // blade edge glow multiplier while extended
+    linkWidth: 0.13, // m, lightning between segments
+    linkIntensity: 4.5,
+    tipTrail: { samples: 28, lifetime: 0.16, color: '#aef3ff', intensity: 2.6, opacity: 0.9, inner: 1.1 }, // inner = m inward from the tip
+  },
+
+  // ── FX pools (Stage 3) ──────────────────────────────────────────────────
+  fx: {
+    particles: { glow: 700, solid: 300, gravity: 14 }, // cube particle pools
+    shatter: { max: 100, life: 2.2, fade: 0.5, bounce: 0.35, friction: 0.7, speed: 4.5, up: 4, spin: 9 },
+    slashArcs: 10, // crescent pool
+    lightningBolts: 48, // bolt pool
+    lightningPoints: 9, // points per bolt
+    decals: 16, // telegraph decal pool
+    rings: 12, // shockwave ring pool
+    beams: 4, // spawn beam pool
+    decalY: 0.045, // m, gameplay decals above tiles / seams / lantern pools
+    decalColor: '#ff4a1f', // telegraph red-orange
+    slashColor: '#7feaff',
+    critColor: '#e8fdff',
+    sparkColor: '#6fe8ff',
+    emberColor: '#ff8a2a',
+    exp: { size: 0.1, pop: 3.2, delay: 0.35, magnetRange: 3, accel: 40, maxSpeed: 16, pickup: 0.5, pool: 120, color: '#35e0ff', value: 4 }, // value = EXP per shard
+    numbers: { pool: 40, life: 0.85, rise: 55, critScale: 1.7 }, // DOM damage numbers (px/s rise)
+  },
+
+  // ── Waves & progression (spec §9–10) ───────────────────────────────────
+  waves: {
+    maxAlive: 2,
+    countBase: 3, countPerWave: 1.2, // 3 + floor(1.2·w)
+    hpGrowth: 1.14, dmgGrowth: 1.07, // per wave
+    speedPerWave: 0.015, speedMax: 0.3,
+    breakTime: 2.5, // s between waves
+    breakHeal: 0.2, // share of max HP healed at a break
+    firstDelay: 1.2, // s before wave 1 spawns
+    spawnInterval: 0.6, // s minimum between spawns
+    unlock: { ronin: 1, teppo: 2, tate: 3 }, // first wave per type
+    weights: { ronin: 3, teppo: 2, tate: 1.4 },
+    bannerTime: 1.8, // s
+  },
+  progression: {
+    expBase: 40, expPerLevel: 25, // EXP to next = 40 + 25·(L−1)
+    atkGain: 0.08, hpGain: 0.05, levelHeal: 0.25,
+  },
+  hud: {
+    corner: 'top-left',
   },
 
   voxel: {

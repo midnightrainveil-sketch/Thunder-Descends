@@ -91,22 +91,21 @@ export class DebugPanel {
     if (input.wasPressed('KeyO')) this.toggleOrbit();
     if (input.wasPressed('KeyF')) this.togglePhoto();
     if (input.wasPressed('KeyI')) this.petalImpulseAtMouse();
-    // Stage 2: spawn walkers (full AI in Stage 3), remove all, model viewer.
+    // Stage 3: spawn (with telegraph), kill all, god mode, next wave, level up, model viewer.
     if (input.wasPressed('Digit1')) this.game.spawnEnemy('ronin');
     if (input.wasPressed('Digit2')) this.game.spawnEnemy('teppo');
     if (input.wasPressed('Digit3')) this.game.spawnEnemy('tate');
-    if (input.wasPressed('KeyK')) this.game.clearEnemies();
+    if (input.wasPressed('KeyK')) this.game.killAll();
+    if (input.wasPressed('KeyG')) this.game.godMode = !this.game.godMode;
+    if (input.wasPressed('KeyN')) this.game.waves.skip();
+    if (input.wasPressed('KeyL')) this.game.progression.levelUp();
     if (input.wasPressed('KeyM')) this.viewer.enable();
 
-    // TODO(Stage 3): K kills (damage/death), G god mode, N next wave. TODO(Stage 4): C reset cooldowns.
-    // TODO(Stage 5): 4/5/6 spawn bosses, L gain a level.
+    // TODO(Stage 4): C reset cooldowns. TODO(Stage 5): 4/5/6 spawn bosses.
     const stubs = {
       Digit4: 'spawn Oni Juggernaut (Stage 5)',
       Digit5: 'spawn Kage Kitsune (Stage 5)',
       Digit6: 'spawn Raiju Serpent (Stage 5)',
-      KeyG: 'god mode (Stage 3)',
-      KeyN: 'next wave (Stage 3)',
-      KeyL: 'gain a level (Stage 5)',
       KeyC: 'reset cooldowns (Stage 4)',
     };
     for (const code in stubs) if (input.wasPressed(code)) console.info(`[debug] ${code}: ${stubs[code]} — not implemented yet`);
@@ -305,6 +304,11 @@ export class DebugPanel {
     hero.add(C.hero, 'leanDeg', 0, 15, 0.5);
     hero.add(C.hero.anim, 'breathDeg', 0, 5, 0.1).name('breathing°');
     hero.add(H, 'attackSpeed', 0.25, 3, 0.05).name('attack speed');
+    hero.add(this.game, 'godMode').name('god mode (G)').listen();
+    hero.add(this.game.hero.stats, 'critRate', 0, 1, 0.05).name('crit rate').listen();
+    hero.add({ f: () => this.game.progression.levelUp() }, 'f').name('Level up (L)');
+    hero.add({ f: () => this.game.hero.heal(1e6) }, 'f').name('Full heal');
+    hero.add({ f: () => this.game.combat.enemyHitsHero({ position: this.game.hero.position.clone().add({ x: 0, y: 0, z: 1 }) }, 50, 5) }, 'f').name('Take 50 damage');
     hero.add({ f: () => this.game.hero.testClaw() }, 'f').name('Test claw');
     hero.add({ f: () => this.game.hero.testBladeSplit() }, 'f').name('Test blade split');
     hero.add({ f: () => this.game.hero.playHurt() }, 'f').name('Play hurt');
@@ -322,7 +326,13 @@ export class DebugPanel {
     en.add({ f: () => this.game.spawnEnemy('ronin') }, 'f').name('Spawn Ronin (1)');
     en.add({ f: () => this.game.spawnEnemy('teppo') }, 'f').name('Spawn Teppo (2)');
     en.add({ f: () => this.game.spawnEnemy('tate') }, 'f').name('Spawn Tate (3)');
-    en.add({ f: () => this.game.clearEnemies() }, 'f').name('Remove all (K)');
+    en.add({ f: () => this.game.killAll() }, 'f').name('Kill all (K)');
+    en.add({ f: () => this.game.clearEnemies() }, 'f').name('Remove all (no FX)');
+    const aiState = { ai: true };
+    en.add(aiState, 'ai').name('AI enabled').onChange((v) => this.game.enemies.forEach((e) => (e.ai = v)));
+    en.add(this.game.waves, 'enabled').name('waves running');
+    en.add({ f: () => this.game.waves.skip() }, 'f').name('Next wave (N)');
+    en.add({ f: () => this.game.enemies.forEach((e) => e.stun(2)) }, 'f').name('Stun all 2 s');
     const all = (fn) => () => this.game.enemies.forEach(fn);
     en.add({ f: all((e) => e.playAction('attack')) }, 'f').name('Attack (windup → strike)');
     en.add({ f: all((e) => e.playAction('aimFire')) }, 'f').name('Teppo aim → fire');
@@ -376,7 +386,8 @@ export class DebugPanel {
     const help = gui.addFolder('Hotkeys');
     help.add({ t: 'T time · O orbit · F photo' }, 't').name('keys').disable();
     help.add({ t: 'I petal impulse at mouse' }, 't').name('map').disable();
-    help.add({ t: '1/2/3 spawn · K remove all · M viewer' }, 't').name('models').disable();
+    help.add({ t: '1/2/3 spawn · K kill all · M viewer' }, 't').name('enemies').disable();
+    help.add({ t: 'G god · N next wave · L level up' }, 't').name('combat').disable();
     help.close();
   }
 }

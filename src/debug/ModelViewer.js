@@ -71,6 +71,7 @@ export class ModelViewer {
   enable(on = !this.active) {
     this.active = on;
     const game = this.debug.game;
+    this.debug.time.paused = on; // the game (waves, enemies) waits while the viewer is open
     if (on) {
       this._build();
       game.setPhotoMode(true);

@@ -19,7 +19,7 @@ export class UI {
 
     this.hint = document.createElement('div');
     this.hint.className = 'k-hint';
-    this.hint.innerHTML = '<b>WASD</b> move · <b>mouse</b> aim · <b>`</b> debug';
+    this.hint.innerHTML = '<b>WASD</b> move · <b>mouse</b> aim · <b>hold click</b> attack · <b>`</b> debug';
     root.appendChild(this.hint);
     this.hidden = false;
   }
