@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KUROGANE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --font-text: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
+        --font-num: 'Silkscreen', 'Consolas', 'Courier New', monospace;
+        --indigo: #0e1426;
+        --cyan: #35e0ff;
+        --crimson: #d7263d;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--indigo);
+        color: #e6e1d3;
+        font-family: var(--font-text);
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #game {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+      }
+      #game canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        outline: none;
+        cursor: crosshair;
+      }
+      #ui {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 10;
+      }
+      #ui .interactive {
+        pointer-events: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="ui"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
