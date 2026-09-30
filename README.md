@@ -23,11 +23,20 @@ Debug (press `` ` `` to toggle the panel): 1/2/3 spawn enemies, 4/5/6 spawn boss
 G god mode, N next wave, L level up, C reset cooldowns, M model viewer, T time scale, O orbit
 camera, F photo mode.
 
+## Play (release package)
+Download or build `release/KUROGANE-1.0.0.zip`, unzip it anywhere, then:
+- **Windows:** double-click `play-windows.bat` (or `index.html`)
+- **Linux:** run `./play-linux.sh` (or open `index.html` in your browser)
+
+No install, no server, works offline. Needs a desktop browser with WebGL2 (Chrome, Edge,
+Firefox, Chromium).
+
 ## Develop
 ```bash
 npm install
 npm run dev      # dev server with hot reload
 npm run build    # → dist/index.html (single file, open it directly in a browser)
+npm run package  # → release/KUROGANE-<version>.zip (game + Windows/Linux launchers)
 ```
 
 All tunable numbers live in `src/config.js`. Design spec: `docs/GAME_SPEC.md`; build log:

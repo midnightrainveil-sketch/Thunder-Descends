@@ -3,7 +3,8 @@ import { mirrorX } from '../VoxelBuilder.js';
 import { HERO_PALETTE } from '../palettes.js';
 import { Rig } from '../../anim/Rig.js';
 
-// KUROGANE — mecha samurai (spec §5). ~20 blocks tall at VOXEL = 0.12 m, ~7 heads tall.
+// KUROGANE — mecha samurai (spec §5; final look per the character sheet: navy armor, gold trim,
+// crescent horns, layered pauldrons, tall glowing back fins, V chest core, long crimson sash). ~20 blocks tall at VOXEL = 0.12 m, ~7 heads tall.
 // Model grid: center column x ∈ [0, 1] (mirror axis 0.5), faces +Z, feet at y = 0.
 // Character's RIGHT side is −X (sword hand); the oversized claw gauntlet is on the LEFT (+X).
 // Rest pose: standing straight, arms hanging, sword pointing forward (+Z) from the right fist.
@@ -56,44 +57,64 @@ function heroJoints() {
   return j;
 }
 
-// Right-side leg boxes (x columns −2..0); mirrored for the left leg.
+// Right-side leg boxes (x columns −2..−1 plus outer trims); mirrored for the left leg.
 function legBoxes() {
-  const x = -2;
   return {
     foot: [
-      { p: [x, 0, -1], s: [2, 1, 3], c: 'darkSteel' },
-      { p: [x, 0, 2], s: [2, 1, 1], c: 'ivory' }, // toe cap
-      { p: [x, 1, -1], s: [2, 1, 2], c: 'gunmetal' }, // ankle
+      { p: [-3, 0, -1], s: [3, 1, 4], c: 'navyDark' }, // sole
+      { p: [-3, 0, 3], s: [3, 1, 1], c: 'gold' }, // toe cap
+      { p: [-3, 1, 0], s: [3, 1, 2], c: 'navy' }, // instep
+      { p: [-2, 1, 2], s: [2, 1, 1], c: 'gold' },
+      { p: [-2, 1, -1], s: [2, 1, 1], c: 'goldDark' }, // heel
+      { p: [-3, 1, -1], s: [1, 1, 1], c: 'crimson' }, // ankle accent
     ],
     shin: [
-      { p: [x, 2, -1], s: [2, 3, 2], c: 'gunmetal' },
-      { p: [x, 2, 1], s: [2, 3, 1], c: 'ivory' }, // shin guard
-      { p: [x, 3, 1], s: [1, 1, 1], c: 'cyan', e: 2.2 }, // outer shin light (emissive part below)
-      { p: [x, 3, -2], s: [2, 2, 1], c: 'darkSteel' }, // calf
-      { p: [x, 5, -1], s: [2, 1, 2], c: 'darkSteel' }, // knee joint
-      { p: [x, 5, 1], s: [2, 2, 1], c: 'ivory' }, // knee guard
+      { p: [-2, 2, -1], s: [2, 4, 2], c: 'navy' },
+      { p: [-2, 2, -1], s: [2, 1, 2], c: 'crimson' }, // red ankle band
+      { p: [-2, 3, 1], s: [2, 2, 1], c: 'navyLight' }, // shin guard
+      { p: [-3, 3, -1], s: [1, 2, 2], c: 'goldDark' }, // outer greave
+      { p: [-3, 3, 1], s: [1, 2, 1], c: 'cyan', e: 1.6 }, // shin light (accent)
+      { p: [-2, 3, -2], s: [2, 2, 1], c: 'navyDark' }, // calf
+      { p: [-2, 5, -1], s: [2, 1, 2], c: 'navyDark' }, // knee joint
+      { p: [-2, 5, 1], s: [2, 2, 1], c: 'gold' }, // knee guard
+      { p: [-3, 5, 0], s: [1, 1, 2], c: 'gold' },
     ],
     thigh: [
-      { p: [x, 6, -1], s: [2, 4, 2], c: 'gunmetal' },
-      { p: [x, 8, 1], s: [2, 2, 1], c: 'darkSteel' }, // thigh plate
+      { p: [-2, 6, -1], s: [2, 4, 2], c: 'navy' },
+      { p: [-2, 7, 1], s: [2, 2, 1], c: 'navyLight' }, // thigh plate
+      { p: [-2, 9, 1], s: [2, 1, 1], c: 'gold' },
+      { p: [-3, 7, -1], s: [1, 3, 2], c: 'navyDark' }, // outer plate
+      { p: [-3, 7, 1], s: [1, 1, 1], c: 'cyan', e: 1.4 }, // thigh light (accent)
     ],
   };
 }
 
+// Big layered pauldron (right; mirrored for the left): wing-like plates stepping out and down,
+// gold edges and tips, a gold emblem on the front and an upswept gold spike.
 function pauldronBoxes() {
   return [
-    { p: [-5, 15, -2], s: [3, 1, 5], c: 'gunmetal' }, // top slab
-    { p: [-5, 16, -1], s: [2, 1, 3], c: 'ivory' }, // stepped cap
-    { p: [-5, 12, -2], s: [1, 3, 5], c: 'gunmetal' }, // hanging outer plate
-    { p: [-5, 12, -2], s: [1, 1, 5], c: 'ivory' }, // hem
-    { p: [-5, 14, 2], s: [1, 1, 1], c: 'cyan', e: 2.2 },
+    { p: [-6, 14, -2], s: [3, 3, 5], c: 'navy' }, // shell
+    { p: [-7, 16, -2], s: [4, 1, 5], c: 'navyLight' }, // top layer
+    { p: [-6, 17, -1], s: [2, 1, 3], c: 'navy' }, // raised cap
+    { p: [-7, 12, -2], s: [2, 2, 5], c: 'navy' }, // lower skirt plate
+    { p: [-7, 12, -2], s: [2, 1, 5], c: 'gold' }, // gold hem
+    { p: [-8, 15, -2], s: [1, 3, 4], c: 'navy' }, // feather plate 1 (rises outward)
+    { p: [-8, 18, -1], s: [1, 1, 2], c: 'gold' },
+    { p: [-9, 14, -1], s: [1, 3, 3], c: 'navyLight' }, // feather plate 2
+    { p: [-9, 17, 0], s: [1, 1, 1], c: 'gold' },
+    { p: [-8, 13, -1], s: [1, 2, 3], c: 'navyDark' },
+    { p: [-7, 17, -2], s: [1, 1, 1], c: 'gold' }, // rim corners
+    { p: [-7, 17, 2], s: [1, 1, 1], c: 'gold' },
+    { p: [-6, 15, 3], s: [2, 2, 1], c: 'gold' }, // round-ish emblem
+    { p: [-6, 15, 3], s: [1, 1, 1], c: 'goldDark' },
   ];
 }
 
 function upperArmBoxes() {
   return [
-    { p: [-4, 14, -1], s: [2, 1, 2], c: 'darkSteel' }, // shoulder cap
-    { p: [-4, 11, -1], s: [2, 3, 2], c: 'gunmetal' },
+    { p: [-4, 14, -1], s: [2, 1, 2], c: 'navyDark' }, // shoulder cap
+    { p: [-4, 11, -1], s: [2, 3, 2], c: 'navy' },
+    { p: [-4, 11, 1], s: [2, 1, 1], c: 'gold' }, // band
   ];
 }
 
@@ -110,96 +131,137 @@ export function heroDefinition() {
     const m = side === 'L' ? (b) => mirrorX(b, AXIS) : (b) => b;
     add(`foot${side}`, `foot${side}`, m(leg.foot));
     addSplit(`shin${side}`, `shin${side}`, m(leg.shin), G.accent);
-    add(`thigh${side}`, `thigh${side}`, m(leg.thigh));
+    addSplit(`thigh${side}`, `thigh${side}`, m(leg.thigh), G.accent);
   }
 
   // Pelvis, sash panels (own joints for lag)
   add('pelvis', 'pelvis', [
-    { p: [-2, 10, -1], s: [5, 1, 3], c: 'crimson' }, // belt band
-    { p: [0, 10, 2], s: [1, 1, 1], c: 'ivory' }, // buckle
-    { p: [0, 8, -1], s: [1, 2, 2], c: 'darkSteel' }, // crotch
+    { p: [-2, 10, -1], s: [5, 1, 3], c: 'navyDark' }, // belt
+    { p: [-2, 10, 2], s: [5, 1, 1], c: 'crimson' }, // red sash knot band
+    { p: [0, 10, 2], s: [1, 1, 1], c: 'gold' }, // buckle
+    { p: [0, 8, -1], s: [1, 2, 2], c: 'navyDark' }, // crotch
   ]);
   add('sashFront', 'sashFront', [
-    { p: [-1, 5, 2], s: [3, 5, 1], c: 'crimson' },
-    { p: [-1, 5, 2], s: [3, 1, 1], c: 'crimsonDark' },
-    { p: [0, 8, 2], s: [1, 1, 1], c: 'ivory' },
+    { p: [0, 3, 2], s: [1, 7, 1], c: 'crimson' }, // long red sash
+    { p: [0, 3, 2], s: [1, 1, 1], c: 'crimsonDark' },
+    { p: [-1, 7, 3], s: [3, 3, 1], c: 'navy' }, // navy front panel
+    { p: [-1, 9, 3], s: [3, 1, 1], c: 'gold' },
+    { p: [-1, 8, 3], s: [1, 1, 1], c: 'gold' }, // gold V
+    { p: [1, 8, 3], s: [1, 1, 1], c: 'gold' },
+    { p: [0, 7, 3], s: [1, 1, 1], c: 'gold' },
   ]);
   add('sashBack', 'sashBack', [
-    { p: [-1, 6, -2], s: [3, 4, 1], c: 'crimson' },
-    { p: [-1, 6, -2], s: [3, 1, 1], c: 'crimsonDark' },
+    { p: [-1, 5, -2], s: [3, 5, 1], c: 'crimson' },
+    { p: [0, 3, -2], s: [1, 2, 1], c: 'crimson' },
+    { p: [-1, 5, -2], s: [3, 1, 1], c: 'crimsonDark' },
   ]);
   const tasset = [
-    { p: [-3, 7, -1], s: [1, 3, 3], c: 'gunmetal' },
-    { p: [-3, 7, -1], s: [1, 1, 3], c: 'ivory' },
+    { p: [-4, 8, -1], s: [1, 2, 3], c: 'navy' },
+    { p: [-4, 8, -1], s: [1, 1, 3], c: 'gold' }, // gold hem
+    { p: [-4, 9, 2], s: [1, 1, 1], c: 'goldDark' },
   ];
   add('sashR', 'sashR', tasset);
   add('sashL', 'sashL', mirrorX(tasset, AXIS));
 
   // Torso
   add('spine', 'spine', [
-    { p: [-1, 11, -1], s: [3, 2, 3], c: 'darkSteel' },
-    { p: [-1, 12, 1], s: [3, 1, 1], c: 'gunmetal' },
+    { p: [-1, 11, -1], s: [3, 2, 3], c: 'navyDark' },
+    { p: [-1, 12, 1], s: [3, 1, 1], c: 'navyLight' },
   ]);
-  const fins = [
-    { p: [-2, 15, -2], s: [1, 1, 1], c: 'gunmetal' },
-    { p: [-3, 16, -2], s: [1, 1, 1], c: 'gunmetal' },
-    { p: [-4, 17, -2], s: [1, 1, 1], c: 'ivory' },
-  ];
+  const pec = { p: [-2, 14, 2], s: [2, 2, 1], c: 'navyLight' };
   add('chest', 'chest', [
-    { p: [-2, 13, -1], s: [5, 3, 3], c: 'gunmetal' },
-    { p: [-2, 14, 1], s: [2, 2, 1], c: 'ivory' }, // pec plates
-    ...mirrorX([{ p: [-2, 14, 1], s: [2, 2, 1], c: 'ivory' }], AXIS),
-    { p: [0, 15, 1], s: [1, 1, 1], c: 'ivory' },
-    { p: [0, 13, 1], s: [1, 1, 1], c: 'crimson' },
-    { p: [-1, 16, -1], s: [3, 1, 2], c: 'darkSteel' }, // collar
-    { p: [-1, 13, -2], s: [3, 3, 1], c: 'darkSteel' }, // back plate
-    ...fins,
-    ...mirrorX(fins, AXIS),
-    { p: [0, 14, 1], s: [1, 1, 1], c: 'cyan', e: 3.2 }, // chest core (glow group 'core')
+    { p: [-2, 13, -1], s: [5, 3, 3], c: 'navy' },
+    pec,
+    ...mirrorX([pec], AXIS),
+    { p: [-3, 15, -1], s: [7, 1, 3], c: 'navy' }, // broad shoulder yoke
+    { p: [-2, 16, 1], s: [5, 1, 1], c: 'gold' }, // gold collar trim
+    { p: [-1, 16, -1], s: [3, 1, 2], c: 'navyDark' }, // collar
+    { p: [-1, 16, 2], s: [3, 1, 1], c: 'navyDark' }, // gorget under the chin
+    { p: [-3, 16, 0], s: [1, 1, 1], c: 'crimson' }, // red cords at the collar sides
+    { p: [3, 16, 0], s: [1, 1, 1], c: 'crimson' },
+    { p: [-2, 13, -2], s: [5, 3, 1], c: 'navyDark' }, // back plate
+    { p: [-1, 12, -3], s: [3, 4, 1], c: 'navy' }, // backpack
+    { p: [0, 13, -4], s: [1, 2, 1], c: 'cyan', e: 1.6 }, // back vent light
+    { p: [-2, 13, 2], s: [5, 1, 1], c: 'navyDark' }, // lower chest
+    // V-shaped chest core (glow group 'core')
+    { p: [-1, 15, 2], s: [1, 1, 1], c: 'cyan', e: 2.2 },
+    { p: [1, 15, 2], s: [1, 1, 1], c: 'cyan', e: 2.2 },
+    { p: [0, 14, 2], s: [1, 1, 1], c: 'cyan', e: 3 },
   ], { glow: G.core });
-  const finTips = [{ p: [-5, 18, -2], s: [1, 1, 1], c: 'cyan', e: 2.4 }];
-  add('finTips', 'chest', [...finTips, ...mirrorX(finTips, AXIS)], { glow: G.accent });
+  // Back fins: two tall slabs rising above the head with glowing inner edges and tips.
+  const fin = [
+    { p: [-3, 15, -3], s: [1, 6, 1], c: 'navyLight' },
+    { p: [-3, 15, -4], s: [1, 5, 1], c: 'navy' },
+    { p: [-2, 17, -3], s: [1, 4, 1], c: 'cyan', e: 1.6 },
+    { p: [-3, 21, -3], s: [1, 1, 1], c: 'cyan', e: 2.2 },
+  ];
+  add('finTips', 'chest', [...fin, ...mirrorX(fin, AXIS)], { glow: G.accent });
 
-  // Head: squared kabuto, thick jaw mask, one visor row, forward-swept fin crest, stepped neck flap.
+  // Head: navy kabuto, gold crescent horns (kuwagata), gold side flaps, cyan eyes, center crest.
+  const horn = [
+    { p: [-1, 20, 1], s: [1, 1, 2], c: 'goldDark' }, // root on the brow
+    { p: [-2, 20, 1], s: [1, 2, 1], c: 'gold' },
+    { p: [-3, 21, 1], s: [1, 2, 1], c: 'gold' },
+    { p: [-4, 22, 1], s: [1, 2, 1], c: 'gold' },
+    { p: [-4, 24, 2], s: [1, 1, 1], c: 'gold' }, // tip curls forward
+  ];
+  const flap = [
+    { p: [-2, 18, -1], s: [1, 2, 3], c: 'gold' },
+    { p: [-3, 19, 0], s: [1, 1, 2], c: 'gold' },
+  ];
   add('head', 'head', [
-    { p: [-1, 17, -1], s: [3, 3, 3], c: 'gunmetal' },
-    { p: [-1, 17, 2], s: [3, 1, 1], c: 'darkSteel' }, // jaw mask
-    { p: [-1, 19, 2], s: [3, 1, 1], c: 'gunmetal' }, // brow
-    { p: [-2, 18, 0], s: [1, 2, 2], c: 'ivory' }, // side flaps
-    ...mirrorX([{ p: [-2, 18, 0], s: [1, 2, 2], c: 'ivory' }], AXIS),
-    { p: [-2, 17, -2], s: [5, 1, 1], c: 'darkSteel' }, // neck flap (stepped)
-    { p: [-1, 18, -2], s: [3, 1, 1], c: 'gunmetal' },
-    { p: [0, 20, 0], s: [1, 1, 2], c: 'gunmetal' }, // crest base
-    { p: [0, 21, 1], s: [1, 1, 1], c: 'ivory' },
-    { p: [0, 22, 2], s: [1, 1, 1], c: 'ivory' },
+    { p: [-1, 17, -1], s: [3, 3, 3], c: 'navy' },
+    { p: [-1, 17, 2], s: [3, 1, 1], c: 'navyDark' }, // jaw mask
+    { p: [-1, 19, 2], s: [3, 1, 1], c: 'navyLight' }, // brow
+    { p: [-1, 20, -1], s: [3, 1, 3], c: 'navyDark' }, // helmet bowl
+    { p: [0, 20, 1], s: [1, 2, 1], c: 'navyDark' }, // center crest
+    ...flap,
+    ...mirrorX(flap, AXIS),
+    ...horn,
+    ...mirrorX(horn, AXIS),
+    { p: [-2, 17, -2], s: [5, 1, 1], c: 'navyDark' }, // neck guard (stepped)
+    { p: [-1, 18, -2], s: [3, 1, 1], c: 'navy' },
   ]);
-  add('visor', 'head', [{ p: [-1, 18, 2], s: [3, 1, 1], c: 'cyan', e: 3.0 }], { glow: G.visor });
+  add('visor', 'head', [
+    { p: [-1, 18, 2], s: [1, 1, 1], c: 'cyan', e: 3.2 }, // eyes
+    { p: [1, 18, 2], s: [1, 1, 1], c: 'cyan', e: 3.2 },
+    { p: [0, 21, 2], s: [1, 1, 1], c: 'cyan', e: 2.2 }, // crest jewel
+  ], { glow: G.visor });
 
   // Shoulders: pauldrons on their own joints (lag), right sword arm, left claw gauntlet.
   addSplit('pauldronR', 'pauldronR', pauldronBoxes(), G.accent);
   addSplit('pauldronL', 'pauldronL', mirrorX(pauldronBoxes(), AXIS), G.accent);
   add('upperArmR', 'upperArmR', upperArmBoxes());
   add('upperArmL', 'upperArmL', mirrorX(upperArmBoxes(), AXIS));
-  add('forearmR', 'forearmR', [
-    { p: [-4, 10, -1], s: [2, 1, 2], c: 'darkSteel' }, // elbow
-    { p: [-4, 7, -1], s: [2, 3, 2], c: 'gunmetal' },
-    { p: [-4, 8, 1], s: [2, 2, 1], c: 'ivory' }, // bracer
+  addSplit('forearmR', 'forearmR', [
+    { p: [-4, 10, -1], s: [2, 1, 2], c: 'navyDark' }, // elbow
+    { p: [-4, 7, -1], s: [2, 3, 2], c: 'navy' },
+    { p: [-4, 8, 1], s: [2, 2, 1], c: 'gold' }, // bracer
+    { p: [-5, 8, -1], s: [1, 2, 2], c: 'navyDark' },
+    { p: [-5, 8, 1], s: [1, 1, 1], c: 'cyan', e: 1.6 },
+  ], G.accent);
+  add('handR', 'handR', [
+    { p: [-4, 5, -1], s: [2, 2, 2], c: 'navyDark' },
+    { p: [-4, 6, 1], s: [2, 1, 1], c: 'gold' }, // knuckles
   ]);
-  add('handR', 'handR', [{ p: [-4, 5, -1], s: [2, 2, 2], c: 'darkSteel' }]);
   addSplit('forearmL', 'forearmL', [
-    { p: [3, 10, -1], s: [2, 1, 2], c: 'darkSteel' }, // elbow
-    { p: [3, 8, -1], s: [3, 2, 3], c: 'gunmetal' }, // oversized gauntlet (~1.5× the right forearm)
-    { p: [3, 8, 2], s: [3, 2, 1], c: 'ivory' },
-    { p: [5, 9, 2], s: [1, 1, 1], c: 'cyan', e: 2.4 },
-    { p: [3, 7, -1], s: [3, 1, 3], c: 'darkSteel' }, // wrist chain housing (stays on the arm)
+    { p: [3, 10, -1], s: [2, 1, 2], c: 'navyDark' }, // elbow
+    { p: [3, 8, -1], s: [3, 2, 3], c: 'claw' }, // oversized gauntlet (~1.5× the right forearm)
+    { p: [3, 8, 2], s: [3, 2, 1], c: 'navyLight' },
+    { p: [3, 9, -2], s: [3, 1, 1], c: 'navy' },
+    { p: [6, 8, -1], s: [1, 2, 3], c: 'clawDark' }, // outer plate
+    { p: [6, 8, 1], s: [1, 2, 1], c: 'cyan', e: 1.8 },
+    { p: [3, 9, 2], s: [3, 1, 1], c: 'gold' },
+    { p: [3, 7, -1], s: [3, 1, 3], c: 'clawDark' }, // wrist chain housing (stays on the arm)
   ], G.accent);
   add('clawHand', 'clawHand', [
-    { p: [3, 5, -1], s: [3, 2, 3], c: 'darkSteel' }, // palm
-    { p: [3, 6, 2], s: [3, 1, 1], c: 'ivory' }, // knuckle plate
+    { p: [3, 5, -1], s: [3, 2, 3], c: 'claw' }, // palm
+    { p: [3, 6, 2], s: [3, 1, 1], c: 'clawDark' }, // knuckle plate
+    { p: [6, 5, 0], s: [1, 2, 1], c: 'clawDark' },
   ]);
   const finger = (x, z) => [
-    { p: [x, 3, z], s: [1, 2, 1], c: 'gunmetal' },
-    { p: [x, 3, z], s: [1, 1, 1], c: 'ivory' }, // claw tip
+    { p: [x, 3, z], s: [1, 2, 1], c: 'claw' },
+    { p: [x, 3, z + (z > 0 ? 1 : -1)], s: [1, 1, 1], c: 'clawDark' }, // hooked claw tip
   ];
   add('clawFinger_0', 'clawFinger_0', finger(3, 1));
   add('clawFinger_1', 'clawFinger_1', finger(5, 1));
@@ -208,9 +270,12 @@ export function heroDefinition() {
   // Nodachi, authored in the weapon's local grid (column centered on the grip, +Z = blade).
   const LOCAL = [-0.5, -0.5, 0];
   add('weapon', 'weapon', [
-    { p: [0, 0, -4], s: [1, 1, 1], c: 'darkSteel' }, // pommel
+    { p: [0, 0, -4], s: [1, 1, 1], c: 'gold' }, // pommel
     { p: [0, 0, -3], s: [1, 1, 5], c: 'crimson' }, // hilt through the fist
-    { p: [-1, -1, 2], s: [3, 3, 1], c: 'darkSteel' }, // square guard
+    { p: [0, 0, -2], s: [1, 1, 1], c: 'navyDark' }, // wrap
+    { p: [0, 0, 0], s: [1, 1, 1], c: 'navyDark' },
+    { p: [-1, -1, 2], s: [3, 3, 1], c: 'gold' }, // square guard
+    { p: [0, 0, 2], s: [1, 1, 1], c: 'goldDark' },
   ], { local: LOCAL });
   for (let i = 0; i < SEGMENTS; i++) {
     const last = i === SEGMENTS - 1;
@@ -221,8 +286,8 @@ export function heroDefinition() {
     });
     // Demontime plates (hidden until the ult): thicker sides, raised spine, crimson core glow.
     add(`bladeUlt_${i}`, `bladeUlt_${i}`, [
-      { p: [-1, -1, 0], s: [1, 2, SEG_LEN], c: 'gunmetal' },
-      { p: [1, -1, 0], s: [1, 2, SEG_LEN], c: 'gunmetal' },
+      { p: [-1, -1, 0], s: [1, 2, SEG_LEN], c: 'navy' },
+      { p: [1, -1, 0], s: [1, 2, SEG_LEN], c: 'navy' },
     ], { local: LOCAL });
     add(`bladeUltCore_${i}`, `bladeUlt_${i}`, [{ p: [0, 1, 0], s: [1, 1, SEG_LEN], c: 'crimson', e: 2.0 }], {
       local: LOCAL,

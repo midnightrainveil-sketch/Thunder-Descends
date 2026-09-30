@@ -1,13 +1,14 @@
 {
   "name": "kurogane",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "KUROGANE — browser-based 3D voxel arena action demo",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "package": "vite build && node scripts/package.mjs"
   },
   "dependencies": {
     "lil-gui": "^0.21.0",

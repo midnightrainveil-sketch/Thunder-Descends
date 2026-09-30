@@ -646,3 +646,32 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 6. Esc / P pauses (with the screen-shake toggle). On defeat, press Enter to retry.
 7. Debug shortcuts: `` ` `` opens the panel. **4 / 5 / 6** spawn bosses directly, **N** skips waves, **L** levels up, **G** is god mode.
 8. Run `npm run build`: it produces a single playable `dist/index.html`.
+
+---
+
+## Final — character redesign and release package
+
+### Hero redesign (per the character sheet)
+- `src/voxel/models/HeroModel.js` was rebuilt on the **same joints and pivots**, so every animation, solved pose, whip, claw, blade split and ult plate still works.
+- New look:
+  - Navy armor (`navy` / `navyDark` / `navyLight`) with saturated tan-gold trim (`gold` / `goldDark`).
+  - Large gold crescent horns, gold side flaps, cyan eyes and a crest jewel.
+  - A glowing cyan V chest core.
+  - Big layered pauldrons with gold hems, rising gold-tipped feather plates and a gold emblem.
+  - Two tall back fins with glowing cyan edges, above the head.
+  - A long narrow crimson sash under a navy front panel with a gold V, and a red back sash.
+  - Gold knee guards, toe caps and bracers; red ankle bands.
+  - Cyan light strips on the shins, thighs and forearms.
+  - A gray claw gauntlet (`claw` / `clawDark`) with hooked tips; a gold guard and pommel on the nodachi.
+- 216 boxes, 47 joints, about 2.3 k triangles, still 2 draw calls.
+- Accent glow was toned down so the silhouette reads.
+- The spec §5 design line was updated to match.
+
+### Release package
+- `npm run package` builds the game and writes `release/KUROGANE-1.0.0.zip` (about 244 KB) with a dependency-free zip writer (`scripts/package.mjs`):
+  - `index.html`: the whole game, a single file.
+  - `play-windows.bat`: CRLF, opens the game in the default browser.
+  - `play-linux.sh`: executable bit kept in the zip; uses `xdg-open`, or falls back to Chrome / Chromium / Firefox.
+  - `README.txt`: how to play and the controls.
+- Verified: the zip checks clean, file modes are kept, the extracted `index.html` runs from `file://` with no errors, and `sh -n play-linux.sh` passes.
+- The skill regression tests pass with the new model.

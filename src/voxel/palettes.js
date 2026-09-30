@@ -11,6 +11,14 @@ export const HERO_PALETTE = {
   core: '#E8FDFF',
   steelDark: '#6E7480', // second blade shade (alternating segments)
   crimsonDark: '#8E1A2A', // sash hem
+  // Final design (character sheet): navy armor, tan-gold trim, gray claw gauntlet.
+  navy: '#2B3A66',
+  navyDark: '#1A2242',
+  navyLight: '#3E5390',
+  gold: '#C99A45',
+  goldDark: '#8C6A30',
+  claw: '#4B5162',
+  clawDark: '#2E323D',
 };
 
 export const ENEMY_PALETTE = {

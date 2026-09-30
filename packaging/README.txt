@@ -1,0 +1,20 @@
+KUROGANE - Thunder Descends
+===========================
+
+HOW TO PLAY
+  Windows : double-click  play-windows.bat   (or double-click index.html)
+  Linux   : run           ./play-linux.sh    (or open index.html in your browser)
+
+The whole game is the single file index.html - no install, no server, works offline.
+Needs a desktop browser with WebGL2 (Chrome, Edge, Firefox, Chromium). Fonts load from
+Google Fonts when online; offline, built-in fallback fonts are used.
+
+CONTROLS
+  WASD ............ move          Mouse ........... aim
+  Hold left mouse . 3-hit combo (crits become whip strikes)
+  Q ............... Thunderclaw (aim, click to fire, right-click/Esc cancels)
+  E ............... Shatter -> Overdrive      R ... Demontime
+  1 / 2 / 3 ....... pick a level-up card      Esc / P ... pause
+  Enter ........... retry after defeat
+
+Clear 15 waves (bosses on waves 5, 10, 15) to reach Demo clear, then continue endlessly.
