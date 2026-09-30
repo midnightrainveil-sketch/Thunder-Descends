@@ -38,6 +38,33 @@ export const CONFIG = {
     punch: {
       attack: 0.18, // fraction of the duration spent zooming in
     },
+    // Third-person follow camera (default in play; the fixed pose above frames the title
+    // screen, the map composition and the V toggle). Mouse look via pointer lock.
+    mode: 'follow', // 'follow' | 'fixed' (V toggles in play)
+    follow: {
+      fov: 56, // vertical FOV, degrees
+      distance: 7.5, // m, boom length from the pivot
+      minDistance: 1.6, // m, shortest boom when pulled in at the rim
+      height: 2.5, // m, pivot above the hero's feet (upper back / neck)
+      shoulder: 0.85, // m, pivot shifted right so the hero doesn't hide the aim point
+      pitchDeg: 20, // starting look-down angle
+      pitchMinDeg: -8, // looking up limit
+      pitchMaxDeg: 62, // looking down limit
+      sensitivity: 0.0024, // rad per mouse pixel
+      invertY: false,
+      keyTurnRate: 2.4, // rad/s, ← → arrow keys turn the camera (no-mouse fallback)
+      followRate: 14, // 1/s, pivot catch-up (exponential smoothing)
+      maxRadius: ARENA_RADIUS + 1.1, // m, camera XZ stays inside this circle (boom pulls in): past the balustrade, short of the lanterns
+      minHeight: 0.5, // m, camera never goes below this above the floor
+      recenter: true, // swing behind the hero's back while he runs roughly forward
+      recenterDelay: 0.9, // s without mouse look before recentering starts
+      recenterRate: 1.0, // 1/s
+      recenterMaxDeg: 40, // only recenter when the hero faces within this of the camera (diagonals don't spiral)
+      aimMaxDist: 13, // m, aim point distance cap from the hero (looking at the horizon)
+      aimMinDist: 1.2, // m, aim point at least this far ahead of the hero
+      crosshairY: 0.0, // NDC y of the aim ray (0 = screen center)
+      blendTime: 0.7, // s, glide between fixed and follow poses
+    },
   },
 
   arena: {

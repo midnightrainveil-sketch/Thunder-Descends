@@ -80,7 +80,10 @@ export class DebugPanel {
 
   // ── Hotkeys ────────────────────────────────────────────────────────────
   handleHotkeys(input) {
-    if (input.wasPressed('Backquote')) this.setEnabled(!this.enabled);
+    if (input.wasPressed('Backquote')) {
+      this.setEnabled(!this.enabled);
+      if (this.enabled) this.game.releasePointer(); // cursor for the panel; click the game to re-lock
+    }
     if (!this.enabled) return;
 
     if (input.wasPressed('KeyT')) {
@@ -135,6 +138,7 @@ export class DebugPanel {
     }
     if (this.orbit.enabled) this.orbit.update();
     this.viewer.update(realDt);
+    this.game.lockBlocked = this.viewer.active || this.orbit.enabled;
   }
 
   previewTimeRing() {
@@ -188,6 +192,17 @@ export class DebugPanel {
     cam.add({ shakeS: () => this.rig.shake(0.35, 0.25) }, 'shakeS').name('Shake small');
     cam.add({ shakeB: () => this.rig.shake(0.9, 0.6) }, 'shakeB').name('Shake big');
     cam.add({ punch: () => this.rig.punch(0.07, 0.3) }, 'punch').name('Zoom punch');
+    const FC = C.camera.follow;
+    cam.add({ toggle: () => this.game.toggleCameraMode() }, 'toggle').name('Follow ⇄ fixed (V)');
+    cam.add(FC, 'fov', 30, 90, 0.5).name('follow fov');
+    cam.add(FC, 'distance', 2, 12, 0.1).name('follow distance');
+    cam.add(FC, 'height', 0.5, 3, 0.05).name('follow height');
+    cam.add(FC, 'shoulder', -1.5, 1.5, 0.05).name('follow shoulder');
+    cam.add(FC, 'sensitivity', 0.0005, 0.008, 0.0001).name('mouse sensitivity');
+    cam.add(FC, 'invertY').name('invert Y');
+    cam.add(FC, 'recenter').name('auto recenter');
+    cam.add(FC, 'recenterRate', 0, 6, 0.1).name('recenter rate');
+    cam.add(FC, 'maxRadius', 8, 20, 0.1).name('follow max radius');
     cam.add(this.flags, 'orbit').name('Orbit camera (O)').onChange((v) => this.toggleOrbit(v)).listen();
     cam.add(this.flags, 'photo').name('Photo mode (F)').onChange((v) => this.togglePhoto(v)).listen();
 

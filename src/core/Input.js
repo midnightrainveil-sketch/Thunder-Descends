@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CONFIG } from '../config.js';
 
 // Keyboard + mouse state with per-frame pressed/released edges.
 // Keys use KeyboardEvent.code ('KeyW', 'Space', 'Backquote', ...).
@@ -21,8 +22,17 @@ export class Input {
     this.groundPoint = new THREE.Vector3(); // mouse ray ∩ y = 0 plane
     this.groundValid = false;
 
+    // Mouse look (pointer lock): movement accumulated since the last frame.
+    this.lookDX = 0;
+    this.lookDY = 0;
+    this.locked = false;
+    this.onLockChange = null; // (locked) => void
+    this.wantLock = null; // () => bool, game decides when a click should grab the pointer
+    this.centerAim = false; // follow camera: aim through the screen center instead of the cursor
+
     this._raycaster = new THREE.Raycaster();
     this._plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    this._ndc = new THREE.Vector2();
 
     this._bind();
   }
@@ -42,6 +52,8 @@ export class Input {
 
     const el = this.element;
     el.addEventListener('mousedown', (e) => {
+      // Re-lock on click during play (a real user gesture, so the browser allows it).
+      if (!this.locked && this.wantLock?.()) this.requestLock();
       this.buttonsPressed.add(e.button);
       this.buttonsDown.add(e.button);
       this._setMouse(e);
@@ -50,7 +62,21 @@ export class Input {
       if (this.buttonsDown.has(e.button)) this.buttonsReleased.add(e.button);
       this.buttonsDown.delete(e.button);
     });
-    window.addEventListener('mousemove', (e) => this._setMouse(e));
+    window.addEventListener('mousemove', (e) => {
+      if (this.locked) {
+        // Some browsers report a huge spike on the first event after locking.
+        if (Math.abs(e.movementX) < 400 && Math.abs(e.movementY) < 400) {
+          this.lookDX += e.movementX;
+          this.lookDY += e.movementY;
+        }
+      } else this._setMouse(e);
+    });
+    document.addEventListener('pointerlockchange', () => {
+      const was = this.locked;
+      this.locked = document.pointerLockElement === this.element;
+      if (this.locked) this.mouseInside = true;
+      if (was !== this.locked) this.onLockChange?.(this.locked);
+    });
     el.addEventListener('mouseenter', () => (this.mouseInside = true));
     el.addEventListener('mouseleave', () => (this.mouseInside = false));
     el.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -77,14 +103,60 @@ export class Input {
     this.buttonsDown.clear();
   }
 
-  // Call once per frame, before game update, with the (unshaken) picking camera.
-  update(camera) {
-    this._raycaster.setFromCamera(this.mouseNdc, camera);
-    this.groundValid = this._raycaster.ray.intersectPlane(this._plane, this.groundPoint) !== null;
+  // Pointer lock for mouse look (needs a recent user gesture; failures are harmless).
+  requestLock() {
+    if (this.locked || !this.element.requestPointerLock) return;
+    try {
+      const r = this.element.requestPointerLock();
+      if (r && r.catch) r.catch(() => {});
+    } catch {
+      /* not allowed right now */
+    }
+  }
+
+  releaseLock() {
+    if (this.locked) document.exitPointerLock?.();
+  }
+
+  /**
+   * Call once per frame, before game update, with the (unshaken) picking camera. With
+   * `centerAim`, the aim ray goes through the crosshair and the ground point is kept between
+   * aimMinDist and aimMaxDist ahead of `origin` (looking at the sky still aims forward).
+   */
+  update(camera, origin = null) {
+    if (!this.centerAim || !origin) {
+      this._raycaster.setFromCamera(this.mouseNdc, camera);
+      this.groundValid = this._raycaster.ray.intersectPlane(this._plane, this.groundPoint) !== null;
+      return;
+    }
+    const F = CONFIG.camera.follow;
+    this.mouseInside = true;
+    this._ndc.set(0, F.crosshairY);
+    this._raycaster.setFromCamera(this._ndc, camera);
+    const ray = this._raycaster.ray;
+    const hit = ray.intersectPlane(this._plane, this.groundPoint) !== null;
+    const fx = ray.direction.x, fz = ray.direction.z;
+    const fl = Math.hypot(fx, fz) || 1;
+    let dx, dz, d;
+    if (hit) {
+      dx = this.groundPoint.x - origin.x;
+      dz = this.groundPoint.z - origin.z;
+      d = dx * fx / fl + dz * fz / fl; // distance ahead along the view direction
+    }
+    if (!hit || d > F.aimMaxDist || d < F.aimMinDist) {
+      const t = !hit || d > F.aimMaxDist ? F.aimMaxDist : F.aimMinDist;
+      // Keep the lateral part of the hit (shoulder offset) when there is one.
+      const lx = hit ? dx - (d * fx) / fl : 0;
+      const lz = hit ? dz - (d * fz) / fl : 0;
+      this.groundPoint.set(origin.x + (fx / fl) * t + lx, 0, origin.z + (fz / fl) * t + lz);
+    }
+    this.groundValid = true;
   }
 
   // Call at the very end of the frame.
   endFrame() {
+    this.lookDX = 0;
+    this.lookDY = 0;
     this.keysPressed.clear();
     this.keysReleased.clear();
     this.buttonsPressed.clear();

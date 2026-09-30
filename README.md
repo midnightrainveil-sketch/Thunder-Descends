@@ -7,14 +7,16 @@ three.js; the production build is a single self-contained `dist/index.html`.
 ## Controls
 | Input | Action |
 |---|---|
-| WASD | Move (screen-relative) |
-| Mouse | Aim attacks and skills (the hero faces where he moves otherwise) |
+| WASD | Move (camera-relative; the hero faces where he moves) |
+| Mouse | Turn the third-person camera; attacks and skills aim at the screen center |
+| ← → | Turn the camera (keyboard) |
+| V | Switch third-person ⇄ fixed overview camera |
 | Hold left mouse | 3-hit combo — about half the swings crit into a **whip strike** |
 | Q | Thunderclaw: aim (time slows), click to fire, right-click / Esc cancels |
 | E | Shatter → Overdrive on hit |
 | R | Demontime (freeze time, 7 s power buff) |
 | 1 / 2 / 3 or click | Pick a level-up card |
-| Esc / P | Pause |
+| Esc / P | Pause (Esc also frees the mouse; click the game to grab it again) |
 | Enter | Retry after defeat |
 
 Clear 15 waves — bosses on waves 5, 10 and 15 — to reach **Demo clear**, then continue endlessly.

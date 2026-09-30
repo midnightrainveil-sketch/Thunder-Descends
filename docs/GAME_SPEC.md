@@ -8,9 +8,9 @@ Art: blocky low-resolution voxel art — every character and prop is built from 
 Build priorities, in order: (1) visuals and effects, (2) gameplay feel, (3) UI. Out of scope: multiple stages/levels, music, sound, story.
 
 ## 2. Camera & world
-- Fixed camera (no follow, no rotation) at an elevated three-quarter side view, ~35–40° looking down. Perspective camera with a low FOV (~30–35°) for a slightly isometric, cinematic feel.
-- Defined in `config.js` by `elevationDeg`, `yawDeg` (0 = looking straight from the front), `fov`, `target`, and auto-fit: distance is computed so the whole arena circle plus a margin fits the viewport at any aspect ratio, with extra headroom at the top of the frame for the torii and sakura canopies behind the arena.
-- Allowed camera motion: screen shake and short zoom punches only; it always returns to the fixed pose.
+- Gameplay camera: third-person follow camera behind the hero's back (`camera.follow` in `config.js`: FOV ~56°, boom ~7.5 m from a pivot 2.5 m above his feet, 0.85 m right-shoulder offset, ~20° looking down). The mouse turns it (pointer lock: horizontal = yaw, vertical = pitch −8°…62°); ← → turn it too. The pivot chases the hero smoothly, and the boom pulls in so the camera never leaves `follow.maxRadius` (past the balustrade, short of the lanterns). While the hero runs roughly away from the camera and the mouse is idle, the camera eases back behind his back. Attacks and skills aim through the screen center (the ground reticle marks the point, 1.2–13 m ahead).
+- Fixed cinematic pose: an elevated three-quarter side view, ~35–40° looking down, low FOV (~30–35°). It frames the title screen, the run glides from it into the follow camera (0.7 s), V toggles back to it during play (then WASD is screen-relative and the mouse cursor aims, as originally designed), and the map composition (moon, pagoda, canopy check) is laid out against it. Defined in `config.js` by `elevationDeg`, `yawDeg` (0 = looking straight from the front), `fov`, `target`, and auto-fit: distance is computed so the whole arena circle plus a margin fits the viewport at any aspect ratio, with extra headroom at the top of the frame for the torii and sakura canopies behind the arena.
+- Screen shake and short zoom punches play on top of either camera. Losing the pointer lock mid-run (Esc, alt-tab) pauses; clicking the game grabs it again.
 - Units: meters, +Y up, ground plane y = 0. The arena is a circle of radius `ARENA_RADIUS = 11` m centered at the origin. All movement is on XZ and clamped to the circle (radius minus character radius).
 - "Front" = the side of the arena nearest the camera (+Z). "Back" = the far side (−Z).
 - Block sizes (big on purpose): characters use `VOXEL = 0.12` m, so the hero is only ~20 blocks tall (~2.4 m). Large bosses use `BOSS_VOXEL = 0.18` m so bigger characters stay just as chunky instead of gaining detail. Environment uses `ENV_VOXEL = 0.25` m for props (lanterns, balustrade, trunks), 0.5 m for canopy cubes, big structures and the crest, and 1 m floor blocks. Only FX particles, nanobots and petals may be smaller than the block scale.
@@ -49,7 +49,7 @@ Base stats (all in config.js):
 | Crit damage | ×2.0 |
 | Hurt i-frames | 0.4 s |
 
-Controls: WASD move (screen-relative: W = away from camera). The hero faces his movement direction; while attacking or using a skill he turns toward the mouse's ground point (legs follow the movement, twisting up to ±60°). Left mouse (hold) = basic attack toward the mouse. Q / E / R = skills. Esc / P = pause (Esc cancels Q aiming first). Enter = restart from game over.
+Controls: WASD move, camera-relative (W = away from the camera). Mouse = look / turn the camera; ← → also turn it. V = switch between the follow camera and the fixed camera. The hero faces his movement direction; while attacking or using a skill he turns toward the aim point (screen center in the follow camera, the mouse's ground point in the fixed camera; legs follow the movement, twisting up to ±60°). Left mouse (hold) = basic attack toward the aim point. Q / E / R = skills. Esc / P = pause (Esc cancels Q aiming first in the fixed camera; in the follow camera Esc releases the mouse and pauses, right-click cancels Q). Enter = restart from game over.
 
 Basic attack: 3-hit combo (damage ×1.0, ×1.0, ×1.4), sector hitbox range 2.4 m, 120° arc toward the aim. Combo resets after 0.9 s without attacking. Input is buffered (a click during the current swing queues the next).
 
@@ -138,7 +138,7 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 - At the end of each stage: update docs/PROGRESS.md, make sure `npm run build` succeeds, commit "Stage N: <summary>".
 
 ## 14. Debug tools
-lil-gui panel toggled with the backquote key, plus an FPS and draw-call counter. Hotkeys (only while debug is on): 1/2/3 spawn Ronin/Teppo/Tate, 4/5/6 spawn bosses, K kill all enemies, G god mode, N next wave, L gain a level, C reset cooldowns, M model viewer, T cycle time scale 1 / 0.25 / 0.05, F photo mode (hide hero, enemies and UI), O debug orbit camera (toggle; always returns to the fixed camera).
+lil-gui panel toggled with the backquote key, plus an FPS and draw-call counter. Hotkeys (only while debug is on): 1/2/3 spawn Ronin/Teppo/Tate, 4/5/6 spawn bosses, K kill all enemies, G god mode, N next wave, L gain a level, C reset cooldowns, M model viewer, T cycle time scale 1 / 0.25 / 0.05, F photo mode (hide hero, enemies and UI), O debug orbit camera (toggle; always returns to the game camera). The Camera folder also holds the follow-camera tunables and the V toggle.
 
 ## 15. Stage roadmap
 - Stage 0 — Setup: project, engine, fixed camera, post-processing, time system, input, voxel builder, placeholder arena and hero, debug tools.

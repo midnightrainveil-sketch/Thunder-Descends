@@ -687,3 +687,35 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
     - A sanitize pass (`PostFX`, RenderPass → sanitize → bloom) replaces any NaN / Inf pixel and clamps HDR to [0, 64], a safety net for any GPU.
 - **The hero didn't face his movement.** He now faces the WASD direction (screen-relative under the fixed camera: A = screen-left, D = screen-right, W = up, S = down). He turns toward the mouse only while attacking, whipping or using a skill, and keeps his last facing when idle. The spec §5 controls line was updated.
 - Verified with fixed-step tests: A / D / W / S / W+A face −90° / 90° / 180° / 0° / −135°, an attack turns toward the mouse, and releasing it returns to the movement facing. The skill regression passes.
+
+---
+
+## Third-person follow camera
+
+- **The camera is unlocked and follows the hero's back** (`CameraRig` follow pose, tunables in `CONFIG.camera.follow`).
+  - Boom 7.5 m behind a pivot 2.5 m above his feet, right-shoulder offset 0.85 m, FOV 56°, starting 20° down.
+  - The mouse turns it (pointer lock; pitch −8°…62°); ← → turn it without a mouse.
+  - The pivot follows him with exponential smoothing.
+  - The boom pulls in so the camera stays inside 12.1 m: past the balustrade, short of the lanterns.
+  - Recenter: when the mouse has been idle for 0.9 s and he runs within 40° of the view direction, the camera eases back behind his back (diagonals don't spiral).
+- **Controls follow the camera.**
+  - WASD is camera-relative, and the hero still faces where he moves.
+  - Attacks and skills aim through the screen center: `Input.update` with `centerAim` keeps the ground point 1.2–13 m ahead, so looking at the sky still aims forward.
+  - The ground reticle marks the aim point; Thunderclaw, the combo and the whip use it unchanged.
+- **Fixed camera kept.**
+  - The fixed cinematic pose still frames the title screen, and the run glides from it into the follow camera (0.7 s).
+  - V switches between the two during play; the fixed camera keeps the old controls.
+  - The map composition (moon, pagoda, canopy check) is laid out against `rig.compositionCamera`, the fixed pose, so the world is unchanged.
+- **Pointer lock.**
+  - It is grabbed when a run starts or resumes, or when you click the game.
+  - It is released for menus, cards, game over, the debug panel (`` ` ``), the orbit camera and the model viewer.
+  - Losing it mid-run (Esc, alt-tab) pauses; the Esc that broke the lock doesn't also resume.
+- **Shake and punch.** They play on top of either pose; the shake offset scales down with the shorter follow distance.
+- **Debug.** The Camera folder has a Follow ⇄ fixed toggle plus FOV, distance, height, shoulder, sensitivity, invert Y, recenter and max radius.
+- **Verified** with fixed-step tests (60 Hz, render skipped between samples):
+  - W / A / D / S face 180° / −90° / 90° / 0° relative to a camera looking −Z.
+  - Mouse look turns the camera, and W then runs the new way.
+  - Arrow keys turn it. The rim run keeps the camera inside the radius.
+  - Attack, Q aim and fire, R and E work.
+  - V → fixed → A faces screen-left; V back snaps the camera behind him.
+  - Esc pauses. No errors.

@@ -97,6 +97,52 @@ export class Game {
     this.cards = null;
     this.cardT = 0;
     this.runTime = 0;
+
+    // Follow camera + pointer lock (mouse look). Losing the lock mid-run (Esc, alt-tab) pauses.
+    this.lockBlocked = false; // debug: orbit camera / model viewer need the cursor
+    this._prevMode = this.mode;
+    this._releasing = false;
+    this._lockPauseT = -1;
+    input.wantLock = () => this._wantLock();
+    input.onLockChange = (locked) => {
+      if (locked) return;
+      if (this._releasing) this._releasing = false;
+      else if (this.mode === 'play') {
+        this.setPaused(true);
+        this._lockPauseT = performance.now();
+      }
+    };
+  }
+
+  _wantLock() {
+    return CONFIG.camera.mode === 'follow' && this.mode === 'play' && !this.lockBlocked && !this.rig.override;
+  }
+
+  // Give the cursor back without pausing (debug panel, menus).
+  releasePointer() {
+    if (!this.input.locked) return;
+    this._releasing = true;
+    this.input.releaseLock();
+  }
+
+  // V: third-person follow camera ⇄ fixed cinematic camera.
+  toggleCameraMode() {
+    const C = CONFIG.camera;
+    C.mode = C.mode === 'follow' ? 'fixed' : 'follow';
+    if (C.mode === 'follow') {
+      this.rig.snapBehind(this.hero);
+      if (this._wantLock()) this.input.requestLock();
+    } else this.releasePointer();
+    this.hud.banner('', C.mode === 'follow' ? 'third-person camera · V to switch' : 'fixed camera · V to switch', 1.4);
+  }
+
+  _syncCamera() {
+    const follow = CONFIG.camera.mode === 'follow';
+    this.rig.followWanted = follow && this.mode !== 'title';
+    const want = this._wantLock();
+    if (this.mode === 'play' && this._prevMode !== 'play' && want) this.input.requestLock();
+    if (!want && this.input.locked) this.releasePointer();
+    this._prevMode = this.mode;
   }
 
   // ── Modes ───────────────────────────────────────────────────────────────
@@ -289,6 +335,7 @@ export class Game {
     this.spikes.clear();
     this.fx.clear();
     this.hero.reset();
+    this.rig.snapBehind(this.hero);
     this.progression.reset();
     this.waves.reset();
     this.combat.stats = { hits: 0, crits: 0, kills: 0 };
@@ -303,10 +350,14 @@ export class Game {
       const aiming = this.hero.skills.q.active && this.hero.skills.q.phase === 'aim';
       if ((input.wasPressed('Escape') && !aiming) || input.wasPressed('KeyP')) this.setPaused(true);
     } else if (mode === 'paused') {
-      if (input.wasPressed('Escape') || input.wasPressed('KeyP')) this.setPaused(false);
+      // The Esc that broke the pointer lock must not also resume.
+      const fresh = this._lockPauseT >= 0 && performance.now() - this._lockPauseT < 300;
+      if (!fresh && (input.wasPressed('Escape') || input.wasPressed('KeyP'))) this.setPaused(false);
     } else if (mode === 'cards') {
       for (let i = 0; i < 3; i++) if (input.wasPressed(`Digit${i + 1}`) || input.wasPressed(`Numpad${i + 1}`)) this.pickCard(i);
     } else if (mode === 'over' && input.wasPressed('Enter')) this.restart();
+    if (input.wasPressed('KeyV') && this.mode !== 'title') this.toggleCameraMode();
+    this._syncCamera();
     const inp = this.mode === 'play' ? input : NO_INPUT;
     if (this.mode === 'play' && !this.hero.dead) {
       this.hero.skills.handleInput(inp, time);

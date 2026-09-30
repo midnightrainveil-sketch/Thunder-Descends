@@ -38,7 +38,7 @@ export class ArenaMap {
       return h != null ? h : this.terrain.heightAt(x, z);
     };
 
-    this.grove = new SakuraGrove({ groundHeightAt: this.groundHeightAt, camera: rig.pickCamera });
+    this.grove = new SakuraGrove({ groundHeightAt: this.groundHeightAt, camera: rig.compositionCamera });
     this.petals = new Petals({
       groundHeightAt: this.groundHeightAt,
       canopyPoints: this.grove.canopyPoints,

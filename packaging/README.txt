@@ -11,11 +11,12 @@ Google Fonts when online; offline, built-in fallback fonts are used.
 
 CONTROLS
   WASD ............ move (the hero faces where he moves)
-  Mouse ........... aim attacks and skills
+  Mouse ........... turn the camera; attacks/skills aim at the screen center
+  Left / Right .... turn the camera      V ... third-person <-> fixed camera
   Hold left mouse . 3-hit combo (crits become whip strikes)
   Q ............... Thunderclaw (aim, click to fire, right-click/Esc cancels)
   E ............... Shatter -> Overdrive      R ... Demontime
-  1 / 2 / 3 ....... pick a level-up card      Esc / P ... pause
+  1 / 2 / 3 ....... pick a level-up card      Esc / P ... pause (frees the mouse)
   Enter ........... retry after defeat
 
 Clear 15 waves (bosses on waves 5, 10, 15) to reach Demo clear, then continue endlessly.

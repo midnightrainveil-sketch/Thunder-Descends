@@ -62,7 +62,7 @@ export class Screens {
     this.title = mk('k-title', `
       <h1>KUROGANE</h1><div class="sub">THUNDER DESCENDS</div>
       <div class="ctl k-panel">
-        <b>WASD</b><span>move</span><b>MOUSE</b><span>aim attacks and skills</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span>
+        <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span>
         <b>Q</b><span>Thunderclaw — aim, click to fire</span><b>E</b><span>Shatter → Overdrive</span><b>R</b><span>Demontime</span>
         <b>ESC / P</b><span>pause</span>
       </div>

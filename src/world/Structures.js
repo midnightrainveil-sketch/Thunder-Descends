@@ -69,7 +69,7 @@ export class Structures {
     // Pagoda on a far peak, placed at a screen position in the fixed camera (like the moon) so it
     // stays in frame: the view ray through P.screen is intersected with the plane y = P.y.
     const P = M.pagoda;
-    const cam = rig.pickCamera;
+    const cam = rig.compositionCamera;
     cam.updateMatrixWorld(true);
     const ray = new THREE.Vector3(P.screen.x, P.screen.y, 0.5).unproject(cam).sub(cam.position).normalize();
     const t = (P.y - cam.position.y) / ray.y;

@@ -191,7 +191,7 @@ export class Sky {
   // Place the moon at its configured NDC position in the fixed camera, at a fixed distance.
   placeMoon() {
     const S = CONFIG.map.sky;
-    const cam = this.rig.pickCamera;
+    const cam = this.rig.compositionCamera;
     cam.updateMatrixWorld(true);
     const p = new THREE.Vector3(S.moon.screen.x, S.moon.screen.y, 0.5).unproject(cam);
     const dir = p.sub(cam.position).normalize();

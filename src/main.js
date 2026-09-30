@@ -28,7 +28,10 @@ const debug = new DebugPanel({ engine, rig, postFX, time, game, ui, input });
 const loop = new Loop((rawDt) => {
   engine.renderer.info.reset();
 
-  input.update(rig.activePickCamera);
+  // Follow camera first (mouse look, boom), so picking and the hero's WASD axes use this frame's pose.
+  rig.follow(Math.min(rawDt, 0.1), game.hero, input, game.mode === 'play');
+  input.centerAim = rig.following && !rig.override;
+  input.update(rig.activePickCamera, game.hero.position);
   debug.handleHotkeys(input);
 
   time.update(rawDt);
@@ -50,4 +53,4 @@ const loop = new Loop((rawDt) => {
 loop.start();
 
 // Handy for poking at things from the console during development.
-if (import.meta.env.DEV) window.KUROGANE = { CONFIG, engine, rig, time, input, postFX, game, ui, debug };
+if (import.meta.env.DEV) window.KUROGANE = { CONFIG, engine, rig, time, input, postFX, game, ui, debug, loop };
