@@ -116,7 +116,7 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 ## 11. UI
 - Style: dark translucent indigo panels (#0E1426 at ~75% opacity) with angular cut corners (clip-path), 1 px cyan edge lines, crimson for HP and danger, restrained and elegant. Fonts (Google Fonts, with fallbacks): Chakra Petch for labels and text, Silkscreen for numbers and damage numbers. Sentence case, short plain labels.
 - HUD: top-left portrait (mask with visor), segmented HP bar, level badge, thin EXP bar. Top-center wave counter + enemies remaining. Wide boss bar with name during boss fights. Bottom-center skill bar: basic attack, Q, E, R icons (inline SVG), key labels, radial cooldown sweep + seconds, rank pips, ready glow; R shows a buff timer ring while active. Bottom-left passive icon with current crit %. Floating damage numbers (normal white; crit larger white-cyan with pop and jitter; damage to the hero crimson).
-- Screens: title (game name over the live arena with drifting petals, "Click to start", controls), pause, level-up cards, game over, demo clear.
+- Screens: title (game name over the live arena with drifting petals, "Click to start", controls), pause (resume, restart, screen-shake toggle), level-up cards, game over (wave, kills, time, Enter to retry), demo clear (stats; continue endless or restart).
 
 ## 12. Technical architecture
 - Stack: Vite + vanilla JavaScript (ES modules) + three.js (latest from npm) + lil-gui (debug). vite-plugin-singlefile so `npm run build` outputs one self-contained `dist/index.html` that runs by double-clicking. No external asset files: all geometry, textures and icons are procedural or inline SVG. The only external request is Google Fonts (with fallbacks).

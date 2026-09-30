@@ -116,6 +116,9 @@ export class Hero {
   resetStats() {
     const H = CONFIG.hero;
     Object.assign(this.stats, { maxHp: H.maxHp, hp: H.maxHp, atk: H.atk, critRate: H.critRate, critDamage: H.critDamage, attackSpeed: 1 });
+    this.passiveRank = 1; // whip-sword passive (cards II–IV)
+    this.whipReachBonus = 0;
+    this.statCards = { atk: 0, hp: 0, aspd: 0 };
   }
 
   get radius() {
@@ -273,7 +276,7 @@ export class Hero {
       const lo = Math.min(w.prevTipAngle, w.tipAngle);
       const hi = Math.max(w.prevTipAngle, w.tipAngle);
       for (const e of ctx.enemies) {
-        if (e.dead || atk.hit.has(e)) continue;
+        if (e.dead || atk.has(e)) continue;
         const d = Math.hypot(e.position.x - w.origin.x, e.position.z - w.origin.z);
         if (d > w.reachNow + e.radius) continue;
         const rel = relativeYaw(w.origin.x, w.origin.z, w.yaw0, e);
@@ -326,6 +329,7 @@ export class Hero {
     this.whip?.cancel();
     this.skills?.reset();
     this.skills?.resetCooldowns();
+    if (this.skills) for (const sk of this.skills.list) sk.rank = CONFIG.skills.startRank; // a new run starts at rank I
     this.releaseControl();
     this.stunT = 0;
     this.trail.clear();

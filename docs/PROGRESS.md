@@ -535,3 +535,114 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 5. Cancel a swing into a skill: E right after a hit lands works; E mid-windup doesn't.
 6. Debug: **C** resets cooldowns. The Skills folder has ranks and *R: buff now*. Die during R (turn off god mode, set HP low) to check that time and color come back.
 7. Run `npm run build`, then open `dist/index.html`.
+
+---
+
+## Stage 5 — Bosses, level-up cards, HUD and menus (final)
+
+### What was built
+- **Boss base** (`src/entities/bosses/Boss.js`). It has the same interface as `Enemy`, so combat, hero attacks and skills work unchanged.
+  - Big HP, no knockback.
+  - Reduced stuns: Thunderclaw 0.6 s, Shatter 0.4 s. Other stuns such as the combo finisher are ignored; hits carry a `skill` tag so the boss can tell which applies.
+  - Bosses are never yanked by Q; they take the damage and the hero still lands in front of them.
+  - Attack picker: weighted random, never the same attack 3 times in a row.
+  - Every attack gets a floor decal telegraph plus a pose and an eye/glow tell. Stuns and death cancel pending decals.
+  - **Intro**: the Juggernaut and Kitsune drop in; the Raiju rises out of the mist. Invulnerable during it. Landing brings shake, rings, dust and debris, a petal burst and a red name banner.
+  - **Death**: slow-mo (×0.3), explosions every 0.22 s for 1.6 s, then `Combat.killEnemy` does a big shatter (pool raised to 260 cubes), rings and an EXP burst in several drops.
+  - **Enrage** below 50%: ×1.3 speed (timers and animation) and an "enraged" banner.
+- **Oni Juggernaut** (`Juggernaut.js`, wave 5). 106 boxes at 0.18 m, 5.8 m tall: horns, tusks, ember furnace-grill chest, spiked club.
+  - **Triple slam**: three 2.2 m circles in sequence toward the hero at 2.4 / 4.6 / 6.8 m.
+  - **Charge**: a red lane to the rim, then 15 m/s. It crashes into the balustrade with debris and shake and is stunned 1.2 s.
+  - **Stomp**: a 4.5 m ring.
+  - **Enrage**: the chest glows ×2.6.
+- **Kage Kitsune** (`Kitsune.js`, wave 10). 102 boxes at 0.12 m: fox mask, twin magenta blades, 3 six-link block-chain tails swaying procedurally.
+  - **Blink**: a 0.5 s magenta flash at a point behind the hero, then it teleports and slashes a 150° sector.
+  - **Triple dash-slash**: 3 zig-zag lane decals shown up front, then 26 m/s dashes.
+  - **Tail spike fan**: the tails rise over a 90° sector telegraph, then 11 spike projectiles fly out.
+  - **Enrage**: 2 shadow clones (translucent, die in one hit, half damage, blink and dash only). They're killed when the boss dies.
+- **Raiju Serpent** (`Raiju.js`, wave 15). 116 boxes at 0.18 m: a head with horns, mane, whiskers and a glowing throat, plus 16 segments.
+  - Bones are placed in world space. The segments follow the head's recorded path at 0.95 m spacing.
+  - Movement: orbits just outside the rim at 2–4 m height, sometimes crossing over the arena in a figure-8.
+  - **Hitboxes**: the head is the boss object (×1.5 damage). Every segment is a `SegmentProxy` in `game.enemies` that shares the boss's HP; `AttackInstance` keys hits by owner, so each attack counts once.
+  - **Breath beam**: hovers, telegraphs a sector, then a lightning breath sweeps 70° across it with damage ticks.
+  - **Lightning pillars**: 5–8 circles (8–11 when enraged).
+  - **Dive**: a lane across the arena through the hero.
+  - Defeating it shows **Demo clear**.
+- **Waves**: 5 / 10 / 15 are boss waves (the boss alone, after a short beat). Endless mode repeats Juggernaut → Kitsune → Raiju every 5 waves with +60% HP per loop. The wave 15 clear goes to the Demo clear screen (after the shatter plays out); Continue resumes at wave 16.
+- **Level-up cards** (`src/game/Upgrades.js`, `src/ui/Screens.js`). The game pauses about 0.7 s after a level-up.
+  - Pool: Thunderclaw / Shatter / Demontime II–IV, Whip-sword passive II–IV (crit damage +30%, whip reach +1.5 m, crits heal 1%), and Power / Vitality / Swiftness (ATK +10%, max HP +12%, attack speed +8%, each up to 5×). Maxed options are excluded.
+  - 3 cards: dark panel, cyan border, inline SVG icon, title, one-line effect, and rank pips showing current and next.
+  - Click or press 1 / 2 / 3. Multiple level-ups queue.
+  - Rank effects come from the Stage 4 rank arrays; Thunderclaw rank III now gives −1 s cooldown, per spec. Thunderclaw IV (+30% damage while stunned) and passive IV are wired into `Combat`.
+- **HUD** (`src/ui/HUD.js`, replacing the text HUD; icons in `src/ui/icons.js`):
+  - Top-left: SVG portrait (kabuto, visor), 12-segment HP bar, level badge, EXP bar.
+  - Top-center: wave counter plus enemies left, or the boss name. The **boss bar** has a lag bar and turns red when enraged.
+  - Bottom-center **skill bar**: LMB, Q, E, R with icons, key labels, a conic cooldown sweep with seconds, rank pips and a ready glow. R shows a crimson buff-timer ring.
+  - Bottom-left: passive icon with crit %.
+  - Wave, boss and enrage banners.
+  - Panels use the spec style: indigo at 75%, clip-path cut corners, 1 px cyan edges, Chakra Petch / Silkscreen. The debug stats moved to the bottom-left above the crit panel.
+- **Screens and modes** (`Game.mode`: title → play ⇄ paused / cards → over | clear):
+  - **Title**: "KUROGANE — Thunder descends" over the live arena with controls. Click or Enter starts.
+  - **Pause** (Esc / P; Esc cancels Q aim first): resume, restart, and a screen-shake toggle.
+  - **Game over**: wave, level, kills, whip strikes, time. Enter or the button retries.
+  - **Demo clear**: stats plus Continue (endless) / Restart.
+  - Menus pause the clocks, and the hero gets a no-input stub outside play.
+- **Polish**:
+  - Camera shake is capped at 0.5 trauma per call and 0.75 total, and can be toggled off.
+  - Full-screen flashes are capped at 0.45.
+  - Telegraph decals render last among the effects (renderOrder 9, polygon offset).
+  - Boss hit flash is softer (×0.7).
+  - Banners clear when a menu opens.
+  - A new run resets skill ranks, passive and stat cards.
+- **README.md**: controls, `npm run dev`, `npm run build`.
+- **Debug**: **4 / 5 / 6** spawn the Juggernaut / Kitsune / Raiju. Debug keys are off in menus (digits pick cards).
+
+### Files
+- New:
+  - `src/entities/bosses/{Boss,Juggernaut,Kitsune,Raiju}.js`, `src/voxel/models/BossModels.js`, `src/anim/clips/bossClips.js`
+  - `src/game/Upgrades.js`, `src/ui/{Screens,icons}.js`, `README.md`
+- Changed:
+  - `src/ui/HUD.js` (rewritten), `src/game/{Game,Waves}.js`
+  - `src/combat/{Combat,Hitbox,Projectiles,WhipStrike}.js`
+  - `src/skills/{Thunderclaw,Shatter,Demontime}.js`, `src/entities/{Hero,Enemy}.js`
+  - `src/core/{CameraRig,PostFX}.js`, `src/fx/Decals.js`, `src/anim/Rig.js`, `src/voxel/palettes.js`
+  - `src/debug/{DebugPanel,Stats}.js`, `src/config.js`
+  - `docs/GAME_SPEC.md` (§11 screens)
+
+### Key tunables
+| Path | What |
+|---|---|
+| `CONFIG.bosses.{stunQ, stunE, introDrop, introHold, deathTime, deathSlowmo, enrageAt, loopHp, recover}` | Boss base |
+| `CONFIG.bosses.juggernaut.{hp, speed, slam, charge, stomp, enrage, weights}` | Juggernaut |
+| `CONFIG.bosses.kitsune.{hp, speed, blink, dash, fan, enrage, weights, tailSway}` | Kitsune |
+| `CONFIG.bosses.raiju.{hp, segments, spacing, headMult, orbitRadius, height, beam, pillars, dive, enrage}` | Raiju |
+| `CONFIG.cards.*` | Stat card values and passive effects |
+| `CONFIG.ui.{cardDelay, hpSegments, flashMax}` | Menus and HUD |
+| `CONFIG.camera.shake.{maxTrauma, perHitCap, enabled}` | Shake polish |
+
+### Verification
+- **Boss fights** (fixed-step bot that chases, attacks and uses skills, god mode):
+  - Juggernaut: all 3 attacks, enraged at 14 s, killed at 35 s.
+  - Kitsune: all 3 attacks plus clones, enraged at 26 s, killed at 50 s, clones cleaned up.
+  - Raiju: all 3 attacks, enraged at 36 s, killed at 78 s.
+  - Afterwards: time scale back to 1, the boss and proxies removed, shatter cubes flying.
+- **Full run, title → Demo clear**: title click, waves 1–15 with all three bosses, 11 cards picked through the real UI flow, level 12, Demo clear at about 12½ minutes of game time. No errors.
+- **Without god mode**: the non-dodging bot dies around waves 8–9, and the retry flow works. That run found and fixed skill ranks carrying over into a retry.
+- **The built `dist/index.html`** loads from `file://`, shows the title, and click-to-start brings up the HUD.
+- Screenshots checked: title, HUD with a boss bar (Raiju), each boss in the arena, a boss close-up, level-up cards, pause, demo clear.
+
+### Known issues / notes
+- **60 fps is still unverified on a GPU**, as in every stage; only headless SwiftShader was available. The heaviest case is the Raiju fight: 1 rig of 19 bones, beam lightning, pillars.
+- **The Raiju's segments are hittable in 2D** (floor-plane projections at 2–4 m height), matching the rest of the game's XZ hitboxes.
+- **The boss intro** doesn't lock the hero; he can reposition while the boss lands.
+- **Fairness tuning is based on bot runs**; the attack damages and telegraph times in `CONFIG.bosses` are the knobs.
+
+### How to test
+1. Run `npm run dev` (or open the built `dist/index.html`). The title screen shows; click to start.
+2. Fight waves 1–4 and level up: the game pauses on 3 cards; pick with a click or 1 / 2 / 3.
+3. Wave 5 brings the Oni Juggernaut: dodge the three slam circles, stand clear of the charge lane (it stuns itself on the rim), and step out of the stomp ring.
+4. Wave 10 brings the Kage Kitsune: watch for the magenta flash behind you, the three dash lanes, and the spike fan. Below half HP, two shadow clones appear.
+5. Wave 15 brings the Raiju Serpent: hit any segment. Dodge the breath sweep, the pillar circles and the dive lane. Defeating it shows Demo clear; Continue goes endless.
+6. Esc / P pauses (with the screen-shake toggle). On defeat, press Enter to retry.
+7. Debug shortcuts: `` ` `` opens the panel. **4 / 5 / 6** spawn bosses directly, **N** skips waves, **L** levels up, **G** is god mode.
+8. Run `npm run build`: it produces a single playable `dist/index.html`.

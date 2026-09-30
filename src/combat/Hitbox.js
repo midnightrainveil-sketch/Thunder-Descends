@@ -56,10 +56,16 @@ export class AttackInstance {
     this.active = true;
   }
 
+  // Multi-part targets (Raiju segments) count once per attack via their owner.
   once(target) {
-    if (this.hit.has(target)) return false;
-    this.hit.add(target);
+    const key = target.owner || target;
+    if (this.hit.has(key)) return false;
+    this.hit.add(key);
     return true;
+  }
+
+  has(target) {
+    return this.hit.has(target.owner || target);
   }
 }
 

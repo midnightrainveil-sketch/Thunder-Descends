@@ -150,8 +150,11 @@ export class CameraRig {
   }
 
   // Trauma-based shake. intensity 0..1 adds trauma; it decays to 0 over ~duration seconds.
+  // Overlapping shakes are capped (perHitCap per call, maxTrauma total); the pause menu can turn it off.
   shake(intensity, duration = 0.3) {
-    this.trauma = Math.min(1, this.trauma + intensity);
+    const S = CONFIG.camera.shake;
+    if (!S.enabled) return;
+    this.trauma = Math.min(S.maxTrauma, this.trauma + Math.min(intensity, S.perHitCap));
     this._traumaDecay = Math.max(this._traumaDecay, this.trauma / Math.max(duration, 1e-3));
   }
 

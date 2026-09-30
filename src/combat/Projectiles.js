@@ -12,12 +12,15 @@ const POOL = 24;
 
 // Teppo bolts: glowing orange slugs flying level at 9 m/s (world clock), 2D circle hit vs the hero,
 // ember trail, gone at the arena edge. One instanced mesh.
+// opts (defaults = Teppo bolt): { color, size: [w, h, l], speed, radius, life, trail }
 export class Projectiles {
-  constructor(scene, fx) {
+  constructor(scene, fx, opts = {}) {
     this.fx = fx;
+    const C = CONFIG.enemies.teppo;
+    this.opt = { color: CONFIG.fx.emberColor, size: [0.14, 0.14, 0.55], speed: C.boltSpeed, radius: C.boltRadius, life: C.boltLife, ...opts };
     this.mesh = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(0.14, 0.14, 0.55),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(CONFIG.fx.emberColor).multiplyScalar(3.2), toneMapped: false }),
+      new THREE.BoxGeometry(...this.opt.size),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(this.opt.color).multiplyScalar(3.2), toneMapped: false }),
       POOL,
     );
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -31,36 +34,35 @@ export class Projectiles {
   }
 
   fire(pos, yaw, damage, owner) {
-    const C = CONFIG.enemies.teppo;
     const b = this.b[this.next];
     this.next = (this.next + 1) % POOL;
-    Object.assign(b, { alive: true, yaw, t: 0, damage, owner, radius: C.boltRadius });
+    Object.assign(b, { alive: true, yaw, t: 0, damage, owner, radius: this.opt.radius });
     b.p.copy(pos);
   }
 
   update(dt, hero) {
     if (dt <= 0) return;
-    const C = CONFIG.enemies.teppo;
+    const O = this.opt;
     let any = false;
     for (let i = 0; i < POOL; i++) {
       const b = this.b[i];
       if (!b.alive) continue;
       any = true;
       b.t += dt;
-      const vx = Math.sin(b.yaw) * C.boltSpeed;
-      const vz = Math.cos(b.yaw) * C.boltSpeed;
+      const vx = Math.sin(b.yaw) * O.speed;
+      const vz = Math.cos(b.yaw) * O.speed;
       b.p.x += vx * dt;
       b.p.z += vz * dt;
       b.position.copy(b.p);
-      if (Math.random() < 0.6) this.fx.particles.embers(b.p, 1, { radius: 0.05, life: 0.35 });
-      let dead = b.t > C.boltLife || Math.hypot(b.p.x, b.p.z) > ARENA_RADIUS + 1.5;
+      if (Math.random() < 0.6) this.fx.particles.embers(b.p, 1, { radius: 0.05, life: 0.35, color: O.color });
+      let dead = b.t > O.life || Math.hypot(b.p.x, b.p.z) > ARENA_RADIUS + 1.5;
       if (!dead && !hero.dead && hitCircle(b.p.x, b.p.z, b.radius, hero)) {
         this.onHitHero?.(b);
         dead = true;
       }
       if (dead) {
         b.alive = false;
-        this.fx.particles.sparks(b.p, null, 6, { color: CONFIG.fx.emberColor, speed: 4, life: 0.2 });
+        this.fx.particles.sparks(b.p, null, 6, { color: O.color, speed: 4, life: 0.2 });
         this.mesh.setMatrixAt(i, ZERO);
         continue;
       }

@@ -197,7 +197,7 @@ export class Enemy {
 
     // Separation (soft) — the hard positional resolve happens in Game.
     for (const o of others) {
-      if (o === this || o.dead) continue;
+      if (o === this || o.dead || o.proxy || o.flying) continue;
       const dx = this.position.x - o.position.x;
       const dz = this.position.z - o.position.z;
       const d = Math.hypot(dx, dz);

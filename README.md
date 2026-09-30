@@ -1,0 +1,34 @@
+# KUROGANE — Thunder Descends
+
+A browser 3D voxel arena action game: a mecha samurai with a whip-sword fights waves of robots
+and three bosses on a circular sakura shrine at night. Built with Vite, vanilla JavaScript and
+three.js; the production build is a single self-contained `dist/index.html`.
+
+## Controls
+| Input | Action |
+|---|---|
+| WASD | Move (screen-relative) |
+| Mouse | Aim (the upper body follows the cursor) |
+| Hold left mouse | 3-hit combo — about half the swings crit into a **whip strike** |
+| Q | Thunderclaw: aim (time slows), click to fire, right-click / Esc cancels |
+| E | Shatter → Overdrive on hit |
+| R | Demontime (freeze time, 7 s power buff) |
+| 1 / 2 / 3 or click | Pick a level-up card |
+| Esc / P | Pause |
+| Enter | Retry after defeat |
+
+Clear 15 waves — bosses on waves 5, 10 and 15 — to reach **Demo clear**, then continue endlessly.
+
+Debug (press `` ` `` to toggle the panel): 1/2/3 spawn enemies, 4/5/6 spawn bosses, K kill all,
+G god mode, N next wave, L level up, C reset cooldowns, M model viewer, T time scale, O orbit
+camera, F photo mode.
+
+## Develop
+```bash
+npm install
+npm run dev      # dev server with hot reload
+npm run build    # → dist/index.html (single file, open it directly in a browser)
+```
+
+All tunable numbers live in `src/config.js`. Design spec: `docs/GAME_SPEC.md`; build log:
+`docs/PROGRESS.md`.

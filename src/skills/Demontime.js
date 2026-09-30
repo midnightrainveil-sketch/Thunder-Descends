@@ -154,8 +154,11 @@ export class Demontime extends Skill {
     const h = this.hero;
     const g = this.game;
     const R = this.r(C.pulseRadius);
+    const seen = new Set();
     for (const e of g.enemies) {
       if (e.dead || Math.hypot(e.position.x - h.position.x, e.position.z - h.position.z) > R + e.radius) continue;
+      if (seen.has(e.owner || e)) continue;
+      seen.add(e.owner || e);
       g.combat.heroHitsEnemy(e, { mult: this.r(C.pulseMult), knockback: 8, unblockable: true, from: h.position, shake: 0.5 });
     }
     const fx = g.fx;

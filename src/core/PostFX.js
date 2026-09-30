@@ -106,6 +106,7 @@ export class PostFX {
 
   // Additive white flash that decays to 0 over duration seconds.
   flash(strength, duration = 0.2, color = 0xffffff) {
+    strength = Math.min(strength, CONFIG.ui.flashMax); // overlapping effects never white out the screen
     this._flash.strength = Math.max(strength, this.uniforms.flash.value);
     this._flash.duration = Math.max(duration, 1e-3);
     this._flash.t = 0;

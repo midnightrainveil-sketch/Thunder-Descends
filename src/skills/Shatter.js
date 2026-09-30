@@ -69,13 +69,16 @@ export class Shatter extends Skill {
     const len = this.r(C.length);
     const wid = this.r(C.width);
     this.hitAny = false;
+    const hitSet = new Set();
     // Hitbox from the hero along the locked aim (includes the lunge distance).
     const ox = h.position.x;
     const oz = h.position.z;
     for (const e of g.enemies) {
       if (e.dead || !hitRect(ox, oz, this.yaw, len + C.lunge, wid, e)) continue;
       this.hitAny = true;
-      g.combat.heroHitsEnemy(e, { mult: C.mult, stun: C.stun, knockback: 3.5, from: h.position, shake: 0.3, hitstop: 0.06 });
+      if (e.invulnerable || hitSet.has(e.owner || e)) continue;
+      hitSet.add(e.owner || e);
+      g.combat.heroHitsEnemy(e, { mult: C.mult, stun: C.stun, knockback: 3.5, from: h.position, shake: 0.3, hitstop: 0.06, skill: 'e' });
     }
     // Spear-like burst ahead of the blade.
     const fx = g.fx;

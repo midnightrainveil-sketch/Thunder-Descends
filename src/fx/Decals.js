@@ -76,12 +76,15 @@ export class Decals {
         },
         transparent: true,
         depthWrite: false,
+        depthTest: true,
         blending: THREE.AdditiveBlending,
         toneMapped: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
       });
       const mesh = new THREE.Mesh(centered, mat);
       mesh.visible = false;
-      mesh.renderOrder = 3;
+      mesh.renderOrder = 9; // telegraphs draw above other floor / air effects
       mesh.frustumCulled = false;
       mesh.name = 'fx:decal';
       scene.add(mesh);

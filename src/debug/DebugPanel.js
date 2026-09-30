@@ -92,6 +92,8 @@ export class DebugPanel {
     if (input.wasPressed('KeyF')) this.togglePhoto();
     if (input.wasPressed('KeyI')) this.petalImpulseAtMouse();
     // Stage 3: spawn (with telegraph), kill all, god mode, next wave, level up, model viewer.
+    const menu = this.game.mode !== 'play'; // digits pick cards; no debug spawns in menus
+    if (menu) return;
     if (input.wasPressed('Digit1')) this.game.spawnEnemy('ronin');
     if (input.wasPressed('Digit2')) this.game.spawnEnemy('teppo');
     if (input.wasPressed('Digit3')) this.game.spawnEnemy('tate');
@@ -102,13 +104,9 @@ export class DebugPanel {
     if (input.wasPressed('KeyM')) this.viewer.enable();
     if (input.wasPressed('KeyC')) this.game.hero.skills.resetCooldowns();
 
-    // TODO(Stage 5): 4/5/6 spawn bosses.
-    const stubs = {
-      Digit4: 'spawn Oni Juggernaut (Stage 5)',
-      Digit5: 'spawn Kage Kitsune (Stage 5)',
-      Digit6: 'spawn Raiju Serpent (Stage 5)',
-    };
-    for (const code in stubs) if (input.wasPressed(code)) console.info(`[debug] ${code}: ${stubs[code]} — not implemented yet`);
+    if (input.wasPressed('Digit4')) this.game.spawnBoss('juggernaut');
+    if (input.wasPressed('Digit5')) this.game.spawnBoss('kitsune');
+    if (input.wasPressed('Digit6')) this.game.spawnBoss('raiju');
   }
 
   // Photo mode: hide the hero, reticle, UI and the debug overlay (F again to return).

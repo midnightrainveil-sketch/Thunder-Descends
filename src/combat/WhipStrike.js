@@ -73,7 +73,7 @@ export class WhipStrike {
     this.tipTrail.start();
     this.fx.slashes.spawn({
       pos: _p.set(this.origin.x, W.height + 0.05, this.origin.z),
-      yaw: this.yaw0, radius: W.reach + 0.15, thickness: 0.9, arcDeg: W.arcDeg, dir,
+      yaw: this.yaw0, radius: W.reach + this.hero.whipReachBonus + 0.15, thickness: 0.9, arcDeg: W.arcDeg, dir,
       color: '#3fd8ff', intensity: 0.85, sweep: W.sweep, hold: 0.02, fade: 0.2,
     });
   }
@@ -99,7 +99,7 @@ export class WhipStrike {
   _radiusAt(t) {
     const W = CONFIG.whip;
     const bladeLen = HERO_BLADE_SEGMENTS * SEG_LEN + 0.3;
-    return bladeLen + (W.reach - bladeLen) * easeOut(THREE.MathUtils.clamp(t / W.extend, 0, 1));
+    return bladeLen + (W.reach + this.hero.whipReachBonus - bladeLen) * easeOut(THREE.MathUtils.clamp(t / W.extend, 0, 1));
   }
 
   _segScale(t) {

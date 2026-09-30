@@ -28,7 +28,7 @@ export class Combat {
   hitPoint(enemy, from, out = _h) {
     _d.set(from.x - enemy.position.x, 0, from.z - enemy.position.z);
     const len = _d.length() || 1;
-    return out.set(enemy.position.x + (_d.x / len) * enemy.radius, 1.1, enemy.position.z + (_d.z / len) * enemy.radius);
+    return out.set(enemy.position.x + (_d.x / len) * enemy.radius, enemy.hitY ?? 1.1, enemy.position.z + (_d.z / len) * enemy.radius);
   }
 
   /**
@@ -40,7 +40,10 @@ export class Combat {
     const hero = this.game.hero;
     const S = hero.stats;
     const from = opts.from || hero.position;
+    if (enemy.invulnerable) return { damage: 0, blocked: false, killed: false };
     let dmg = S.atk * (opts.mult ?? 1) * (opts.crit ? S.critDamage : 1);
+    // Thunderclaw IV: grabbed enemies take extra damage while stunned.
+    if (enemy.clawMarked && enemy.state === 'stunned') dmg *= 1 + (hero.skills?.q.r(CONFIG.skills.thunderclaw.stunnedBonus) ?? 0);
     dmg *= 1 + (Math.random() * 2 - 1) * C.damageJitter;
     const blocked = !opts.unblockable && enemy.blocks(from);
     if (blocked) dmg *= 1 - enemy.cfg.blockReduction;
@@ -51,7 +54,9 @@ export class Combat {
     const len = _d.length() || 1;
     _d.multiplyScalar(1 / len);
     const kb = (opts.knockback ?? 2) * (blocked ? C.blockedKnockback : 1);
-    const killed = enemy.takeDamage(dmg, { dirX: _d.x, dirZ: _d.z, knockback: kb, stun: blocked ? 0 : opts.stun ?? 0, blocked });
+    const killed = enemy.takeDamage(dmg, { dirX: _d.x, dirZ: _d.z, knockback: kb, stun: blocked ? 0 : opts.stun ?? 0, blocked, skill: opts.skill ?? null });
+    // Passive IV: crits heal 1% max HP.
+    if (opts.crit && hero.passiveRank >= 4) hero.heal(S.maxHp * CONFIG.cards.passiveHeal);
 
     // Feedback
     const p = this.hitPoint(enemy, from, _v);
@@ -81,6 +86,7 @@ export class Combat {
   }
 
   killEnemy(enemy, pushDir = null) {
+    if (enemy.owner) enemy = enemy.owner; // a Raiju segment → the Raiju
     if (!enemy.dead) {
       enemy.dead = true;
       enemy.alive = false;
@@ -88,13 +94,17 @@ export class Combat {
     if (enemy._killed) return;
     enemy._killed = true;
     enemy.group.visible = false;
-    this.fx.shatter.burst(enemy.rig, enemy.palette, pushDir, 1);
+    const boss = !!enemy.isBoss;
+    this.fx.shatter.burst(enemy.rig, enemy.palette, pushDir, boss ? 1.6 : 1);
     const p = enemy.position;
-    this.fx.particles.dust(p, 8);
-    this.fx.particles.sparks(_v.set(p.x, 1.0, p.z), null, 14, { color: CONFIG.fx.emberColor, speed: 7, life: 0.4 });
-    this.fx.shock.ring(p, { r0: 0.3, r1: 2.2, duration: 0.4, color: CONFIG.fx.emberColor, intensity: 1.6, thickness: 0.18 });
-    this.fx.exp.drop(p, enemy.exp);
-    this.game.map.petalImpulse(p, 2.2, 3);
+    this.fx.particles.dust(p, boss ? 24 : 8);
+    this.fx.particles.sparks(_v.set(p.x, enemy.hitY ?? 1.0, p.z), null, boss ? 40 : 14, { color: CONFIG.fx.emberColor, speed: boss ? 11 : 7, life: 0.4 });
+    this.fx.shock.ring(p, { r0: 0.3, r1: boss ? 7 : 2.2, duration: boss ? 0.6 : 0.4, color: CONFIG.fx.emberColor, intensity: boss ? 2.6 : 1.6, thickness: 0.18 });
+    if (boss) {
+      // EXP burst: several drops so the shard count stays readable.
+      for (let left = enemy.exp; left > 0; left -= 40) this.fx.exp.drop(_v.set(p.x + (Math.random() - 0.5) * 2, 0, p.z + (Math.random() - 0.5) * 2), Math.min(40, left));
+    } else if (enemy.exp > 0) this.fx.exp.drop(p, enemy.exp);
+    this.game.map.petalImpulse(p, boss ? 8 : 2.2, boss ? 12 : 3);
     this.stats.kills++;
     this.onKill?.(enemy);
   }

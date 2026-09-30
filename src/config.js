@@ -31,6 +31,9 @@ export const CONFIG = {
       maxRollDeg: 1.1, // degrees at trauma 1
       frequency: 22, // noise speed, Hz-ish
       exponent: 2, // shake = trauma^exponent
+      maxTrauma: 0.75, // overlapping shakes never exceed this (polish)
+      perHitCap: 0.5, // a single shake call adds at most this much trauma
+      enabled: true, // pause-menu toggle
     },
     punch: {
       attack: 0.18, // fraction of the duration spent zooming in
@@ -289,7 +292,7 @@ export const CONFIG = {
   skills: {
     startRank: 1,
     thunderclaw: {
-      cooldown: [6, 5, 5, 5], // s
+      cooldown: [6, 6, 5, 5], // s (rank III: −1 s)
       range: 9, // m, max target distance
       radius: [2.5, 3, 3, 3], // m, grab radius
       maxTargets: [3, 4, 4, 4],
@@ -346,7 +349,7 @@ export const CONFIG = {
   // ── FX pools (Stage 3) ──────────────────────────────────────────────────
   fx: {
     particles: { glow: 700, solid: 300, gravity: 14 }, // cube particle pools
-    shatter: { max: 100, life: 2.2, fade: 0.5, bounce: 0.35, friction: 0.7, speed: 4.5, up: 4, spin: 9 },
+    shatter: { max: 260, life: 2.2, fade: 0.5, bounce: 0.35, friction: 0.7, speed: 4.5, up: 4, spin: 9 },
     slashArcs: 10, // crescent pool
     lightningBolts: 48, // bolt pool
     lightningPoints: 9, // points per bolt
@@ -603,7 +606,57 @@ export const CONFIG = {
   },
 
   ui: {
-    showHint: true, // small controls hint (placeholder until the Stage 5 HUD)
+    showHint: false, // Stage 0 controls hint (replaced by the title screen)
+    cardDelay: 0.7, // s (real) after a level-up before the cards open
+    hpSegments: 12, // segmented HP bar
+    flashMax: 0.45, // cap on full-screen flashes (polish)
+  },
+
+  // ── Bosses (Stage 5, spec §9) ───────────────────────────────────────────
+  bosses: {
+    stunQ: 0.6, stunE: 0.4, // reduced stuns (s) from Thunderclaw / Shatter; others ignored
+    introDrop: 0.7, // s falling in
+    introHold: 1.0, // s after landing before the first attack
+    deathTime: 1.6, // s (real) of slow-mo explosions before the shatter
+    deathSlowmo: 0.3,
+    enrageAt: 0.5, // HP fraction
+    loopHp: 0.6, // endless: +60% HP per repeat
+    expBurst: 1, // EXP multiplier on the boss's exp value
+    recover: [0.7, 1.2], // s between attacks (random range)
+    juggernaut: {
+      name: 'Oni Juggernaut', hp: 3000, exp: 150, radius: 1.3, speed: 2.1, keepDist: 3.2,
+      slam: { damage: 40, radius: 2.2, first: 0.85, next: 0.45, spacing: [2.4, 4.6, 6.8] },
+      charge: { damage: 55, telegraph: 0.9, speed: 15, width: 2.6, stun: 1.2, knockback: 12 },
+      stomp: { damage: 35, radius: 4.5, telegraph: 0.8 },
+      enrage: { speed: 1.3, chestGlow: 2.6 },
+      weights: { slam: 3, charge: 2, stomp: 2 },
+    },
+    kitsune: {
+      name: 'Kage Kitsune', hp: 4500, exp: 220, radius: 0.55, speed: 4.2, keepDist: 4.5,
+      blink: { damage: 30, flash: 0.5, behind: 1.4, reach: 2.2, arcDeg: 150 },
+      dash: { damage: 28, telegraph: 0.8, speed: 26, width: 1.3, count: 3, length: 7 },
+      fan: { damage: 18, telegraph: 0.6, count: 11, arcDeg: 90, speed: 11, range: 12 },
+      enrage: { speed: 1.3, clones: 2, cloneDamage: 0.5 },
+      weights: { blink: 3, dash: 2, fan: 2 },
+      tailSway: { amp: 22, speed: 2.4 }, // degrees, Hz-ish
+    },
+    raiju: {
+      name: 'Raiju Serpent', hp: 7000, exp: 320, segments: 16, spacing: 0.95, radius: 0.75, headMult: 1.5,
+      orbitRadius: 13.2, height: [2, 4], orbitSpeed: 0.32, // rad/s
+      crossChance: 0.3, // chance a move phase crosses over the arena (figure-8)
+      beam: { damage: 12, tick: 0.12, telegraph: 0.9, sweep: 1.0, arcDeg: 70, length: 16, width: 1.4 },
+      pillars: { damage: 35, count: [5, 8], enragedCount: [8, 11], radius: 1.3, telegraph: 0.95, spread: 4.5 },
+      dive: { damage: 45, telegraph: 1.0, speed: 17, width: 2.4, height: 1.0 },
+      enrage: { speed: 1.3 },
+      weights: { beam: 2, pillars: 3, dive: 2 },
+    },
+  },
+
+  // Level-up cards (spec §10).
+  cards: {
+    statMax: 5, // each stat card at most 5 times
+    atk: 0.1, hp: 0.12, attackSpeed: 0.08,
+    passiveCritDamage: 0.3, passiveWhipReach: 1.5, passiveHeal: 0.01,
   },
 
   debug: {

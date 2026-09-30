@@ -46,6 +46,17 @@ export const BOSS_PALETTE = {
   raiju: '#FFE14A',
 };
 
+// Boss palettes (Stage 5).
+export const JUGGERNAUT_PALETTE = {
+  rust: '#9A2A1C', rustDark: '#5E1A12', black: '#17161B', iron: '#34333A', bone: '#D9D2C0', spike: '#8E8C92', ember: '#FF7A1A', bronze: '#8A6A3A',
+};
+export const KITSUNE_PALETTE = {
+  violet: '#3D2657', violetDark: '#221633', black: '#121018', mask: '#E8E2EE', steel: '#5A5670', magenta: '#FF3FD2', blade: '#FF6BE6',
+};
+export const RAIJU_PALETTE = {
+  gold: '#C9A13A', goldDark: '#7E6121', black: '#18171B', horn: '#E6C35A', yellow: '#FFE14A', fang: '#EDE6D0',
+};
+
 // Everything in one lookup, for mixed-palette parts (tests, props).
 export const ALL_PALETTE = { ...MAP_PALETTE, ...ENEMY_PALETTE, ...BOSS_PALETTE, ...HERO_PALETTE };
 

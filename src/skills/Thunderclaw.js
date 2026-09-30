@@ -151,17 +151,26 @@ export class Thunderclaw extends Skill {
     this.phase = 'grab';
     this.t = 0;
     const R = this.r(C.radius);
-    const cand = g.enemies.filter((e) => !e.dead && Math.hypot(e.position.x - this.target.x, e.position.z - this.target.z) <= R + e.radius);
+    const seen = new Set();
+    const cand = g.enemies.filter((e) => {
+      if (e.dead || e.invulnerable || Math.hypot(e.position.x - this.target.x, e.position.z - this.target.z) > R + e.radius) return false;
+      const key = e.owner || e; // one hit per multi-part boss
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
     cand.sort((a, b) => a.position.distanceToSquared(this.target) - b.position.distanceToSquared(this.target));
     const picked = cand.slice(0, this.r(C.maxTargets));
+    this.hitBoss = picked.some((e) => e.isBoss);
     picked.forEach((e, i) => {
       // Cluster slots around the grab center.
       const a = (i / Math.max(1, picked.length)) * Math.PI * 2;
       const rad = picked.length > 1 ? C.clusterSpacing : 0;
       const slot = new THREE.Vector3(this.target.x + Math.cos(a) * rad, 0, this.target.z + Math.sin(a) * rad);
       clampToArena(slot, e.radius);
-      this.grabbed.push({ enemy: e, start: e.position.clone(), slot });
-      g.combat.heroHitsEnemy(e, { mult: C.grabMult, stun: C.grabStun, knockback: 0, unblockable: true, from: this.target, shake: 0.2 });
+      if (!e.isBoss) this.grabbed.push({ enemy: e, start: e.position.clone(), slot }); // bosses aren't pulled
+      e.clawMarked = true;
+      g.combat.heroHitsEnemy(e, { mult: C.grabMult, stun: C.grabStun, knockback: 0, unblockable: true, from: this.target, shake: 0.2, skill: 'q' });
     });
     // Claw closes with a lightning grip flash.
     g.fx.shock.ring(this.target, { r0: R * 0.9, r1: 0.3, duration: C.grab, color: '#35e0ff', intensity: 2.4, thickness: 0.12, clock: 'hero' });
@@ -181,7 +190,7 @@ export class Thunderclaw extends Skill {
     this.pullFrom = h.position.clone();
     _v.subVectors(this.target, h.position).setY(0);
     const d = _v.length();
-    const stop = this.grabbed.length ? C.landStop : 0;
+    const stop = this.grabbed.length || this.hitBoss ? C.landStop : 0;
     this.land.copy(h.position).addScaledVector(_v.normalize(), Math.max(0, d - stop));
     clampToArena(this.land, CONFIG.hero.radius);
   }
@@ -195,8 +204,11 @@ export class Thunderclaw extends Skill {
     this.clawPos.copy(this.clawPos); // keep the hand where it grabbed; it flies back from here
     h.control.invulnerable = false;
     h.control.baseOwned = false;
+    const seen = new Set();
     for (const e of g.enemies) {
       if (e.dead || Math.hypot(e.position.x - h.position.x, e.position.z - h.position.z) > C.landRadius + e.radius) continue;
+      if (seen.has(e.owner || e)) continue;
+      seen.add(e.owner || e);
       g.combat.heroHitsEnemy(e, { mult: C.landMult, knockback: 3, from: h.position, shake: 0.3 });
     }
     g.fx.shock.ring(h.position, { r0: 0.3, r1: C.landRadius * 1.2, duration: 0.3, color: '#8ff4ff', intensity: 2.6, thickness: 0.22, clock: 'hero' });

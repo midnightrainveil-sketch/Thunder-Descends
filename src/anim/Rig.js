@@ -75,6 +75,7 @@ export class Rig {
         origin: partOrigin,
         seed: seed * 101 + pi,
         jitter: part.jitter ?? jitter,
+        split: part.split ?? opts.split ?? false,
         attributes: {
           skinIndex: { size: 4, fn: () => [bi, 0, 0, 0] },
           skinWeight: { size: 4, fn: () => [1, 0, 0, 0] },
