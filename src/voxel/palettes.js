@@ -9,6 +9,8 @@ export const HERO_PALETTE = {
   crimson: '#D7263D',
   cyan: '#35E0FF',
   core: '#E8FDFF',
+  steelDark: '#6E7480', // second blade shade (alternating segments)
+  crimsonDark: '#8E1A2A', // sash hem
 };
 
 export const ENEMY_PALETTE = {
@@ -16,6 +18,8 @@ export const ENEMY_PALETTE = {
   black: '#15151A',
   bronze: '#8A6A3A',
   ember: '#FF7A1A',
+  rustDark: '#5E2016', // shading blocks
+  steel: '#3A3B42', // dark blade / barrel steel
 };
 
 export const MAP_PALETTE = {

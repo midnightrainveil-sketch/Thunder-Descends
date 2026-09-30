@@ -137,10 +137,71 @@ export const CONFIG = {
     radius: 0.4, // m, body radius for arena clamping
     accel: 42, // m/s², towards the input velocity
     decel: 55, // m/s², when no input
-    turnRate: 16, // 1/s, exponential turn smoothing toward the mouse
-    leanDeg: 4, // forward lean at full speed (placeholder)
-    leanRate: 10, // 1/s
+    leanDeg: 7, // forward lean at full speed
+    leanRate: 8, // 1/s
     spawn: { x: 0, z: 4.5 },
+    // Animation (Stage 2)
+    anim: {
+      idleDuration: 3.2, // s per breathing idle loop
+      runDuration: 0.62, // s per run cycle (2 steps)
+      runSpeedRef: 6, // m/s at which the run clip plays at 1×
+      runBlendRate: 10, // 1/s, idle ↔ run blend smoothing
+      attackDurations: [0.55, 0.55, 0.72], // s per combo step (spec: 0.55 s interval, heavier finisher)
+      hitWindows: [[0.36, 0.5], [0.36, 0.5], [0.5, 0.62]], // normalized hitStart/hitEnd per step
+      hurtDuration: 0.4, // s
+      deathDuration: 1.6, // s
+      attackFade: 0.07, // s, crossfade into an attack
+      upperFadeOut: 0.2, // s, upper layer fade back to locomotion
+      legTurnRate: 9, // 1/s, legs turn toward the move/aim direction
+      aimTurnRate: 22, // 1/s, upper body follows the aim
+      twistMaxDeg: 60, // max upper-body twist relative to the legs
+      twistSplit: [0.3, 0.5, 0.2], // share of the twist on spine / chest / head
+      backpedalDeg: 110, // moving more than this away from the aim → legs face aim, run backwards
+      breathRate: 0.3, // Hz
+      breathDeg: 1.4, // chest breathing amplitude
+      bankDeg: 5, // roll into turns
+      sashLag: { gain: 0.07, stiffness: 55, damping: 8, maxDeg: 28 }, // sash panels trail the body
+      pauldronLag: { gain: 0.035, stiffness: 90, damping: 11, maxDeg: 10 },
+    },
+    combo: {
+      resetTime: 0.9, // s without attacking → combo back to step 1 (spec §5)
+      damage: [1.0, 1.0, 1.4], // ×ATK per step (Stage 3)
+      range: 2.4, // m (Stage 3)
+      arcDeg: 120, // (Stage 3)
+    },
+    trail: {
+      samples: 16, // ribbon history length
+      lifetime: 0.16, // s, a sample fades out over this (hero clock)
+      color: '#35e0ff',
+      intensity: 2.4, // HDR multiplier (blooms)
+      opacity: 0.85,
+      baseInset: 0.25, // m from the guard where the ribbon starts
+    },
+  },
+
+  // ── Enemies (spec §8 base values; AI arrives in Stage 3) ────────────────────
+  enemies: {
+    ronin: { hp: 120, damage: 18, speed: 3.2, exp: 10, radius: 0.45, walkAnimSpeedRef: 1.9 },
+    teppo: { hp: 90, damage: 22, speed: 2.8, exp: 12, radius: 0.45, walkAnimSpeedRef: 1.9 },
+    tate: { hp: 260, damage: 35, speed: 2.2, exp: 20, radius: 0.6, walkAnimSpeedRef: 1.7 },
+    stopDistance: 2, // m, debug walkers stop this far from the hero
+    turnRate: 7, // 1/s
+    accel: 12, // m/s²
+    spawnMinDist: 5, // m from the hero (spec §9)
+    separation: 1.3, // m, enemies push apart below this distance
+    walkDuration: 1.0, // s per walk cycle
+    anim: {
+      windupDuration: 0.45, // s (Ronin slash windup, spec §8)
+      strikeDuration: 0.45, // s
+      aimDuration: 0.7, // s (Teppo aim telegraph)
+      fireDuration: 0.35, // s
+      slamDuration: 1.3, // s (0.9 s telegraph + slam)
+      blockDuration: 0.3, // s to raise the shield
+      hurtDuration: 0.35,
+      stunnedDuration: 1.4, // s per stunned sway loop
+      eyeFlare: 3.2, // eye glow multiplier during telegraphs
+      shieldBrace: 0.85, // Tate shield counter-rotation vs. left-arm pitch (1 = always vertical)
+    },
   },
 
   voxel: {
@@ -367,5 +428,8 @@ export const CONFIG = {
   debug: {
     startOpen: false, // lil-gui panel visible at start (toggle with `)
     statsInterval: 0.5, // s, FPS counter refresh
+    clawTest: { distance: 6, out: 0.2, hold: 0.25, back: 0.3, height: 0.9 }, // "test claw" flight (hero clock)
+    bladeSplitTest: { extend: 0.28, hold: 0.35, retract: 0.15, gap: 0.3, arcDeg: 70 }, // "test blade split"
+    modelViewer: { position: { x: 0, z: 0 }, distance: 6.5, height: 1.4 }, // M: model viewer framing
   },
 };

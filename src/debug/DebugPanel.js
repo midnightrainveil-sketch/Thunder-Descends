@@ -3,6 +3,7 @@ import GUI from 'lil-gui';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CONFIG } from '../config.js';
 import { Stats } from './Stats.js';
+import { ModelViewer } from './ModelViewer.js';
 
 // lil-gui debug panel (toggle with `) + FPS/draw-call counter + debug hotkeys (spec §14).
 // Hotkeys only work while debug is on.
@@ -24,6 +25,7 @@ export class DebugPanel {
     this._debugScaleIndex = 0;
 
     this._setupOrbit();
+    this.viewer = new ModelViewer(this);
     this._buildGui();
     this.setEnabled(this.enabled);
   }
@@ -89,23 +91,23 @@ export class DebugPanel {
     if (input.wasPressed('KeyO')) this.toggleOrbit();
     if (input.wasPressed('KeyF')) this.togglePhoto();
     if (input.wasPressed('KeyI')) this.petalImpulseAtMouse();
+    // Stage 2: spawn walkers (full AI in Stage 3), remove all, model viewer.
+    if (input.wasPressed('Digit1')) this.game.spawnEnemy('ronin');
+    if (input.wasPressed('Digit2')) this.game.spawnEnemy('teppo');
+    if (input.wasPressed('Digit3')) this.game.spawnEnemy('tate');
+    if (input.wasPressed('KeyK')) this.game.clearEnemies();
+    if (input.wasPressed('KeyM')) this.viewer.enable();
 
-    // TODO(Stage 3): 1/2/3 spawn Ronin/Teppo/Tate, K kill all, G god mode, N next wave, C reset cooldowns.
+    // TODO(Stage 3): K kills (damage/death), G god mode, N next wave. TODO(Stage 4): C reset cooldowns.
     // TODO(Stage 5): 4/5/6 spawn bosses, L gain a level.
-    // TODO(Stage 2): M model viewer.
     const stubs = {
-      Digit1: 'spawn Ronin (Stage 3)',
-      Digit2: 'spawn Teppo (Stage 3)',
-      Digit3: 'spawn Tate (Stage 3)',
       Digit4: 'spawn Oni Juggernaut (Stage 5)',
       Digit5: 'spawn Kage Kitsune (Stage 5)',
       Digit6: 'spawn Raiju Serpent (Stage 5)',
-      KeyK: 'kill all enemies (Stage 3)',
       KeyG: 'god mode (Stage 3)',
       KeyN: 'next wave (Stage 3)',
       KeyL: 'gain a level (Stage 5)',
       KeyC: 'reset cooldowns (Stage 4)',
-      KeyM: 'model viewer (Stage 2)',
     };
     for (const code in stubs) if (input.wasPressed(code)) console.info(`[debug] ${code}: ${stubs[code]} — not implemented yet`);
   }
@@ -135,6 +137,7 @@ export class DebugPanel {
       }
     }
     if (this.orbit.enabled) this.orbit.update();
+    this.viewer.update(realDt);
   }
 
   previewTimeRing() {
@@ -292,11 +295,60 @@ export class DebugPanel {
 
     // Hero
     const hero = gui.addFolder('Hero');
+    const H = this.game.hero;
     hero.add(C.hero, 'moveSpeed', 0, 14, 0.1);
     hero.add(C.hero, 'accel', 1, 150, 1);
     hero.add(C.hero, 'decel', 1, 150, 1);
-    hero.add(C.hero, 'turnRate', 1, 60, 0.5);
+    hero.add(C.hero.anim, 'aimTurnRate', 1, 60, 0.5).name('aim turn rate');
+    hero.add(C.hero.anim, 'legTurnRate', 1, 60, 0.5).name('leg turn rate');
+    hero.add(C.hero.anim, 'twistMaxDeg', 0, 90, 1).name('twist max°');
     hero.add(C.hero, 'leanDeg', 0, 15, 0.5);
+    hero.add(C.hero.anim, 'breathDeg', 0, 5, 0.1).name('breathing°');
+    hero.add(H, 'attackSpeed', 0.25, 3, 0.05).name('attack speed');
+    hero.add({ f: () => this.game.hero.testClaw() }, 'f').name('Test claw');
+    hero.add({ f: () => this.game.hero.testBladeSplit() }, 'f').name('Test blade split');
+    hero.add({ f: () => this.game.hero.playHurt() }, 'f').name('Play hurt');
+    hero.add({ f: () => this.game.hero.playDeath() }, 'f').name('Play death');
+    hero.add({ f: () => this.game.hero.revive() }, 'f').name('Revive');
+    const ult = { on: false };
+    hero.add(ult, 'on').name('Ult blade plates').onChange((v) => {
+      for (let i = 0; i < 8; i++) this.game.hero.rig.setBoneVisible(`bladeUlt_${i}`, v);
+    });
+    hero.add({ f: () => this.game.hero.rig.setFlash(1) || setTimeout(() => this.game.hero.rig.setFlash(0), 80) }, 'f').name('Hit flash (80 ms)');
+    hero.close();
+
+    // Enemies
+    const en = gui.addFolder('Enemies');
+    en.add({ f: () => this.game.spawnEnemy('ronin') }, 'f').name('Spawn Ronin (1)');
+    en.add({ f: () => this.game.spawnEnemy('teppo') }, 'f').name('Spawn Teppo (2)');
+    en.add({ f: () => this.game.spawnEnemy('tate') }, 'f').name('Spawn Tate (3)');
+    en.add({ f: () => this.game.clearEnemies() }, 'f').name('Remove all (K)');
+    const all = (fn) => () => this.game.enemies.forEach(fn);
+    en.add({ f: all((e) => e.playAction('attack')) }, 'f').name('Attack (windup → strike)');
+    en.add({ f: all((e) => e.playAction('aimFire')) }, 'f').name('Teppo aim → fire');
+    en.add({ f: all((e) => e.playAction('block')) }, 'f').name('Tate block');
+    en.add({ f: all((e) => e.playAction('slam')) }, 'f').name('Tate slam');
+    en.add({ f: all((e) => e.playAction('stunned')) }, 'f').name('Stunned');
+    en.add({ f: all((e) => e.playHurt()) }, 'f').name('Hurt + hit flash');
+    en.add({ f: all((e) => (e.eyeFlare = 1)) }, 'f').name('Flare eyes');
+    en.add(C.enemies, 'stopDistance', 0.5, 6, 0.1).name('stop distance');
+    en.close();
+
+    // Model viewer
+    const mv = gui.addFolder('Model viewer (M)');
+    const V = this.viewer.state;
+    mv.add({ f: () => this.viewer.enable() }, 'f').name('Toggle viewer (M)');
+    mv.add(V, 'model', ['hero', 'ronin', 'teppo', 'tate']).onChange((v) => {
+      this.viewer.setModel(v);
+      clipCtrl.options(this.viewer.clipNames()).setValue(this.viewer.state.clip);
+    });
+    const clipCtrl = mv.add(V, 'clip', ['idle', 'run', 'attack1', 'attack2', 'attack3', 'hurt', 'death']).onChange((v) => this.viewer.play(v));
+    mv.add(V, 'speed', 0, 2, 0.05);
+    mv.add(V, 'paused').listen();
+    mv.add({ u: 0 }, 'u', 0, 1, 0.01).name('scrub').onChange((u) => this.viewer.scrub(u));
+    mv.add(V, 'pivots').name('show joint pivots');
+    mv.add(V, 'loopOneShots').name('loop one-shots');
+    mv.close();
 
     // Lighting
     const light = gui.addFolder('Lighting');
@@ -324,6 +376,7 @@ export class DebugPanel {
     const help = gui.addFolder('Hotkeys');
     help.add({ t: 'T time · O orbit · F photo' }, 't').name('keys').disable();
     help.add({ t: 'I petal impulse at mouse' }, 't').name('map').disable();
+    help.add({ t: '1/2/3 spawn · K remove all · M viewer' }, 't').name('models').disable();
     help.close();
   }
 }

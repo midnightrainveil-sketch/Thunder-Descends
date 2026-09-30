@@ -195,3 +195,122 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 11. Press **O** to orbit around the map, **O** again to return, and **F** for photo mode.
 12. Resize to 4:3, ultrawide and portrait: the arena stays framed, with the torii and sky above it.
 13. `npm run build`, then open `dist/index.html` directly.
+
+---
+
+## Stage 2 — Character models and animation
+
+### What was built
+- **Rig** (`src/anim/Rig.js`): rigid-skinned voxel characters.
+  - A rig definition is `{ joints: [[name, parent, pivotGrid]], parts: [{ name, joint, boxes, glow?, local? }], glowGroups }`.
+  - Every part is built with `buildPart()` (same 0.12 m grid, jitter and face culling as before). Each vertex carries `skinIndex` (its part's joint) with weight 1, plus an `aGlow` group index.
+  - All parts merge into **one opaque + one emissive SkinnedMesh per character (2 draw calls)**. Joint pivots sit at the real joints; the rest pose is the modelling pose.
+  - API: `bones[name]`, `boneList`, `index`, `rest`, `parts`, `setGlow(group, k)` (per-group emissive multiplier via a `uGlow[8]` uniform), `setFlash(k, color?)` (white hit flash mixed into the opaque shader), `setBoneVisible(name, on)` (hidden = scaled to ~0), `resetPose()`, `worldPosition(name, out)`, `setShadows()`, `dispose()`.
+- **Animator** (`src/anim/Animator.js`):
+  - Clips are keyframed joint rotations: `{ joint: [rx, ry, rz] }` in degrees (YXZ, relative to rest) and `'joint@': [x, y, z]` position offsets in m.
+  - Keys use normalized time, and each key's `ease` (`linear / in / out / inOut / smooth / snap / hold`) shapes the segment arriving at it. A joint's track only uses the keys that mention it.
+  - Looping or one-shot clips, with timed events (`hitStart`, `hitEnd`, `telegraph`, `fire`, …) fired on time crossing. Events at t = 0 fire on the first update after `play()`.
+  - Layers: `addLayer(name, { mask, weight })`, with masks built by `animator.mask(['spine:0.7', 'chest', …])` and inherited by descendants.
+    - `layer.play(name, { fade, speed, restart, onEnd })` crossfades.
+    - `layer.setBlend({ idle, run }, { run: speed })` is a manual blend space.
+    - `layer.fadeOut()` and `layer.weight` / `targetWeight` control layer weight.
+  - Composite: the base layer replaces, and upper layers slerp over it by `weight × mask`. `animator.on(event | '*', fn)`, `animator.timeScale`, and `animator.addRotation(joint, rx, ry, rz)` for procedural post-offsets.
+- **Hero model** (`src/voxel/models/HeroModel.js`): 137 boxes, 47 joints, 1548 triangles, about 20 blocks (2.4 m) tall with ~7-head proportions.
+  - Gunmetal and ivory armor, dark knees and elbows, crimson belt and sash panels, and a kabuto with a forward-swept fin.
+  - Jaw mask with a cyan visor row, 2-slab pauldrons, and back fins with cyan tips.
+  - An oversized left claw gauntlet (~1.4×) with 3 fingers and a wrist chain housing.
+  - A nodachi in the **right** hand: pommel, crimson hilt, square guard, and 8 two-block segments in alternating steel shades with a cyan edge row.
+  - Hidden `bladeUlt_*` plates and crimson cores for the Stage 4 ult. Glow groups: `default`, `visor`, `core`, `blade`, `accent`, `ult`.
+- **Enemy models** (`src/voxel/models/EnemyModels.js`): same block size, rust / black / bronze with orange eyes and seams. Glow groups: `default`, `eyes`, `seams`, `weapon`. The eyes are their own glow group so they can flare for telegraphs.
+  - **Ronin**: lean, wide conical hat, one eye, short katana with an ember tip. 53 boxes, 22 joints.
+  - **Teppo**: scope helmet (the lens is the eye), back ammo drum with an ember ring, long rifle with a `muzzle` node. 59 boxes, 23 joints.
+  - **Tate**: about 1.05× height and 1.3× width, 3-wide legs, pauldrons, tower shield on a `shield` node with an ember seam, hammer. 62 boxes, 25 joints.
+- **Clips** (`src/anim/clips/heroClips.js`, `enemyClips.js`, helpers in `poseUtils.js`: `mirrorPose`, `merge`, `pick`). Motion stays weighty: small anticipation, a fast strike and a longer settle.
+  - Hero:
+    - `idle`: breathing loop.
+    - `run`: two steps per cycle, the sword trailing low, the claw arm swinging.
+    - `attack1`: diagonal cut, high right → low left.
+    - `attack2`: backhand horizontal cut, left → right.
+    - `attack3`: heavy overhead cleave.
+    - `hurt` and `death`.
+  - Each attack goes guard → windup → mid → strike → follow → guard. `hitStart` / `hitEnd` come from `CONFIG.hero.anim.hitWindows`.
+  - Enemies all get `idle`, `walk`, `attackWindup` (telegraph), `attackStrike` (hit window), `hurt` and `stunned`.
+    - Teppo adds `aim` (telegraph) and `fire` (fire event, recoil).
+    - Tate adds `block` and `slam` (0.9 s telegraph, hammer head lands on the floor).
+    - Tate's shield counter-rotates against the arm pitch so it stays near vertical.
+  - Arm and weapon angles for the attacks, the Teppo aim and the Tate hammer poses were **solved offline** against the real rig (coordinate descent on joint angles to hit a grip position + blade direction + scope-up). That's why some numbers look odd.
+- **Hero** (`src/entities/Hero.js`, hero clock):
+  - Layers: `base` (idle ↔ run blend, hurt/death), `upper` (attacks, masked to spine 0.7 / chest / head / shoulders / weapon, so he swings while running), and `overlay` (hurt flinch).
+  - The legs follow the movement direction, and the upper body twists toward the aim, up to ±60° split over spine / chest / head. Past 110° he backpedals, with the run clip playing in reverse.
+  - Procedural touches: breathing, forward lean and bank into turns, sash panels and pauldrons on damped springs so they lag.
+  - Hold or click the left mouse for the 3-hit combo. Input is buffered and the combo resets after 0.9 s; there's no damage yet. Movement is ×0.45 while attacking.
+  - The cyan **blade trail** (`src/fx/BladeTrail.js`) is an additive ribbon between the guard and the tip, live during hit windows. It's opted into the hero mask.
+- **Enemy** (`src/entities/Enemy.js`, world clock):
+  - Walks toward the hero with arrival braking, **stops at 2 m**, faces him, and keeps 1.3 m from other enemies. Separation can slide enemies around the hero but never push them inside 2 m.
+  - The walk speed drives the walk clip rate.
+  - `playAction('attack' | 'aimFire' | 'slam' | 'block' | 'stunned')` chains clips on the base layer; this is the Stage 3 AI hook.
+  - `playHurt()` plays the overlay flinch plus an 80 ms white flash. The eyes flare on `telegraph`.
+- **Debug**:
+  - Keys **1/2/3** spawn Ronin / Teppo / Tate at a gate ≥ 5 m from the hero (otherwise a rim point) and they walk in. **K** removes all enemies. **M** opens the model viewer.
+  - Hero folder: movement and animation tunables, attack speed, **Test claw** (the claw hand detaches, flies 6 m toward the aim with its fingers open, and returns), **Test blade split** (the 8 segments fan out along an arc and snap back with a blade-glow click-flash), play hurt/death, revive, ult plates, hit flash.
+  - Enemies folder: spawn buttons, remove all, attack, Teppo aim → fire, Tate block / slam, stunned, hurt, flare eyes, stop distance.
+  - **Model viewer** (`src/debug/ModelViewer.js`, **M**): shows one rig on the arena with the orbit camera. Pick the model and clip, then set speed, pause, scrub, joint pivot markers, and whether one-shots loop. Attacks play on the upper layer over idle.
+
+### Joint names
+- **Hero** (child ← parent):
+  - Torso: `root`, `pelvis←root`, `spine←pelvis`, `chest←spine`, `head←chest`.
+  - Sash panels: `sashFront`, `sashBack`, `sashR`, `sashL` ← pelvis.
+  - Legs: `thighR/L←pelvis`, `shinR/L←thigh`, `footR/L←shin`.
+  - Right arm: `shoulderR←chest`, `pauldronR←shoulderR`, `upperArmR←shoulderR`, `forearmR←upperArmR`, `handR←forearmR`, `weapon←handR`, `bladeRoot←weapon`, `bladeSeg_0…7←bladeRoot`, `bladeUlt_0…7←bladeSeg_i`.
+  - Left arm: `shoulderL←chest`, `pauldronL←shoulderL`, `upperArmL←shoulderL`, `forearmL←upperArmL`, `chainAnchor←forearmL` (wrist, where the chain attaches), `clawHand←forearmL`, `clawFinger_0/1/2←clawHand` (finger 2 is the thumb).
+- **Enemies** (shared humanoid): `root`, `pelvis`, `spine`, `chest`, `head`, `sashFront`, `sashBack`, `thighR/L`, `shinR/L`, `footR/L`, `shoulderR/L`, `upperArmR/L`, `forearmR/L`, `handR/L`, `weapon←handR`.
+  - Teppo adds `muzzle←weapon`.
+  - Tate adds `pauldronR/L←shoulder` and `shield←forearmL`.
+
+### Part names (a part is a box list bound to one joint, with the joint in parentheses when it differs)
+- **Hero**:
+  - Body: `footR/L`, `shinR/L`, `thighR/L`, `pelvis`, `sashFront`, `sashBack`, `sashR`, `sashL`, `spine`, `chest` (with the core, glow `core`), `finTips(chest)`, `head`, `visor(head)` (glow `visor`), `pauldronR/L`.
+  - Arms: `upperArmR/L`, `forearmR`, `handR`, `forearmL` (with the chain housing), `clawHand`, `clawFinger_0/1/2`.
+  - Sword: `weapon` (pommel, hilt, guard), `bladeSeg_i`, `bladeEdge_i(bladeSeg_i)` (glow `blade`), `bladeUlt_i`, `bladeUltCore_i(bladeUlt_i)` (glow `ult`, hidden until the ult).
+- **Enemies**: `footR/L`, `shinR/L`, `thighR/L`, `pelvis`, `sashFront`, `sashBack`, `spine`, `chest` (glow `seams`), `head` (with the eyes, glow `eyes`), `upperArmR/L`, `forearmR/L`, `handR/L`, `weapon` (glow `weapon`). Tate adds `pauldronR/L` and `shield` (glow `seams`).
+
+### Files
+- New:
+  - `src/anim/{Rig,Animator}.js`, `src/anim/clips/{heroClips,enemyClips,poseUtils}.js`
+  - `src/voxel/models/{HeroModel,EnemyModels}.js`
+  - `src/entities/Enemy.js`, `src/fx/BladeTrail.js`, `src/debug/ModelViewer.js`
+- Changed: `src/entities/Hero.js` (rewritten), `src/game/Game.js`, `src/debug/DebugPanel.js`, `src/voxel/palettes.js`, `src/config.js`, `docs/GAME_SPEC.md` (2 one-line edits: §5 upper body faces the aim; §12 rigid-skinned characters).
+- Removed: `src/voxel/models/PlaceholderHero.js`.
+
+### Key tunables (`src/config.js`)
+| Path | Default | What |
+|---|---|---|
+| `CONFIG.hero.anim.attackDurations` / `.hitWindows` | 0.55, 0.55, 0.72 / [.36,.5] [.36,.5] [.5,.62] | Combo timing and normalized hit windows |
+| `CONFIG.hero.anim.runDuration` / `.runSpeedRef` | 0.62 / 6 | Run cycle length and the speed at which it plays at 1× |
+| `CONFIG.hero.anim.twistMaxDeg` / `.twistSplit` / `.backpedalDeg` | 60 / [.3,.5,.2] / 110 | Aim twist between legs and upper body |
+| `CONFIG.hero.anim.{breathDeg, bankDeg}`, `CONFIG.hero.leanDeg` | 1.4 / 5 / 7 | Procedural breathing, banking and lean |
+| `CONFIG.hero.anim.sashLag` / `.pauldronLag` | springs | Secondary motion |
+| `CONFIG.hero.attackMoveMul` | 0.45 | Move speed while swinging |
+| `CONFIG.hero.trail.{lifetime, intensity, opacity}` | 0.16 / 2.4 / 0.85 | Blade trail |
+| `CONFIG.enemies.{ronin,teppo,tate}.speed` / `.walkAnimSpeedRef` | 3.2 / 2.8 / 2.2 | Walk speed and clip rate |
+| `CONFIG.enemies.stopDistance` / `.separation` / `.accel` | 2 / 1.3 / 12 | Approach behaviour |
+| `CONFIG.enemies.anim.*` | see file | Windup/strike/aim/fire/slam durations, eye flare, `shieldBrace` 0.85 |
+| `CONFIG.debug.clawTest` / `.bladeSplitTest` | see file | Test timings and distances |
+
+### Known issues / notes
+- **Named nodes are joints (bones), not separate meshes.** Detaching the claw or splitting the blade means moving joints (the tests set joint world transforms). Stage 4 skills will do the same. The chain between the wrist and the claw isn't drawn yet; that's Stage 4.
+- **Attack arcs are keyframed, not simulated.** Slerping between solved keys can take a slight dip on the backhand (attack 2 scoops ~45° down on the left before sweeping level). It reads fine at game-camera scale.
+- **Enemy actions play full-body on the base layer.** They plant their feet to attack, and hurt is a full-body overlay. Only the hero has upper-body layering.
+- **The Teppo aim pose needs the rifle roll constraint.** The solved hand angles look odd in isolation (`weapon: [74, 156, 86]`) but put the rifle level with the scope up and the left hand on the barrel clamp.
+- **Performance:** each character is 2 draw calls, about 0.6–1.5 k triangles, and 22–47 bones. Only headless SwiftShader was available (1–20 fps), so 60 fps with a full wave is still unverified on a GPU.
+
+### How to test
+1. `npm run dev`. The new hero stands in the arena: sword low in the right hand, claw gauntlet on the left, idle breathing.
+2. WASD: idle blends into the run cycle, and he leans and banks. Move the mouse around him: the upper body twists toward the aim while the legs keep running. Move away from the aim to backpedal.
+3. Hold the left mouse: the diagonal / backhand / overhead combo loops with a cyan trail during each hit window, and he still moves (slower) while swinging. Release: the combo returns to step 1 after 0.9 s.
+4. `` ` `` for debug, then **1 / 2 / 3**: a Ronin / Teppo / Tate enters from a gate, walks in, and stops 2 m from the hero facing him. Walk away and they follow. **K** removes them.
+5. Enemies folder: *Attack (windup → strike)* (eyes flare, then the slash), *Teppo aim → fire*, *Tate block* / *Tate slam*, *Stunned*, *Hurt + hit flash*, *Flare eyes*.
+6. Hero folder: *Test claw* and *Test blade split*, *Play hurt* / *Play death* / *Revive*, *Ult blade plates*, *Hit flash (80 ms)*.
+7. **M** opens the model viewer. Model → hero / ronin / teppo / tate, pick any clip, use speed / pause / scrub, and tick *pivots* to see every joint (knees, elbows and wrists sit at the joints). **M** again returns to the game.
+8. Post → *Test time-stop ring*: the hero and his trail stay in color, and the enemies turn gray.
+9. Run `npm run build`, then open `dist/index.html` directly.
