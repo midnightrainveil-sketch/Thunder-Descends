@@ -34,6 +34,27 @@ const BEAM_FRAG = /* glsl */ `
   }
 `;
 
+// Spear burst: a horizontal streak from the blade tip along +Z (length along uv.y): hot core line,
+// tapered point, reveals base → tip fast, then fades.
+const SPEAR_FRAG = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uHead, uFade, uIntensity;
+  varying vec2 vUv;
+  void main() {
+    float y = vUv.y;
+    if (y > uHead) discard;
+    float half = 0.5 * (1.0 - pow(y, 3.0));           // tapers to a point
+    float x = abs(vUv.x - 0.5);
+    if (x > half) discard;
+    float core = exp(-x * x / max(half * half, 1e-4) * 12.0);
+    float streaks = 0.6 + 0.4 * step(0.5, fract(vUv.x * 9.0 + y * 2.0));
+    float head = smoothstep(0.15, 0.0, uHead - y);
+    float a = (core * 0.9 + 0.25 * streaks * (1.0 - x / half)) * (0.35 + 0.65 * y + head) * uFade;
+    vec3 c = mix(uColor, vec3(1.0), core * 0.6 + head * 0.4);
+    gl_FragColor = vec4(c * uIntensity * a, a);
+  }
+`;
+
 export class Shockwaves {
   constructor(scene) {
     const F = CONFIG.fx;
@@ -84,6 +105,50 @@ export class Shockwaves {
     }
     this.nextRing = 0;
     this.nextBeam = 0;
+
+    const spearGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5);
+    const uv = spearGeo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setY(i, 1 - uv.getY(i)); // uv.y = 1 at the far (+Z) end
+    this.spears = [];
+    for (let i = 0; i < 4; i++) {
+      const mesh = new THREE.Mesh(
+        spearGeo,
+        new THREE.ShaderMaterial({
+          vertexShader: VERT,
+          fragmentShader: SPEAR_FRAG,
+          uniforms: { uColor: { value: new THREE.Color('#5fe8ff') }, uHead: { value: 0 }, uFade: { value: 1 }, uIntensity: { value: 3 } },
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+          toneMapped: false,
+        }),
+      );
+      mesh.visible = false;
+      mesh.renderOrder = 7;
+      mesh.frustumCulled = false;
+      mesh.name = 'fx:spear';
+      scene.add(mesh);
+      this.spears.push({ mesh, active: false, t: 0, reveal: 0.06, fade: 0.2, hero: true });
+    }
+    this.nextSpear = 0;
+    this.spearMeshes = this.spears.map((s) => s.mesh);
+  }
+
+  // Spear-like burst from pos along yaw (hero clock by default).
+  spear(pos, yaw, { length = 3.5, width = 1.0, reveal = 0.06, fade = 0.22, color = '#5fe8ff', intensity = 3, clock = 'hero' } = {}) {
+    const s = this.spears[this.nextSpear];
+    this.nextSpear = (this.nextSpear + 1) % this.spears.length;
+    s.mesh.position.copy(pos);
+    s.mesh.rotation.set(0, yaw, 0);
+    s.mesh.scale.set(width, 1, length);
+    const u = s.mesh.material.uniforms;
+    u.uColor.value.set(color);
+    u.uIntensity.value = intensity;
+    u.uHead.value = 0;
+    u.uFade.value = 1;
+    Object.assign(s, { active: true, t: 0, reveal, fade, hero: clock === 'hero' });
+    s.mesh.visible = true;
   }
 
   // Floor ring growing from r0 to r1 over duration.
@@ -132,6 +197,17 @@ export class Shockwaves {
         r.mesh.visible = false;
       }
     }
+    for (const s of this.spears) {
+      if (!s.active) continue;
+      s.t += s.hero ? heroDt : worldDt;
+      const u = s.mesh.material.uniforms;
+      u.uHead.value = Math.min(1.2, s.t / s.reveal);
+      u.uFade.value = Math.max(0, 1 - Math.max(0, s.t - s.reveal) / s.fade);
+      if (s.t > s.reveal + s.fade) {
+        s.active = false;
+        s.mesh.visible = false;
+      }
+    }
     for (const b of this.beams) {
       if (!b.active) continue;
       b.t += worldDt;
@@ -152,5 +228,6 @@ export class Shockwaves {
   clear() {
     for (const r of this.rings) (r.active = false), (r.mesh.visible = false);
     for (const b of this.beams) (b.active = false), (b.mesh.visible = false);
+    for (const s of this.spears) (s.active = false), (s.mesh.visible = false);
   }
 }

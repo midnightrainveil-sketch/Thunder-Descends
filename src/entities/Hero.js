@@ -7,6 +7,7 @@ import { heroClips, HERO_UPPER_MASK } from '../anim/clips/heroClips.js';
 import { BladeTrail } from '../fx/BladeTrail.js';
 import { WhipStrike } from '../combat/WhipStrike.js';
 import { AttackInstance, hitSector, relativeYaw } from '../combat/Hitbox.js';
+import { SkillSystem } from '../skills/SkillSystem.js';
 
 const DEG = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -61,8 +62,17 @@ export class Hero {
     this.resetStats();
     this.iFrames = 0;
     this.flash = 0;
+    this.stunT = 0; // hero stun (no enemy applies one yet; skills refuse to cast while > 0)
     this.ctx = null;
     this.attack = new AttackInstance();
+    // Skills steer the hero through these flags (see releaseControl).
+    this.control = {};
+    this.releaseControl();
+    this.buff = { attackSpeed: 1, critAll: false }; // Demontime
+    this.bladeThick = 1; // blade segments' cross-section scale (Demontime buff)
+    this.bladeGlowBase = 1;
+    this.glowBoost = 1; // visor / core / accent glow (Overdrive)
+    this.skills = null;
 
     this.combo = { active: false, step: 0, buffered: false, ended: false, sinceEnd: 0, crit: false, queued: false };
     this.attacking = false;
@@ -113,7 +123,40 @@ export class Hero {
   }
 
   get attackSpeed() {
-    return this.stats.attackSpeed;
+    return this.stats.attackSpeed * this.buff.attackSpeed;
+  }
+
+  // Effective crit chance (100% during the Demontime buff).
+  get critChance() {
+    return this.buff.critAll ? 1 : this.stats.critRate;
+  }
+
+  releaseControl() {
+    Object.assign(this.control, { lockMove: false, lockAim: false, lockAttack: false, baseOwned: false, invulnerable: false, noKnockback: false });
+  }
+
+  // A basic attack may be cancelled into a skill once its hit has come out.
+  canCancelAttack() {
+    if (!this.combo.active) return !this.whip?.sweeping;
+    return this.attack.hitFired && !this.whip?.sweeping;
+  }
+
+  interruptAttack() {
+    if (this.combo.active) this._endCombo();
+    this.combo.ended = false;
+    this.combo.queued = false;
+    this.whip?.cancel();
+  }
+
+  // Put a bone at a world position (keeping its current world rotation).
+  placeBoneWorld(bone, pos) {
+    bone.updateMatrixWorld(true);
+    this._q.setFromRotationMatrix(this._m.extractRotation(bone.matrixWorld));
+    this._m2.compose(pos, this._q, this._s.set(1, 1, 1));
+    this._m.copy(bone.parent.matrixWorld).invert();
+    this._m2.premultiply(this._m);
+    this._m2.decompose(bone.position, bone.quaternion, this._s);
+    bone.updateMatrixWorld(true);
   }
 
   set attackSpeed(v) {
@@ -124,13 +167,15 @@ export class Hero {
   attachFX(ctx) {
     this.ctx = ctx;
     this.whip = new WhipStrike(this, ctx.fx);
+    this.skills = new SkillSystem(this, ctx);
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────
   _startAttack() {
     const A = CONFIG.hero.anim;
     const clip = ATTACKS[this.combo.step];
-    this.combo.crit = Math.random() < this.stats.critRate; // every basic attack rolls crit (spec §6)
+    this.combo.crit = Math.random() < this.critChance; // every basic attack rolls crit (spec §6)
+    this.attack.hitFired = false;
     this.upper.play(clip, { fade: A.attackFade, speed: this.attackSpeed, onEnd: () => (this.combo.ended = true) });
     this.upper.weightFade = A.attackFade;
     this.combo.active = true;
@@ -151,7 +196,9 @@ export class Hero {
   // Swing reaches its hit window: plain slash (sector + crescent) or whip strike on a crit.
   _onHitStart(clip) {
     const step = ATTACKS.indexOf(clip);
+    if (step < 0) return;
     this.attack.reset();
+    this.attack.hitFired = true;
     this.attack.step = step;
     this.attack.crit = this.combo.crit;
     const dir = step === 1 ? -1 : 1; // attack 2 is the backhand (left → right)
@@ -181,14 +228,28 @@ export class Hero {
     this.stats.hp = Math.max(0, this.stats.hp - damage);
     this.iFrames = CONFIG.hero.hurtIFrames;
     this.flash = 1;
-    this.velocity.x += dir.x * knockback;
-    this.velocity.z += dir.z * knockback;
+    if (!this.control.noKnockback) {
+      this.velocity.x += dir.x * knockback;
+      this.velocity.z += dir.z * knockback;
+    }
     if (this.stats.hp > 0) this.playHurt();
   }
 
   heal(amount) {
     if (this.dead) return;
     this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + amount);
+  }
+
+  // Blade thickness (Demontime) and glow baselines; the whip overrides while it runs.
+  _bladeLook() {
+    const t = this.bladeThick;
+    for (let i = 0; i < HERO_BLADE_SEGMENTS; i++) this.rig.bones[`bladeSeg_${i}`].scale.set(t, t, 1);
+    if (!this.whip?.active && !this.bladeTest) this.rig.setGlow('blade', this.bladeGlowBase);
+    const g = this.glowBoost;
+    this.rig.setGlow('visor', g);
+    this.rig.setGlow('core', g);
+    this.rig.setGlow('accent', g);
+    this.group.updateMatrixWorld(true);
   }
 
   // Combat hit tests for the current attack (hero clock, after the pose update).
@@ -263,6 +324,10 @@ export class Hero {
     this.combo.ended = false;
     this.combo.queued = false;
     this.whip?.cancel();
+    this.skills?.reset();
+    this.skills?.resetCooldowns();
+    this.releaseControl();
+    this.stunT = 0;
     this.trail.clear();
     this.overlay.fadeOut(0);
   }
@@ -284,13 +349,15 @@ export class Hero {
     const A = H.anim;
     this.time += dt;
     this.iFrames = Math.max(0, this.iFrames - dt);
+    this.stunT = Math.max(0, this.stunT - dt);
+    const ctl = this.control;
     this.flash = Math.max(0, this.flash - dt / CONFIG.enemies.hurtFlash);
     this.rig.setFlash(this.flash, '#ff9aa6');
 
     // Movement: screen-relative WASD, slower while attacking.
     let ix = 0;
     let iz = 0;
-    if (!this.dead) {
+    if (!this.dead && !ctl.lockMove) {
       if (input.isDown('KeyW')) iz += 1;
       if (input.isDown('KeyS')) iz -= 1;
       if (input.isDown('KeyD')) ix += 1;
@@ -320,7 +387,7 @@ export class Hero {
     }
 
     // Aim: upper body follows the mouse ground point quickly.
-    if (input.groundValid && !this.dead) {
+    if (input.groundValid && !this.dead && !ctl.lockAim) {
       const dx = input.groundPoint.x - this.position.x;
       const dz = input.groundPoint.z - this.position.z;
       if (dx * dx + dz * dz > 0.04) {
@@ -349,7 +416,7 @@ export class Hero {
     this.group.rotation.y = this.legYaw;
 
     // Combo: hold (or buffered click) chains the 3 steps; resets after a pause.
-    if (!this.dead) {
+    if (!this.dead && !ctl.lockAttack) {
       const pressed = input.wasButtonPressed(0);
       const held = input.isButtonDown(0);
       const whipBusy = this.whip?.active;
@@ -366,8 +433,8 @@ export class Hero {
       }
     }
 
-    // Locomotion blend.
-    if (!this.dead) {
+    // Locomotion blend (unless a skill owns the base layer).
+    if (!this.dead && !ctl.baseOwned) {
       const w = THREE.MathUtils.clamp(speed / H.moveSpeed, 0, 1);
       this.runBlend += (w - this.runBlend) * (1 - Math.exp(-A.runBlendRate * dt));
       const runSpeed = this.runDir * Math.max(0.55, speed / A.runSpeedRef);
@@ -377,7 +444,7 @@ export class Hero {
     this.animator.update(dt);
 
     // The next swing waits for a whip to snap back.
-    if (this.combo.ended && !this.dead && !this.whip?.active) {
+    if (this.combo.ended && !this.dead && !this.whip?.active && !ctl.lockAttack) {
       this.combo.ended = false;
       this.combo.step = (this.combo.step + 1) % ATTACKS.length;
       if (this.combo.buffered || input.isButtonDown(0)) this._startAttack();
@@ -387,7 +454,9 @@ export class Hero {
     this._procedural(dt, speed);
     this.group.updateMatrixWorld(true);
     this._tests(dt);
+    this._bladeLook();
     this.whip?.update(dt);
+    this.skills?.update(dt);
     this._combat();
 
     // Trail from blade base to tip.

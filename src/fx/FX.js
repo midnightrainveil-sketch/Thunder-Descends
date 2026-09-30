@@ -6,6 +6,10 @@ import { Shockwaves } from './Shockwave.js';
 import { Shatter } from './Shatter.js';
 import { ExpShards } from './ExpShards.js';
 import { DamageNumbers } from './DamageNumbers.js';
+import { Chain } from './Chain.js';
+import { Afterimages } from './Afterimages.js';
+import { Nanobots } from './Nanobots.js';
+import { AimRings } from './AimRings.js';
 
 /**
  * All pooled, reusable FX in one place (Stage 3). Each system picks its clock:
@@ -23,9 +27,16 @@ export class FX {
     this.shatter = new Shatter(scene, this.particles);
     this.exp = new ExpShards(scene);
     this.numbers = new DamageNumbers(uiRoot);
+    // Stage 4 skill FX
+    this.chain = new Chain(scene);
+    this.afterimages = new Afterimages(scene, postFX);
+    this.nanobots = new Nanobots(scene, postFX);
+    this.aim = new AimRings(scene, postFX);
     // Hero FX stay in color inside the Demontime ring.
     for (const m of this.slashes.meshes) postFX.addToMask(m);
+    for (const m of this.shock.spearMeshes) postFX.addToMask(m);
     postFX.addToMask(this.lightning.mesh);
+    postFX.addToMask(this.chain.mesh);
   }
 
   update(time, camera, hero, width, height) {
@@ -37,6 +48,9 @@ export class FX {
     this.shatter.update(time.worldDt);
     this.exp.update(time.heroDt, hero);
     this.numbers.update(time.realDt, camera, width, height);
+    this.afterimages.update(time.heroDt);
+    this.nanobots.update(time.heroDt);
+    this.aim.update(time.realDt);
   }
 
   clear() {
@@ -48,5 +62,9 @@ export class FX {
     this.shatter.clear();
     this.exp.clear();
     this.numbers.clear();
+    this.chain.hide();
+    this.afterimages.clear();
+    this.nanobots.clear();
+    this.aim.show(false);
   }
 }

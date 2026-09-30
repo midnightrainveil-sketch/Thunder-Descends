@@ -58,7 +58,10 @@ export class Game {
       boltFrom.set(b.p.x - Math.sin(b.yaw), 0, b.p.z - Math.cos(b.yaw)); // pushed along the bolt's path
       this.combat.enemyHitsHero(b.owner, b.damage, CONFIG.enemies.teppo.knockback, boltFrom);
     };
-    this.combat.onKill = (e) => this.waves.onKill(e);
+    this.combat.onKill = (e) => {
+      this.waves.onKill(e);
+      this.hero.skills.r.onKill();
+    };
     this.combat.onHeroDeath = () => this._onHeroDeath();
 
     this.reticle = new MouseReticle();
@@ -129,8 +132,21 @@ export class Game {
   }
 
   // ── Death / retry ────────────────────────────────────────────────────────
+  // Undo every time / post effect a skill may have left running.
+  _resetTimeAndPost() {
+    this.time.resetScales();
+    this.postFX.setTimeRing(null, 0, false);
+    this.postFX.setTint(null, 0, 0);
+    this.postFX.setSaturation(CONFIG.post.grade.saturation, 0);
+  }
+
   _onHeroDeath() {
     const C = CONFIG.combat;
+    this.hero.skills.reset(); // reattaches the claw, blade segments and plates; restores time
+    this._resetTimeAndPost();
+    this.fx.chain.hide();
+    this.fx.aim.show(false);
+    this.fx.nanobots.clear();
     this.hero.playDeath();
     this.time.tweenScale('both', C.deathSlowmo, C.deathSlowmoTween);
     this.deathT = 0;
@@ -140,8 +156,7 @@ export class Game {
   restart() {
     this.deathT = -1;
     this.hud.showDeath(false);
-    this.time.tweenScale('both', 1, 0);
-    this.postFX.setSaturation(CONFIG.post.grade.saturation, 0);
+    this._resetTimeAndPost();
     this.clearEnemies();
     this.cancelPendingSpawns();
     this.projectiles.clear();
@@ -155,6 +170,7 @@ export class Game {
 
   // ── Update ───────────────────────────────────────────────────────────────
   update(time, input) {
+    if (!this.hero.dead) this.hero.skills.handleInput(input, time);
     this.hero.update(time.heroDt, input, this.rig);
 
     // Spawn telegraphs resolve on the world clock.

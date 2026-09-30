@@ -60,7 +60,7 @@ Basic attack: 3-hit combo (damage ×1.0, ×1.0, ×1.4), sector hitbox range 2.4 
 - During Overdrive, crit slashes show a shortened whip-flash variant.
 
 ## 7. Skills
-All numbers in config.js. Each skill has rank 1–4 (rank-ups come from level-up cards, §10).
+All numbers in config.js. Each skill has rank 1–4 (rank-ups come from level-up cards, §10). One skill at a time, none while stunned; a basic attack can be cancelled into a skill once its hit is out.
 
 ### Q — Thunderclaw (cooldown 6 s)
 1. Press Q → targeting mode. World and hero time slow to ×0.15, the screen tints cold blue and desaturates slightly. A 9 m range ring shows around the hero and a 2.5 m AoE reticle follows the mouse, clamped to max range and to the arena. Left-click confirms. Right-click or Esc cancels (no cooldown). Auto-fires at the cursor after 2.5 real seconds.
@@ -71,7 +71,7 @@ If nothing is in the radius, the hand still flies and the hero still dashes (it 
 
 ### E — Shatter (cooldown 10 s) → Phase 2: Overdrive
 1. Shatter: 0.12 s windup, one-handed straight thrust toward the aim. Rectangle hitbox 3.5 m long × 1.2 m wide, 1.8×ATK, stun 1.0 s, spear-like cyan shockwave from the blade tip.
-2. If it hits at least one enemy → Overdrive (1.0 s): two-handed grip, lightning-fast: a slash every 0.08 s (~12 slashes) in a 120° cone, 3.2 m range, 0.45×ATK each, each can crit. The hero glows, leaves cyan afterimages, drifts toward the aim at 1.5 m/s and can't be knocked back. Every slash spawns a crescent arc at a varied angle.
+2. If it hits at least one enemy → Overdrive (1.0 s): two-handed grip, lightning-fast: a slash every 0.08 s (~12 slashes) in a 120° cone, 3.2 m range, 0.45×ATK each, each can crit. The hero glows, leaves cyan afterimages, drifts toward the aim at 1.5 m/s and can't be knocked back. Every slash spawns a crescent arc at a varied angle; it ends with a heavier final slash.
 3. If Shatter misses, nothing more happens (normal recovery).
 
 ### R — Demontime (cooldown 30 s) — ultimate

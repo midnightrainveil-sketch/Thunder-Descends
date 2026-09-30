@@ -100,13 +100,13 @@ export class DebugPanel {
     if (input.wasPressed('KeyN')) this.game.waves.skip();
     if (input.wasPressed('KeyL')) this.game.progression.levelUp();
     if (input.wasPressed('KeyM')) this.viewer.enable();
+    if (input.wasPressed('KeyC')) this.game.hero.skills.resetCooldowns();
 
-    // TODO(Stage 4): C reset cooldowns. TODO(Stage 5): 4/5/6 spawn bosses.
+    // TODO(Stage 5): 4/5/6 spawn bosses.
     const stubs = {
       Digit4: 'spawn Oni Juggernaut (Stage 5)',
       Digit5: 'spawn Kage Kitsune (Stage 5)',
       Digit6: 'spawn Raiju Serpent (Stage 5)',
-      KeyC: 'reset cooldowns (Stage 4)',
     };
     for (const code in stubs) if (input.wasPressed(code)) console.info(`[debug] ${code}: ${stubs[code]} — not implemented yet`);
   }
@@ -322,6 +322,18 @@ export class DebugPanel {
     hero.close();
 
     // Enemies
+    const sk = gui.addFolder('Skills');
+    const S = this.game.hero.skills;
+    sk.add({ f: () => S.resetCooldowns() }, 'f').name('Reset cooldowns (C)');
+    sk.add(S.q, 'rank', 1, 4, 1).name('Q Thunderclaw rank');
+    sk.add(S.e, 'rank', 1, 4, 1).name('E Shatter rank');
+    sk.add(S.r, 'rank', 1, 4, 1).name('R Demontime rank');
+    sk.add(CONFIG.skills.thunderclaw, 'aimScale', 0.05, 1, 0.01).name('Q aim time scale');
+    sk.add(CONFIG.skills.shatter, 'slashEvery', 0.04, 0.2, 0.01).name('E overdrive slash every');
+    sk.add(CONFIG.skills.demontime, 'ringMax', 10, 80, 1).name('R ring max (m)');
+    sk.add({ f: () => S.r._startBuff() }, 'f').name('R: buff now (no cast)');
+    sk.add({ f: () => S.r.endBuff(true) }, 'f').name('R: end buff');
+
     const en = gui.addFolder('Enemies');
     en.add({ f: () => this.game.spawnEnemy('ronin') }, 'f').name('Spawn Ronin (1)');
     en.add({ f: () => this.game.spawnEnemy('teppo') }, 'f').name('Spawn Teppo (2)');
@@ -388,6 +400,7 @@ export class DebugPanel {
     help.add({ t: 'I petal impulse at mouse' }, 't').name('map').disable();
     help.add({ t: '1/2/3 spawn · K kill all · M viewer' }, 't').name('enemies').disable();
     help.add({ t: 'G god · N next wave · L level up' }, 't').name('combat').disable();
+    help.add({ t: 'Q claw · E shatter · R demontime · C cooldowns' }, 't').name('skills').disable();
     help.close();
   }
 }

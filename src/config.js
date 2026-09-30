@@ -116,6 +116,8 @@ export const CONFIG = {
   },
 
   time: {
+    hitstopMax: 0.12, // s, a single freeze never exceeds this
+    hitstopGap: 0.05, // s (real) after a hitstop before another may start (no chained freezes)
     maxDt: 1 / 20, // s, realDt clamp
     debugScales: [1, 0.25, 0.05], // T hotkey cycle
     hitstopTest: 0.07, // s, debug hitstop button (crit hitstop in spec §6)
@@ -280,6 +282,65 @@ export const CONFIG = {
     linkWidth: 0.13, // m, lightning between segments
     linkIntensity: 4.5,
     tipTrail: { samples: 28, lifetime: 0.16, color: '#aef3ff', intensity: 2.6, opacity: 0.9, inner: 1.1 }, // inner = m inward from the tip
+  },
+
+  // ── Skills (Stage 4, spec §7) ───────────────────────────────────────────
+  // Rank values are arrays indexed by rank − 1 (ranks 1–4; rank-ups come from Stage 5 cards).
+  skills: {
+    startRank: 1,
+    thunderclaw: {
+      cooldown: [6, 5, 5, 5], // s
+      range: 9, // m, max target distance
+      radius: [2.5, 3, 3, 3], // m, grab radius
+      maxTargets: [3, 4, 4, 4],
+      aimScale: 0.15, // world + hero time scale while aiming
+      aimTween: 0.12, // s (real) into / out of the slow-mo
+      aimTimeout: 2.5, // s (real) → auto-fire at the cursor
+      aimTint: '#3f6dff', aimTintStrength: 0.5, aimSaturation: 0.6,
+      launch: 0.18, grab: 0.2, pull: 0.25, reattach: 0.12, // s (hero clock)
+      grabMult: 1.2, grabStun: 1.5, // ×ATK, s
+      stunnedBonus: [0, 0, 0, 0.3], // extra damage vs grabbed enemies while stunned (rank IV card)
+      landRadius: 2, landMult: 0.8, // impact on landing
+      landStop: 1.1, // m short of the grab center where the hero lands
+      clusterSpacing: 0.75, // m between yanked enemies
+      chainLinks: 60, // instanced link pool
+      linkSpacing: 0.21, // m between links
+      linkSize: [0.18, 0.1, 0.27], // m (w, h, length) — chunky so it reads from the fixed camera
+      sag: 0.08, // chain sag per meter of length
+      afterimageEvery: 0.03, // s
+      ringColor: '#35e0ff',
+    },
+    shatter: {
+      cooldown: [10, 10, 10, 10],
+      windup: 0.12, // s
+      thrust: 0.32, // s thrust clip (hit at its start)
+      recover: 0.22, // s after a miss
+      length: [3.5, 3.5, 5, 5], width: [1.2, 1.2, 1.6, 1.6], // m rectangle
+      mult: 1.8, stun: 1.0, lunge: 1.4, // ×ATK, s, m forward during the thrust
+      overdrive: [1.0, 1.4, 1.4, 1.4], // s
+      slashEvery: 0.08, // s
+      slashRange: 3.2, slashArcDeg: 120, slashMult: 0.45,
+      finalMult: 1.2, finalHitstop: 0.06, finalShake: 0.35,
+      drift: 1.5, // m/s toward the aim
+      afterimageEvery: 0.05,
+      chain: [false, false, false, true], // rank IV: slashes chain lightning to one nearby enemy
+      chainRange: 4, chainMult: 0.3,
+    },
+    demontime: {
+      cooldown: [30, 30, 30, 30],
+      cast: 2.2, // s total (hero clock, invulnerable, input locked)
+      freezeAt: 0.4, nanoEnd: 1.6, restoreAt: 2.0, // phase boundaries (s)
+      ringMax: 45, // m: past the screen edge
+      buff: [7, 9, 9, 9], // s (hero clock)
+      pulseRadius: [5, 5, 7, 7], pulseMult: [2.0, 2.0, 4.0, 4.0],
+      attackSpeed: 1.6, cooldownRate: 2, // buff multipliers
+      bladeThick: 1.6, // blade segments' cross-section scale during the buff
+      nanobots: 420, nanoRate: 380, // pool / spawned per second during 0.4–1.6 s
+      nanoFlight: [0.28, 0.5], // s
+      auraEvery: 0.06, // s between aura crackles
+      killExtend: [0, 0, 0, 0.5], killExtendMax: 4, // rank IV card
+    },
+    afterimages: { pool: 8, life: 0.22, color: '#35e0ff', opacity: 0.45 },
   },
 
   // ── FX pools (Stage 3) ──────────────────────────────────────────────────

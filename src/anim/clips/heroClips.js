@@ -1,5 +1,6 @@
 import { CONFIG } from '../../config.js';
 import { mirrorPose, merge, pick, LEG_JOINTS } from './poseUtils.js';
+import { skillClips } from './skillClips.js';
 
 // Hero clips (spec §5). Weighty and controlled: small anticipation, fast strike, longer settle.
 // Timings (durations, hit windows) come from CONFIG.hero.anim so gameplay can tune them.
@@ -344,7 +345,7 @@ function death() {
 }
 
 export function heroClips() {
-  return [idle(), run(), attack1(), attack2(), attack3(), hurt(), death()];
+  return [idle(), run(), attack1(), attack2(), attack3(), hurt(), death(), ...skillClips()];
 }
 
 // Joints driven by the upper-body layer (attacks) — legs stay on the base layer.

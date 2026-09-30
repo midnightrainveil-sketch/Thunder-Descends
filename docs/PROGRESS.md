@@ -426,3 +426,112 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 5. Clear a wave to get the break, the heal and the next banner. Die to get slow-mo, then **DEFEATED**; press **Enter** to retry.
 6. Debug (`` ` ``): **1/2/3** spawn, **K** kills all, **G** god mode, **N** next wave, **L** level up. The Hero folder has crit rate (1.0 = whip every swing), and the Enemies folder has AI on/off.
 7. Run `npm run build`, then open `dist/index.html`.
+
+---
+
+## Stage 4 — Skills: Thunderclaw, Shatter → Overdrive, Demontime
+
+### What was built
+- **Skill base** (`src/skills/Skill.js`, `SkillSystem.js`):
+  - Each skill has a rank (1–4). Rank values live in `CONFIG.skills.*`, as a number or an array indexed by rank − 1.
+  - Cooldowns tick on the hero clock × `cooldownRate` (×2 during the Demontime buff).
+  - One skill at a time, no casting while dead or stunned. A basic attack can be cancelled into a skill once its hit is out; for a whip strike, after its sweep.
+  - Skills steer the hero through `hero.control`: move / aim / attack locks, base-layer ownership, invulnerability, no knockback. `hero.releaseControl()` restores everything.
+  - Input is read every frame in real time (`skills.handleInput`) so aiming works in slow-mo and hitstop. Updates run on the hero clock after the pose.
+- **Q Thunderclaw** (`src/skills/Thunderclaw.js`):
+  - **Aim**: world and hero tween to ×0.15 with a blue tint and slight desaturation. A dashed 9 m range ring and a 2.5 m target circle are clamped to range and arena. Click fires, right-click / Esc cancels with no cooldown, and it auto-fires after 2.5 real seconds.
+  - **Launch** (0.18 s): the `clawHand` bone is placed in world space and flies out with its fingers open. The instanced block **chain** (`src/fx/Chain.js`, alternating links, sag, faint cyan glow) runs from `chainAnchor`, with lightning crawling along it.
+  - **Grab** (0.2 s): up to 3 nearest enemies in the radius are yanked into a cluster, take 1.2×ATK (unblockable) and are stunned 1.5 s, with lightning from the claw to each.
+  - **Pull** (0.25 s): the hero is dragged to the cluster, invulnerable, in a dash pose with afterimages. Landing is a 2 m impact for 0.8×ATK with ring, dust, shake and a petal burst.
+  - **Reattach** (0.12 s): the hand flies back with a spark.
+  - With no targets it's a dash to the cursor.
+- **E Shatter → Overdrive** (`src/skills/Shatter.js`):
+  - **Shatter**: 0.12 s windup, then a one-handed lunge thrust (1.4 m lunge) with a 3.5 × 1.2 m rectangle (plus the lunge) for 1.8×ATK and a 1 s stun. The **spear burst** (`Shockwaves.spear`) is a tapered, hot-cored streak, plus a white core, a tip ring and sparks.
+  - **On a hit, Overdrive (1 s)**:
+    - A two-handed stance clip alternates cuts. Every 0.08 s a 120° / 3.2 m sector deals 0.45×ATK, and each slash rolls crit.
+    - Each slash spawns a crescent at a random tilt. Afterimages trail every 0.05 s and the hero glows ×1.8.
+    - The hero drifts toward the aim at 1.5 m/s with no knockback, and the aim follows the mouse.
+    - It ends with a **heavier final slash**: 150° wide, 1.2×ATK, with hitstop, shake, zoom punch and a petal sweep.
+  - **On a miss**: normal recovery.
+- **R Demontime** (`src/skills/Demontime.js`), a 2.2 s cast. The hero is invulnerable, input is locked and hitstop is locked out.
+  - **0–0.4 s**: kneel and plant the sword on a slant. The world clock tweens to 0 (enemies, projectiles, particles, petals, trees and lanterns freeze). The GradePass **time-stop ring** expands from the sword to 45 m, turning everything grayscale; the hero and his FX stay in color via the existing hero mask.
+  - **0.4–1.6 s**: about 380 per second tiny cyan **nanobots** (`src/fx/Nanobots.js`, Bézier paths to targets in bone space) stream from both arms into the blade. The 8 `bladeUlt` plates pop in one by one with crimson sparks.
+  - **1.6–2.0 s**: the ring collapses back into the sword and world time tweens back to 1.
+  - **2.0–2.2 s**: the sword comes up. Pulse: 5 m, 2.0×ATK, unblockable, with 3 shockwave rings, cyan and crimson sparks, dust, a big petal impulse, a screen flash, shake and a zoom punch.
+  - **Buff (7 s)**:
+    - The blade's cross-section goes ×1.6 with the ult plates shown, a brighter edge and a pulsing crimson core.
+    - Attack speed ×1.6, cooldowns ×2, crit 100% (every basic attack is a whip).
+    - A cyan and crimson crackling aura: lightning plus embers.
+  - At the end the plates **dissolve** into cyan and crimson cubes.
+- **New FX**:
+  - `Chain`: instanced block links.
+  - `Afterimages`: a pool of 8 ghost hero rigs with a skinned additive cyan material.
+  - `Nanobots`.
+  - `AimRings`: dashed range ring, target circle with crosshair.
+  - `Shockwaves.spear`.
+  - `RibbonTrail` / `SlashArcs` / `Lightning` are reused.
+  - All hero skill FX are opted into the hero mask.
+- **Skill clips** (`src/anim/clips/skillClips.js`): `clawThrow`, `clawDash`, `shatterWindup`, `shatterThrust`, `overdrive` (loop), `overdriveFinal`, `demonKneel`, `demonRise`. Arm and weapon angles were solved offline like the attacks, including two-handed poses (claw on the hilt).
+- **Time safety** (`src/core/GameTime.js`):
+  - Hitstop never stacks: an active freeze keeps the longer duration, capped at 0.12 s.
+  - A new hitstop can't start within 0.05 real seconds of the last one ending, so Overdrive can't chain into a long freeze.
+  - `realDt` is clamped, so there's no catch-up after a freeze or slow-mo. Scale tweens run in real time.
+  - `time.resetScales()` clears freezes, tweens and the lock.
+- **Death mid-skill**: `game._onHeroDeath()` calls `skills.reset()`. That cancels the active skill, ends the buff (plates hidden, blade restored), resets time / tint / saturation / ring, and hides the chain, aim rings and nanobots; the claw and segments go back to their animated pose. Then the death slow-mo starts. Restart also resets cooldowns.
+- **HUD**: a `SKILL` row shows Q / E / R state: ready, remaining seconds, aiming / OVERDRIVE / casting, or the buff timer.
+- **Debug**:
+  - **C** resets cooldowns.
+  - Skills folder: reset cooldowns, rank per skill (1–4), Q aim time scale, E slash interval, R ring max, R buff now / end buff.
+  - The Hotkeys help lists Q / E / R / C.
+
+### Files
+- New:
+  - `src/skills/{Skill,SkillSystem,Thunderclaw,Shatter,Demontime}.js`
+  - `src/anim/clips/skillClips.js`
+  - `src/fx/{Chain,Afterimages,Nanobots,AimRings}.js`
+- Changed:
+  - `src/entities/Hero.js`: control flags, buffs, `critChance`, blade thickness / glow baselines, `placeBoneWorld`, cancel rules.
+  - `src/combat/{Combat,WhipStrike}.js`: `unblockable`, invulnerability, blade thickness during the whip.
+  - `src/core/GameTime.js`, `src/fx/{FX,Shockwave}.js`, `src/game/Game.js`, `src/ui/HUD.js`, `src/debug/DebugPanel.js`, `src/anim/clips/heroClips.js`, `src/config.js`.
+  - `docs/GAME_SPEC.md`: §7 casting rules, heavier Overdrive final slash.
+
+### Key tunables (`CONFIG.skills`)
+| Path | Default | What |
+|---|---|---|
+| `thunderclaw.{cooldown, range, radius, maxTargets}` | 6 / 9 / 2.5 / 3 | Per rank |
+| `thunderclaw.{aimScale, aimTimeout, aimTintStrength}` | 0.15 / 2.5 / 0.5 | Aiming |
+| `thunderclaw.{launch, grab, pull, reattach}` | 0.18 / 0.2 / 0.25 / 0.12 | Phase timings |
+| `thunderclaw.{grabMult, grabStun, landMult, landRadius}` | 1.2 / 1.5 / 0.8 / 2 | Damage |
+| `thunderclaw.{linkSize, linkSpacing, sag}` | … | Chain look |
+| `shatter.{cooldown, windup, length, width, mult, stun, lunge}` | 10 / 0.12 / 3.5 / 1.2 / 1.8 / 1 / 1.4 | Thrust |
+| `shatter.{overdrive, slashEvery, slashRange, slashArcDeg, slashMult, finalMult, drift}` | 1 / 0.08 / 3.2 / 120 / 0.45 / 1.2 / 1.5 | Overdrive |
+| `demontime.{cooldown, cast, freezeAt, nanoEnd, restoreAt, ringMax}` | 30 / 2.2 / 0.4 / 1.6 / 2.0 / 45 | Cast timeline |
+| `demontime.{buff, pulseRadius, pulseMult, attackSpeed, cooldownRate, bladeThick}` | 7 / 5 / 2 / 1.6 / 2 / 1.6 | Buff and pulse |
+| `demontime.{nanobots, nanoRate, nanoFlight}` | 420 / 380 / [0.28, 0.5] | Nanobot stream |
+| `time.{hitstopMax, hitstopGap}` | 0.12 / 0.05 | Anti-stacking |
+
+### Verification
+- **Fixed-step skill tests** through the real loop:
+  - **Q aim** sets both clocks to 0.15 and shows the rings. The fire grabs 3 enemies (a Tate included, unblockable) into a 1.9 m cluster, all stunned. The hero is invulnerable during the pull and lands 1.1 m short.
+  - **Q afterwards**: the claw is back at its rest offset (0), the chain is hidden, cooldown ticking. Cancel leaves no cooldown and time / tint restored. The timeout auto-fires and dashes to the cursor with no targets.
+  - **E hit** gives Overdrive with 17 hits; **E miss** recovers with no Overdrive.
+  - **R**: world 0, hero 1, ring on and hitstop locked at 0.5 s; nanobots and plates arrive; world 1 and ring off by 2.2 s. The pulse hits for about 2×ATK and the buff applies ×1.6 attack speed, 100% crit and ×2 cooldowns. After 7 s the buff ends and the plates hide.
+  - **Death mid-R**: ring off, lock off, plates and nanobots cleared, death slow-mo applied. Restart gives time 1 and cooldowns 0.
+- **120 s bot run** casting Q, E and R whenever possible (10 / 11 / 5 casts) through waves 1–5: no stuck time scale, no stuck control locks, no errors.
+- Game-camera frames checked for Q aim, chain, pull afterimages, the spear, Overdrive, the Demontime grayscale ring with the hero in color, nanobots, the pulse and the buff aura.
+
+### Known issues / notes
+- **The chain doesn't avoid obstacles** and links can clip through enemies at the grab point. That's fine at game scale.
+- **Cancelling Q aim with Esc** will also be the pause key in Stage 5; Esc cancelling aim first is already the spec's behaviour.
+- **The Demontime ring expands to 45 m in 0.4 s**, so the gray wave crosses the screen in about 0.3 s. `ringMax` / `freezeAt` tune the speed.
+- **Rank-up effects exist in config**, including rank IV extras such as Overdrive chain lightning and buff extension on kills, and can be set from the Skills debug folder; the cards that raise ranks arrive in Stage 5.
+- **60 fps with all skill FX is unverified on a GPU.** The heaviest moment is Demontime: 8 hidden afterimage rigs cost nothing when invisible, and nanobots are 1 draw call.
+
+### How to test
+1. `npm run dev` and start fighting. Press **Q**: time slows and turns blue. Move the mouse (the circle clamps to 9 m and the arena), then click. The claw flies out on a chain, yanks nearby enemies together, and drags you in. Right-click or Esc cancels; waiting 2.5 s auto-fires.
+2. Press **E** next to an enemy: a lunge thrust with a spear burst, then 1 s of rapid two-handed slashes with afterimages, ending in a big final cut. E into empty space is just the thrust.
+3. Press **R**: the hero kneels and plants the sword, the gray ring washes over everything and freezes it (watch the petals hang), cyan cubes stream into the sword and crimson plates assemble, then color returns and the release pulse knocks enemies back. For 7 s every swing is a whip, attacks are faster and the aura crackles. Then the plates dissolve.
+4. The HUD `SKILL` row shows cooldowns; they tick twice as fast during the buff.
+5. Cancel a swing into a skill: E right after a hit lands works; E mid-windup doesn't.
+6. Debug: **C** resets cooldowns. The Skills folder has ranks and *R: buff now*. Die during R (turn off god mode, set HP low) to check that time and color come back.
+7. Run `npm run build`, then open `dist/index.html`.

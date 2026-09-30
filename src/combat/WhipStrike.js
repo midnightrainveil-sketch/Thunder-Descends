@@ -84,7 +84,7 @@ export class WhipStrike {
     this.sweeping = this.retracting = false;
     this.tipTrail.stop();
     this.hero.rig.setGlow('blade', 1);
-    for (let i = 0; i < HERO_BLADE_SEGMENTS; i++) this.hero.rig.bones[`bladeSeg_${i}`].scale.setScalar(1);
+    for (let i = 0; i < HERO_BLADE_SEGMENTS; i++) this.hero.rig.bones[`bladeSeg_${i}`].scale.set(this.hero.bladeThick, this.hero.bladeThick, 1);
   }
 
   _angleAt(t) {
@@ -188,7 +188,8 @@ export class WhipStrike {
         _p.copy(this.segPos[i]);
         _q.copy(this.segQuat[i]);
       }
-      _m.compose(_p, _q, _s.setScalar(sc)).premultiply(_inv);
+      const th = this.hero.bladeThick;
+      _m.compose(_p, _q, _s.set(sc * th, sc * th, sc)).premultiply(_inv);
       _m.decompose(b.position, b.quaternion, b.scale);
     }
     rig.group.updateMatrixWorld(true);
@@ -215,7 +216,7 @@ export class WhipStrike {
     if (this.retracting && this.t >= W.sweep + W.retract) {
       this.retracting = false;
       this.snapT = 0;
-      for (let i = 0; i < n; i++) B[`bladeSeg_${i}`].scale.setScalar(1);
+      for (let i = 0; i < n; i++) B[`bladeSeg_${i}`].scale.set(this.hero.bladeThick, this.hero.bladeThick, 1);
       const mid = B[`bladeSeg_${n >> 1}`].getWorldPosition(_p);
       this.fx.particles.hitStar(mid, { color: '#bff6ff', intensity: 4, rays: 6, speed: 7, size: 0.04, life: 0.12, clock: 'hero' });
       this.onSnap?.();
@@ -223,7 +224,7 @@ export class WhipStrike {
     if (!this.sweeping && !this.retracting) {
       this.snapT += dt;
       const f = Math.max(0, 1 - this.snapT / 0.12);
-      rig.setGlow('blade', 1 + (W.snapFlash - 1) * f);
+      rig.setGlow('blade', this.hero.bladeGlowBase + (W.snapFlash - 1) * f);
       if (f <= 0) this.active = false;
     }
   }

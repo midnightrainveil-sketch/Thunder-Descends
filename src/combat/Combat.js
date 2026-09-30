@@ -32,7 +32,7 @@ export class Combat {
   }
 
   /**
-   * opts: { mult, crit, knockback, stun, whip, from (Vector3), hitstop, shake }
+   * opts: { mult, crit, knockback, stun, unblockable, from (Vector3), hitstop, shake }
    * Returns { damage, blocked, killed }.
    */
   heroHitsEnemy(enemy, opts) {
@@ -42,7 +42,7 @@ export class Combat {
     const from = opts.from || hero.position;
     let dmg = S.atk * (opts.mult ?? 1) * (opts.crit ? S.critDamage : 1);
     dmg *= 1 + (Math.random() * 2 - 1) * C.damageJitter;
-    const blocked = enemy.blocks(from);
+    const blocked = !opts.unblockable && enemy.blocks(from);
     if (blocked) dmg *= 1 - enemy.cfg.blockReduction;
     dmg = Math.max(1, Math.round(dmg));
 
@@ -102,7 +102,7 @@ export class Combat {
   // Enemy damage to the hero (melee, slam, bolt). `from` = attacker position.
   enemyHitsHero(source, damage, knockback, from = source.position) {
     const hero = this.game.hero;
-    if (hero.dead || hero.iFrames > 0) return false;
+    if (hero.dead || hero.iFrames > 0 || hero.control.invulnerable) return false;
     const C = CONFIG.combat;
     _d.set(hero.position.x - from.x, 0, hero.position.z - from.z);
     const len = _d.length() || 1;

@@ -22,15 +22,30 @@ export class GameTime {
 
     this.hitstopRemaining = 0;
     this.hitstopLocked = false; // Demontime cast sets this so hitstop can't interrupt it
+    this._hitstopEnd = -1e9;
 
     // Active scale tweens per layer, driven in real time.
     this._tweens = { world: null, hero: null };
   }
 
   // Freeze both clocks briefly (hit feel). Ignored while hitstopLocked.
+  // Never stacks: an active freeze keeps the longer of the two (capped at hitstopMax), and a new
+  // one can't start until hitstopGap real seconds after the last ended (rapid multi-hits such as
+  // Overdrive would otherwise chain into a long freeze).
   hitstop(duration) {
     if (this.hitstopLocked) return;
-    this.hitstopRemaining = Math.max(this.hitstopRemaining, duration);
+    const T = CONFIG.time;
+    if (this.hitstopRemaining <= 0 && this.realTime - this._hitstopEnd < T.hitstopGap) return;
+    this.hitstopRemaining = Math.min(T.hitstopMax, Math.max(this.hitstopRemaining, duration));
+  }
+
+  // Drop any freeze and slow-mo (death / restart / skill cancel).
+  resetScales() {
+    this.hitstopRemaining = 0;
+    this.hitstopLocked = false;
+    this._tweens.world = this._tweens.hero = null;
+    this.worldScale = 1;
+    this.heroScale = 1;
   }
 
   // Smoothly move a layer's scale ('world' | 'hero' | 'both') to target over duration real seconds.
@@ -75,6 +90,7 @@ export class GameTime {
 
     if (this.hitstopRemaining > 0) {
       this.hitstopRemaining = Math.max(0, this.hitstopRemaining - realDt);
+      if (this.hitstopRemaining === 0) this._hitstopEnd = this.realTime;
       if (!this.hitstopLocked) {
         worldDt = 0;
         heroDt = 0;

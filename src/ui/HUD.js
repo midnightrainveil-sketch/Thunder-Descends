@@ -15,6 +15,10 @@ export class HUD {
       .k-hud .hp .fill { background: linear-gradient(90deg, #d7263d, #ff5a6e); }
       .k-hud .ex .fill { background: linear-gradient(90deg, #1aa6c4, #35e0ff); }
       .k-hud .val { font: 400 11px var(--font-num); min-width: 70px; }
+      .k-hud .sk b { color: #8ff4ff; font-weight: 400; }
+      .k-hud .sk .rd { color: #f4f1ea; }
+      .k-hud .sk .cd { color: rgba(236,232,222,0.5); }
+      .k-hud .sk .on { color: #ff6a7c; }
       .k-hud .lvl.flash { color: #8ff4ff; text-shadow: 0 0 10px #35e0ff; }
       .k-banner { position: absolute; left: 50%; top: 26%; transform: translate(-50%, -50%); pointer-events: none;
         text-align: center; opacity: 0; transition: opacity 0.25s; }
@@ -36,7 +40,8 @@ export class HUD {
       <div class="row ex"><span class="lab lvl">LV 1</span><span class="bar"><span class="fill"></span></span><span class="val exv"></span></div>
       <div class="row"><span class="lab">WAVE</span><span class="val wv"></span></div>
       <div class="row"><span class="lab">CRIT</span><span class="val cr"></span></div>
-      <div class="row up"><span class="lab">UPGR</span><span class="val upv"></span></div>`;
+      <div class="row up"><span class="lab">UPGR</span><span class="val upv"></span></div>
+      <div class="row"><span class="lab">SKILL</span><span class="val sk"></span></div>`;
     root.appendChild(this.el);
     const q = (s) => this.el.querySelector(s);
     this.hpFill = q('.hp .fill');
@@ -48,6 +53,7 @@ export class HUD {
     this.cr = q('.cr');
     this.up = q('.up');
     this.upv = q('.upv');
+    this.sk = q('.sk');
 
     this.bannerEl = document.createElement('div');
     this.bannerEl.className = 'k-banner';
@@ -85,7 +91,9 @@ export class HUD {
     const W = game.waves;
     const hpK = Math.max(0, S.hp / S.maxHp);
     const exK = P.exp / P.expToNext;
-    const key = `${Math.round(S.hp)}|${Math.round(S.maxHp)}|${P.level}|${Math.floor(P.exp)}|${W.wave}|${W.remaining}|${S.critRate}|${P.pendingUpgrades}|${game.godMode}`;
+    const SK = game.hero.skills;
+    const skillText = SK.list.map((s) => `${s.key}${s.rank}:${s.label}`).join('|');
+    const key = `${skillText}|${Math.round(S.hp)}|${Math.round(S.maxHp)}|${P.level}|${Math.floor(P.exp)}|${W.wave}|${W.remaining}|${S.critRate}|${P.pendingUpgrades}|${game.godMode}`;
     if (key !== this._last) {
       this._last = key;
       this.hpFill.style.transform = `scaleX(${hpK.toFixed(3)})`;
@@ -97,6 +105,13 @@ export class HUD {
       this.cr.textContent = `${Math.round(S.critRate * 100)}%`;
       this.up.style.display = P.pendingUpgrades > 0 ? '' : 'none';
       this.upv.textContent = `${P.pendingUpgrades} pending`;
+      this.sk.innerHTML = SK.list
+        .map((s) => {
+          const l = s.label;
+          const cls = l === 'ready' ? 'rd' : /s$/.test(l) && !/BUFF/.test(l) ? 'cd' : 'on';
+          return `<b>${s.key}</b> <span class="${cls}">${l}</span>`;
+        })
+        .join(' &nbsp; ');
     }
     this._lvlT = Math.max(0, this._lvlT - realDt);
     this.lvl.classList.toggle('flash', this._lvlT > 0);
