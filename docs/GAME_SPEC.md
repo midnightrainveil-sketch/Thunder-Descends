@@ -49,7 +49,9 @@ Base stats (all in config.js):
 | Crit damage | ×2.0 |
 | Hurt i-frames | 0.4 s |
 
-Controls: WASD move, camera-relative (W = away from the camera). Mouse = look / turn the camera; ← → also turn it. V = switch between the follow camera and the fixed camera. The hero faces his movement direction; while attacking or using a skill he turns toward the aim point (screen center in the follow camera, the mouse's ground point in the fixed camera; legs follow the movement, twisting up to ±60°). Left mouse (hold) = basic attack toward the aim point. Q / E / R = skills. Esc / P = pause (Esc cancels Q aiming first in the fixed camera; in the follow camera Esc releases the mouse and pauses, right-click cancels Q). Enter = restart from game over.
+Controls: WASD move, camera-relative (W = away from the camera). Mouse = look / turn the camera; ← → also turn it. V = switch between the follow camera and the fixed camera. The hero faces his movement direction; while attacking or using a skill he turns toward the aim point (screen center in the follow camera, the mouse's ground point in the fixed camera; legs follow the movement, twisting up to ±60°). Left mouse (hold) = basic attack toward the aim point. Shift = dash. Q / E / R = skills. Esc / P = pause (Esc cancels Q aiming first in the fixed camera; in the follow camera Esc releases the mouse and pauses, right-click cancels Q). Enter = restart from game over.
+
+Dash (Shift): a 5.2 m burst over 0.2 s in the WASD direction (the facing when no key is held). Immune to damage and knockback for the whole dash plus 0.12 s after; cyan afterimages trail it and a small ring and dust mark the start. 2 stacks, one refills every 3 s (hero clock). It cancels a basic attack at any point; it can't be used while a skill is being cast (Q aiming included), and skills can't be cast mid-dash. The HUD shows it as a fifth slot (SHIFT) with one pip per stack.
 
 Basic attack: 3-hit combo (damage ×1.0, ×1.0, ×1.4), sector hitbox range 2.4 m, 120° arc toward the aim. Combo resets after 0.9 s without attacking. Input is buffered (a click during the current swing queues the next).
 
@@ -93,15 +95,17 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 | Tate Brute | 260 | 35 | 2.2 | Tank (~1.05× height, 1.3× width). Frontal 120° shield blocks 80% damage unless stunned or hit from behind. 0.9 s slam telegraph, 2.2 m radius. Tower shield, hammer. | 20 | 3 |
 
 ## 9. Waves & bosses
-- Max 2 enemies alive. Wave w has 3 + floor(1.2·w) enemies, spawned one at a time as slots free up, from the 4 balustrade gaps or random rim points at least 5 m from the hero (1 s spawn telegraph: orange vertical beam + ground ring).
-- Scaling per wave: HP ×1.14^(w−1), damage ×1.07^(w−1), speed +1.5%/wave (max +30%).
-- Between waves: 2.5 s breather, hero heals 20% max HP, big "Wave N" banner.
-- Boss waves 5, 10, 15 (boss alone, with an intro):
-  - Wave 5 — Oni Juggernaut (HP 3000): ~2.2× hero height, hulking but properly proportioned brute, horns, furnace chest, spiked club. Triple ground slam (three red circles in sequence toward the hero), charge across the arena to the rim (red lane telegraph; stunned 1.2 s when it crashes into the balustrade), shockwave stomp. Enrage at 50% HP: faster, chest flares.
-  - Wave 10 — Kage Kitsune (HP 4500): tall agile ninja mech, fox mask, 3 segmented tails, twin blades. Teleport-behind strike (magenta flash telegraph 0.5 s), triple dash-slash (three lane telegraphs, then fast dashes), tail spike fan (projectiles). At 50% HP: 2 shadow clones (die in one hit, half damage).
-  - Wave 15 — Raiju Serpent (HP 7000): flying segmented dragon (~16 segments) circling the arena just outside the rim at 2–4 m height, sometimes crossing over it in a figure-8, head leads. Sweeping breath beam (telegraph line), lightning pillar barrage (5–8 red circles), dive across the arena along a lane. Every segment is hittable; damage goes to one shared HP pool; the head takes ×1.5.
+- Order: boss, basic, boss, basic, boss — wave 1 Oni Juggernaut, wave 2 basic, wave 3 Kage Kitsune, wave 4 basic, wave 5 Raiju Serpent → Demo clear. Endless keeps alternating (bosses on odd waves, repeating in the same order).
+- Basic waves: max 3 enemies alive. A basic wave w is scaled to level L = 1 + 3·(w−1) (wave 2 → L4, wave 4 → L10) and has 4 + floor(0.6·L) enemies (6, then 10), spawned one at a time as slots free up, from the 4 balustrade gaps or random rim points at least 5 m from the hero (1 s spawn telegraph: orange vertical beam + ground ring). All three types appear from wave 2.
+- Scaling per level: HP ×1.14^(L−1), damage ×1.07^(L−1), speed +1.5%/level (max +30%), EXP +15%/level.
+- Between waves: 2.5 s breather, hero heals 20% max HP (40% after a boss wave), big "Wave N" banner.
+- Boss difficulty (all bosses): HP ×1.15, damage ×1.6, tempo ×1.15 (movement, telegraphs and attack timing are faster; enrage multiplies on top), 0.45–0.85 s between attacks, enrage at 60% HP. Bosses give ×2 EXP (they carry the levelling now that there are fewer waves).
+- Boss waves (boss alone, with an intro); base HP below, before the ×1.15:
+  - Wave 1 — Oni Juggernaut (HP 3000): ~2.2× hero height, hulking but properly proportioned brute, horns, furnace chest, spiked club. Triple ground slam (three red circles in sequence toward the hero), charge across the arena to the rim (red lane telegraph; stunned 1.2 s when it crashes into the balustrade), shockwave stomp. Enrage at 60% HP: faster, chest flares.
+  - Wave 3 — Kage Kitsune (HP 4500): tall agile ninja mech, fox mask, 3 segmented tails, twin blades. Teleport-behind strike (magenta flash telegraph 0.5 s), triple dash-slash (three lane telegraphs, then fast dashes), tail spike fan (projectiles). At 60% HP: 2 shadow clones (die in one hit, half damage).
+  - Wave 5 — Raiju Serpent (HP 7000): flying segmented dragon (~16 segments) circling the arena just outside the rim at 2–4 m height, sometimes crossing over it in a figure-8, head leads. Sweeping breath beam (telegraph line), lightning pillar barrage (5–8 red circles), dive across the arena along a lane. Every segment is hittable; damage goes to one shared HP pool; the head takes ×1.5.
 - Bosses can't be pulled by Thunderclaw and receive reduced stuns (Q 0.6 s, E 0.4 s).
-- After wave 15: "Demo clear" screen with stats and an option to continue endlessly (bosses repeat every 5 waves with scaling).
+- After wave 5: "Demo clear" screen with stats and an option to continue endlessly (bosses repeat on every other wave with +60% HP and +25% damage per repeat).
 
 ## 10. Progression
 - EXP to next level: 40 + 25·(L−1).
@@ -115,7 +119,7 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 
 ## 11. UI
 - Style: dark translucent indigo panels (#0E1426 at ~75% opacity) with angular cut corners (clip-path), 1 px cyan edge lines, crimson for HP and danger, restrained and elegant. Fonts (Google Fonts, with fallbacks): Chakra Petch for labels and text, Silkscreen for numbers and damage numbers. Sentence case, short plain labels.
-- HUD: top-left portrait (mask with visor), segmented HP bar, level badge, thin EXP bar. Top-center wave counter + enemies remaining. Wide boss bar with name during boss fights. Bottom-center skill bar: basic attack, Q, E, R icons (inline SVG), key labels, radial cooldown sweep + seconds, rank pips, ready glow; R shows a buff timer ring while active. Bottom-left passive icon with current crit %. Floating damage numbers (normal white; crit larger white-cyan with pop and jitter; damage to the hero crimson).
+- HUD: top-left portrait (mask with visor), segmented HP bar, level badge, thin EXP bar. Top-center wave counter + enemies remaining. Wide boss bar with name during boss fights. Bottom-center skill bar: basic attack, Q, E, R icons (inline SVG), key labels, radial cooldown sweep + seconds, rank pips, ready glow; R shows a buff timer ring while active; a fifth SHIFT slot shows the dash stacks as pips, with the sweep + seconds while both are spent. Bottom-left passive icon with current crit %. Floating damage numbers (normal white; crit larger white-cyan with pop and jitter; damage to the hero crimson).
 - Screens: title (game name over the live arena with drifting petals, "Click to start", controls), pause (resume, restart, screen-shake toggle), level-up cards, game over (wave, kills, time, Enter to retry), demo clear (stats; continue endless or restart).
 
 ## 12. Technical architecture
@@ -138,7 +142,7 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 - At the end of each stage: update docs/PROGRESS.md, make sure `npm run build` succeeds, commit "Stage N: <summary>".
 
 ## 14. Debug tools
-lil-gui panel toggled with the backquote key, plus an FPS and draw-call counter. Hotkeys (only while debug is on): 1/2/3 spawn Ronin/Teppo/Tate, 4/5/6 spawn bosses, K kill all enemies, G god mode, N next wave, L gain a level, C reset cooldowns, M model viewer, T cycle time scale 1 / 0.25 / 0.05, F photo mode (hide hero, enemies and UI), O debug orbit camera (toggle; always returns to the game camera). The Camera folder also holds the follow-camera tunables and the V toggle.
+lil-gui panel toggled with the backquote key, plus an FPS and draw-call counter. Hotkeys (only while debug is on): 1/2/3 spawn Ronin/Teppo/Tate, 4/5/6 spawn bosses, K kill all enemies, G god mode, N next wave, L gain a level, C reset cooldowns, M model viewer (C also refills the dash), T cycle time scale 1 / 0.25 / 0.05, F photo mode (hide hero, enemies and UI), O debug orbit camera (toggle; always returns to the game camera). The Camera folder also holds the follow-camera tunables and the V toggle.
 
 ## 15. Stage roadmap
 - Stage 0 — Setup: project, engine, fixed camera, post-processing, time system, input, voxel builder, placeholder arena and hero, debug tools.

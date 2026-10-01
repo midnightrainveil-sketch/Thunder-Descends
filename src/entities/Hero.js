@@ -8,6 +8,7 @@ import { BladeTrail } from '../fx/BladeTrail.js';
 import { WhipStrike } from '../combat/WhipStrike.js';
 import { AttackInstance, hitSector, relativeYaw } from '../combat/Hitbox.js';
 import { SkillSystem } from '../skills/SkillSystem.js';
+import { Dash } from '../skills/Dash.js';
 
 const DEG = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -73,6 +74,7 @@ export class Hero {
     this.bladeGlowBase = 1;
     this.glowBoost = 1; // visor / core / accent glow (Overdrive)
     this.skills = null;
+    this.dash = new Dash(this); // Shift: i-frame dash, 2 stacks
 
     this.combo = { active: false, step: 0, buffered: false, ended: false, sinceEnd: 0, crit: false, queued: false };
     this.attacking = false;
@@ -101,6 +103,7 @@ export class Hero {
     this.bladeTest = null;
 
     this._wish = new THREE.Vector3();
+    this._inDir = new THREE.Vector3();
     this._tmp = new THREE.Vector3();
     this._v1 = new THREE.Vector3();
     this._v2 = new THREE.Vector3();
@@ -300,6 +303,7 @@ export class Hero {
   playDeath() {
     if (this.dead) return;
     this.dead = true;
+    this.dash.cancel();
     this._endCombo();
     this.whip?.cancel();
     this.overlay.fadeOut(0.1);
@@ -329,6 +333,7 @@ export class Hero {
     this.whip?.cancel();
     this.skills?.reset();
     this.skills?.resetCooldowns();
+    this.dash.reset();
     if (this.skills) for (const sk of this.skills.list) sk.rank = CONFIG.skills.startRank; // a new run starts at rank I
     this.releaseControl();
     this.stunT = 0;
@@ -358,26 +363,32 @@ export class Hero {
     this.flash = Math.max(0, this.flash - dt / CONFIG.enemies.hurtFlash);
     this.rig.setFlash(this.flash, '#ff9aa6');
 
-    // Movement: screen-relative WASD, slower while attacking.
+    // Movement: camera-relative WASD, slower while attacking. The dash (Shift) takes the input
+    // direction and owns the velocity while it runs.
     let ix = 0;
     let iz = 0;
-    if (!this.dead && !ctl.lockMove) {
+    if (!this.dead) {
       if (input.isDown('KeyW')) iz += 1;
       if (input.isDown('KeyS')) iz -= 1;
       if (input.isDown('KeyD')) ix += 1;
       if (input.isDown('KeyA')) ix -= 1;
     }
+    const inputDir = this._inDir.set(0, 0, 0);
+    if (ix !== 0 || iz !== 0) inputDir.addScaledVector(cam.groundForward, iz).addScaledVector(cam.groundRight, ix).normalize();
+    this.dash.update(dt, inputDir);
     const wish = this._wish.set(0, 0, 0);
-    if (ix !== 0 || iz !== 0) {
+    if (!ctl.lockMove && inputDir.lengthSq() > 0) {
       const speed = H.moveSpeed * (this.attacking ? H.attackMoveMul : 1);
-      wish.addScaledVector(cam.groundForward, iz).addScaledVector(cam.groundRight, ix).normalize().multiplyScalar(speed);
+      wish.copy(inputDir).multiplyScalar(speed);
     }
-    const rate = wish.lengthSq() > 0 ? H.accel : H.decel;
-    const dv = this._tmp.subVectors(wish, this.velocity);
-    const maxStep = rate * dt;
-    const len = dv.length();
-    if (len > maxStep) dv.multiplyScalar(maxStep / len);
-    this.velocity.add(dv);
+    if (!this.dash.active) {
+      const rate = wish.lengthSq() > 0 ? H.accel : H.decel;
+      const dv = this._tmp.subVectors(wish, this.velocity);
+      const maxStep = rate * dt;
+      const len = dv.length();
+      if (len > maxStep) dv.multiplyScalar(maxStep / len);
+      this.velocity.add(dv);
+    }
     this.position.addScaledVector(this.velocity, dt);
     if (clampToArena(this.position, H.radius)) {
       const nx = this.position.x;

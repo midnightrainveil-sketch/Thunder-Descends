@@ -50,6 +50,7 @@ const TWO_HAND_FINGERS = { clawFinger_0: [34, 0, 0], clawFinger_1: [34, 0, 0], c
 const makePoses = () => ({
   guard: merge(STANCE_LEGS, HERO_GUARD, { spine: [6, 0, 0], chest: [3, 0, 0], head: [-8, 0, 0] }),
   clawThrow: { spine: [6, -12, 0], chest: [2, -12, 0], head: [-6, 22, 0], upperArmL: [-86, 4, 4], forearmL: [-4, 0, 0], upperArmR: [4, 0, -14], forearmR: [-30, 0, 0], handR: [0, 0, 8], weapon: [70, -30, 0], clawFinger_0: [-40, 0, 0], clawFinger_1: [-40, 0, 0], clawFinger_2: [40, 0, 0] },
+  dash: merge(LUNGE_LEGS, { spine: [30, 0, 0], chest: [12, 0, 0], head: [-30, 0, 0], upperArmR: [30, 0, -18], forearmR: [-24, 0, 0], handR: [0, 0, 6], weapon: [110, -20, 0], upperArmL: [36, 0, 16], forearmL: [-30, 0, 0] }),
   clawDash: { 'pelvis@': [0, -0.1, 0], spine: [26, -8, 0], chest: [10, -8, 0], head: [-26, 14, 0], thighR: [34, 0, -4], shinR: [70, 0, 0], thighL: [-46, 0, 4], shinL: [40, 0, 0], upperArmL: [-96, 0, 4], forearmL: [0, 0, 0], upperArmR: [30, 0, -18], forearmR: [-24, 0, 0], weapon: [110, -20, 0] },
   shatterWindup: merge(STANCE_LEGS, { spine: [4, -25, 0], chest: [0, -15, 0], head: [-6, 34, 0], upperArmR: [54, -7, -42], forearmR: [-134, 0, 0], handR: [0, 0, 0], weapon: [62, 24, 0], upperArmL: [-40, 0, 26], forearmL: [-30, 0, 0] }),
   shatterThrust: merge(LUNGE_LEGS, { spine: [12, 22, 0], chest: [6, 12, 0], head: [-14, -30, 0], upperArmR: [-68, -44, 28], forearmR: [-30, 0, 0], handR: [0, 0, 0], weapon: [106, 121, 0], upperArmL: [30, 0, 30], forearmL: [-20, 0, 0] }),
@@ -67,6 +68,7 @@ export function skillClips() {
   const clip = (name, duration, keys, loop = false) => ({ name, duration, loop, keys });
   return [
     clip('clawThrow', 0.14, [{ t: 0, pose: POSES.guard }, { t: 1, ease: 'snap', pose: POSES.clawThrow }]),
+    clip('dash', 0.07, [{ t: 0, pose: POSES.guard }, { t: 1, ease: 'out', pose: POSES.dash }]),
     clip('clawDash', 0.12, [{ t: 0, pose: merge(POSES.guard, POSES.clawThrow) }, { t: 1, ease: 'out', pose: POSES.clawDash }]),
     clip('shatterWindup', Sh.windup, [{ t: 0, pose: POSES.guard }, { t: 1, ease: 'out', pose: POSES.shatterWindup }]),
     clip('shatterThrust', Sh.thrust, [

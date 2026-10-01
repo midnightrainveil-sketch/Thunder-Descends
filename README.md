@@ -12,6 +12,7 @@ three.js; the production build is a single self-contained `dist/index.html`.
 | ← → | Turn the camera (keyboard) |
 | V | Switch third-person ⇄ fixed overview camera |
 | Hold left mouse | 3-hit combo — about half the swings crit into a **whip strike** |
+| Shift | Dash — invulnerable, afterimages, 2 stacks (one every 3 s) |
 | Q | Thunderclaw: aim (time slows), click to fire, right-click / Esc cancels |
 | E | Shatter → Overdrive on hit |
 | R | Demontime (freeze time, 7 s power buff) |
@@ -19,7 +20,8 @@ three.js; the production build is a single self-contained `dist/index.html`.
 | Esc / P | Pause (Esc also frees the mouse; click the game to grab it again) |
 | Enter | Retry after defeat |
 
-Clear 15 waves — bosses on waves 5, 10 and 15 — to reach **Demo clear**, then continue endlessly.
+Five waves — boss, basic, boss, basic, boss (Juggernaut, Kitsune, Raiju) — to reach **Demo clear**,
+then continue endlessly.
 
 Debug (press `` ` `` to toggle the panel): 1/2/3 spawn enemies, 4/5/6 spawn bosses, K kill all,
 G god mode, N next wave, L level up, C reset cooldowns, M model viewer, T time scale, O orbit

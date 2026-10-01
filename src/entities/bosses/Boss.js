@@ -16,13 +16,15 @@ const _v = new THREE.Vector3();
  *  - telegraph helpers (floor decals are tracked so a stun / death cancels them) and an eye/glow tell;
  *  - intro (drops in, lands with shake + petal burst + name banner) and death (slow-mo, explosions,
  *    then a big shatter + EXP burst handled by Combat.killEnemy);
- *  - enrage below 50% HP (subclasses read `this.speedMul`).
+ *  - enrage below 60% HP (subclasses read `this.speedMul`: base tempo × enrage speed);
+ *  - global difficulty knobs: hpMul, damageMul (applied in hitHero), tempo, plus endless loop scaling.
  * Subclasses implement startAttack(name) and updateAttack(dt) → true when finished, and may
  * override move(dt, hero). World clock.
  */
 export class Boss {
-  constructor(type, position, ctx, { hpScale = 1 } = {}) {
-    const C = CONFIG.bosses[type];
+  constructor(type, position, ctx, { hpScale = 1, loop = 0 } = {}) {
+    const B = CONFIG.bosses;
+    const C = B[type];
     this.type = type;
     this.isBoss = true;
     this.ctx = ctx;
@@ -30,9 +32,11 @@ export class Boss {
     this.cfg = { blockReduction: 0, cooldown: 1 };
     this.name = C.name;
     this.radius = C.radius;
-    this.maxHp = C.hp * hpScale;
+    this.maxHp = C.hp * B.hpMul * hpScale;
+    this.loop = loop;
+    this.dmgScale = B.damageMul * (1 + B.loopDamage * loop); // every hit on the hero goes through hitHero
     this.hp = this.maxHp;
-    this.exp = C.exp * CONFIG.bosses.expBurst;
+    this.exp = C.exp * B.expBurst;
     this.speed = C.speed ?? 2;
 
     this.group = new THREE.Group();
@@ -52,7 +56,7 @@ export class Boss {
     this.alive = true;
     this.dying = false;
     this.enraged = false;
-    this.speedMul = 1;
+    this.speedMul = B.tempo; // movement, attack timing and telegraphs (enrage multiplies on top)
     this.state = 'intro';
     this.t = 0;
     this.introT = 0;
@@ -64,6 +68,7 @@ export class Boss {
     this.decalList = [];
     this.attack = null;
     this.walkBlend = 0;
+    this.animator.timeScale = this.speedMul;
     this.groundY = 0; // intro drop height
     this.dyingT = 0;
     this.nextBoom = 0;
@@ -103,7 +108,7 @@ export class Boss {
 
   _enrage() {
     this.enraged = true;
-    this.speedMul = this.bcfg.enrage.speed;
+    this.speedMul = CONFIG.bosses.tempo * this.bcfg.enrage.speed;
     this.animator.timeScale = this.speedMul;
     this.ctx.hud.banner(this.name.toUpperCase(), 'enraged', 1.4);
     this.ctx.rig.shake(0.3, 0.3);
@@ -125,7 +130,7 @@ export class Boss {
   }
 
   hitHero(damage, knockback, from = this.position) {
-    return this.ctx.combat.enemyHitsHero(this, damage, knockback, from);
+    return this.ctx.combat.enemyHitsHero(this, damage * this.dmgScale, knockback, from);
   }
 
   // Weighted random attack, never the same one 3 times in a row.

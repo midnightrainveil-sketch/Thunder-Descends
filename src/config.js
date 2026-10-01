@@ -156,6 +156,20 @@ export const CONFIG = {
   },
 
   hero: {
+    // Dash (Shift): i-frames for the whole dash, afterimages, 2 charges.
+    dash: {
+      charges: 2, // max stacks
+      recharge: 3, // s per stack (hero clock; one stack refills at a time)
+      distance: 5.2, // m
+      duration: 0.2, // s
+      graceIFrames: 0.12, // s of i-frames after the dash ends
+      exitSpeed: 0.55, // × move speed carried out of the dash
+      buffer: 0.15, // s, a Shift press is remembered this long (hitstop, end of a swing)
+      afterimageEvery: 0.045, // s between ghosts (~5 per dash)
+      afterimageLife: 0.28, // s
+      afterimageOpacity: 0.26, // additive: overlapping ghosts add up
+      ringRadius: 1.1, // m, cyan ring at the start
+    },
     // Base stats (spec §5). Combat uses these from Stage 3.
     maxHp: 600,
     moveSpeed: 6, // m/s
@@ -370,7 +384,7 @@ export const CONFIG = {
       auraEvery: 0.06, // s between aura crackles
       killExtend: [0, 0, 0, 0.5], killExtendMax: 4, // rank IV card
     },
-    afterimages: { pool: 8, life: 0.22, color: '#35e0ff', opacity: 0.45 },
+    afterimages: { pool: 14, life: 0.22, color: '#35e0ff', opacity: 0.45 },
   },
 
   // ── FX pools (Stage 3) ──────────────────────────────────────────────────
@@ -395,15 +409,23 @@ export const CONFIG = {
 
   // ── Waves & progression (spec §9–10) ───────────────────────────────────
   waves: {
-    maxAlive: 2,
-    countBase: 3, countPerWave: 1.2, // 3 + floor(1.2·w)
-    hpGrowth: 1.14, dmgGrowth: 1.07, // per wave
-    speedPerWave: 0.015, speedMax: 0.3,
+    // Boss, basic, boss, basic, boss (demo clear after wave 5), then endless keeps alternating.
+    bossEvery: 2, // boss on waves 1, 3, 5, 7, …
+    bossOrder: ['juggernaut', 'kitsune', 'raiju'], // repeats with loopHp / loopDamage
+    demoWave: 5, // "Demo clear" after this wave (first time)
+    // Basic waves are scaled as if `scaleStep` old waves passed per wave: level = 1 + (w−1)·scaleStep.
+    scaleStep: 3, // wave 2 → level 4, wave 4 → level 10
+    maxAlive: 3,
+    countBase: 4, countPerWave: 0.6, // 4 + floor(0.6·level): wave 2 → 6, wave 4 → 10
+    hpGrowth: 1.14, dmgGrowth: 1.07, // per level
+    speedPerWave: 0.015, speedMax: 0.3, // per level
+    expPerLevel: 0.15, // basic enemies give +15% EXP per level above 1
     breakTime: 2.5, // s between waves
     breakHeal: 0.2, // share of max HP healed at a break
+    bossHeal: 0.4, // share of max HP healed after a boss wave
     firstDelay: 1.2, // s before wave 1 spawns
     spawnInterval: 0.6, // s minimum between spawns
-    unlock: { ronin: 1, teppo: 2, tate: 3 }, // first wave per type
+    unlock: { ronin: 1, teppo: 2, tate: 3 }, // first level per type
     weights: { ronin: 3, teppo: 2, tate: 1.4 },
     bannerTime: 1.8, // s
   },
@@ -646,10 +668,14 @@ export const CONFIG = {
     introHold: 1.0, // s after landing before the first attack
     deathTime: 1.6, // s (real) of slow-mo explosions before the shatter
     deathSlowmo: 0.3,
-    enrageAt: 0.5, // HP fraction
+    enrageAt: 0.6, // HP fraction
     loopHp: 0.6, // endless: +60% HP per repeat
-    expBurst: 1, // EXP multiplier on the boss's exp value
-    recover: [0.7, 1.2], // s between attacks (random range)
+    loopDamage: 0.25, // endless: +25% damage per repeat
+    hpMul: 1.15, // all bosses: HP multiplier on the base values below
+    damageMul: 1.6, // all bosses: damage multiplier (melee, slams, beams, spikes)
+    tempo: 1.15, // all bosses: base speed of movement, attacks and telegraphs (enrage multiplies on top)
+    expBurst: 2, // EXP multiplier on the boss's exp value (fewer waves → bosses carry the levelling)
+    recover: [0.45, 0.85], // s between attacks (random range, ÷ tempo)
     juggernaut: {
       name: 'Oni Juggernaut', hp: 3000, exp: 150, radius: 1.3, speed: 2.1, keepDist: 3.2,
       slam: { damage: 40, radius: 2.2, first: 0.85, next: 0.45, spacing: [2.4, 4.6, 6.8] },

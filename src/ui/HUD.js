@@ -5,7 +5,7 @@ import { ICONS } from './icons.js';
 // edges; crimson for HP and danger. Top-left: portrait, segmented HP bar, level badge, EXP bar.
 // Top-center: wave counter + enemies left, boss bar during boss fights. Bottom-center: skill bar
 // (basic attack, Q, E, R: icon, key, conic cooldown sweep + seconds, rank pips, ready glow; R buff
-// ring). Bottom-left: passive icon with crit %. Center banners (wave / boss / level).
+// ring; Shift dash: one pip per stack, sweep + seconds while out of stacks). Bottom-left: passive icon with crit %. Center banners (wave / boss / level).
 const CSS = `
   .k-hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--font-text); color: #e6e1d3; transition: opacity .3s; }
   .k-hud.hidden { opacity: 0; }
@@ -68,6 +68,7 @@ const SLOTS = [
   { id: 'q', key: 'Q', icon: 'claw' },
   { id: 'e', key: 'E', icon: 'shatter' },
   { id: 'r', key: 'R', icon: 'demontime' },
+  { id: 'dash', key: 'SHIFT', icon: 'dash' },
 ];
 
 export class HUD {
@@ -90,7 +91,7 @@ export class HUD {
         <div class="k-wave k-panel"><span class="wv">Wave 1</span><small class="wl"></small></div>
         <div class="k-boss k-panel"><div class="nm"></div><div class="bar"><u></u><b></b></div><div class="hpn"></div></div>
       </div>
-      <div class="k-skills k-panel">${SLOTS.map((s) => `<div class="k-slot" data-id="${s.id}">${ICONS[s.icon]}<div class="buff"></div><div class="sweep"></div><div class="sec"></div><span class="key">${s.key}</span><div class="pips">${s.id === 'lmb' ? '' : '<i></i>'.repeat(4)}</div></div>`).join('')}</div>
+      <div class="k-skills k-panel">${SLOTS.map((s) => `<div class="k-slot" data-id="${s.id}">${ICONS[s.icon]}<div class="buff"></div><div class="sweep"></div><div class="sec"></div><span class="key">${s.key}</span><div class="pips">${s.id === 'lmb' ? '' : '<i></i>'.repeat(s.id === 'dash' ? CONFIG.hero.dash.charges : 4)}</div></div>`).join('')}</div>
       <div class="k-bl k-panel"><div class="ic">${ICONS.passive}</div><div><div class="t">CRIT</div><div class="v cr">50%</div></div></div>
       <div class="k-banner"><div class="big"></div><div class="small"></div></div>`;
     root.appendChild(this.el);
@@ -199,6 +200,20 @@ export class HUD {
     const rel = this.slots.r;
     rel.classList.toggle('buffing', R.buffActive);
     if (R.buffActive) rel.style.setProperty('--b', (R.buffT / R.buffMax).toFixed(3));
+    const dash = game.hero.dash;
+    const dEl = this.slots.dash;
+    const dMax = CONFIG.hero.dash.charges;
+    const empty = dash.charges <= 0;
+    this._set('dp', empty ? Math.round((1 - dash.recharge01) * 100) : 0, (v) => dEl.style.setProperty('--p', v / 100));
+    const dLeft = empty ? Math.ceil((1 - dash.recharge01) * CONFIG.hero.dash.recharge * 10) / 10 : 0;
+    this._set('ds', dLeft, (v) => (dEl.querySelector('.sec').textContent = v > 0 ? v.toFixed(1) : ''));
+    this._set('dc', `${dash.charges}/${dMax}`, () => {
+      const pips = dEl.querySelectorAll('.pips i');
+      if (pips.length !== dMax) dEl.querySelector('.pips').innerHTML = '<i></i>'.repeat(dMax);
+      dEl.querySelectorAll('.pips i').forEach((pip, i) => pip.classList.toggle('on', i < dash.charges));
+    });
+    dEl.classList.toggle('ready', !empty && !dash.active);
+    dEl.classList.toggle('active', dash.active);
     const lmb = this.slots.lmb;
     lmb.classList.toggle('active', game.hero.combo.active);
     lmb.classList.toggle('ready', !game.hero.combo.active);

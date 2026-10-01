@@ -11,11 +11,11 @@ const _w = new THREE.Vector3();
 const MAGENTA = '#ff3fd2';
 
 /**
- * Wave 10 — Kage Kitsune: agile ninja mech, fox mask, 3 swaying block-chain tails, twin blades.
+ * Wave 3 — Kage Kitsune: agile ninja mech, fox mask, 3 swaying block-chain tails, twin blades.
  *  blink  0.5 s magenta flash at a point behind the hero, then teleports there and slashes
  *  dash   triple dash-slash along 3 lane decals (all shown up front), fast dashes
  *  fan    tails rise, a 90° sector telegraph, then a fan of tail spikes (projectiles)
- * Enrage (< 50%): ×1.3 speed and 2 shadow clones (die in one hit, half damage, blink + dash only).
+ * Enrage (< 60%): ×1.3 speed and 2 shadow clones (die in one hit, half damage, blink + dash only).
  */
 export class Kitsune extends Boss {
   constructor(position, ctx, opts = {}) {
@@ -202,7 +202,7 @@ export class Kitsune extends Boss {
         const n = F.count;
         for (let i = 0; i < n; i++) {
           const yaw = a.yaw + (i / (n - 1) - 0.5) * F.arcDeg * DEG;
-          g.spikes.fire(_v.set(this.position.x + Math.sin(yaw) * 0.6, 1.3, this.position.z + Math.cos(yaw) * 0.6), yaw, F.damage * this.dmgMul, this);
+          g.spikes.fire(_v.set(this.position.x + Math.sin(yaw) * 0.6, 1.3, this.position.z + Math.cos(yaw) * 0.6), yaw, F.damage * this.dmgMul * this.dmgScale, this);
         }
         g.fx.particles.sparks(_v.set(this.position.x, 1.8, this.position.z), null, 20, { color: MAGENTA, speed: 8 });
         g.rig.shake(0.15, 0.2);

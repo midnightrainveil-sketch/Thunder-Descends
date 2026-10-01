@@ -1,11 +1,13 @@
 import { CONFIG } from '../config.js';
 
 /**
- * Wave director (spec §9). Wave w has 3 + floor(1.2·w) enemies, spawned one at a time through the
- * spawn telegraph while fewer than `maxAlive` are alive (telegraphs in flight count as alive).
- * Enemies scale per wave (HP ×1.14^(w−1), damage ×1.07^(w−1), speed +1.5%/wave up to +30%).
- * When a wave is cleared: 2.5 s breather, heal 20% max HP, "Wave N" banner, next wave.
- * Boss waves (5/10/15) arrive in Stage 5; until then they are regular waves. World clock.
+ * Wave director (spec §9). Waves alternate boss / basic: 1 Juggernaut, 2 basic, 3 Kitsune,
+ * 4 basic, 5 Raiju → Demo clear; endless keeps alternating and the bosses repeat with more HP
+ * and damage. A basic wave is scaled to level L = 1 + (w−1)·scaleStep: 4 + floor(0.6·L) enemies,
+ * spawned one at a time through the spawn telegraph while fewer than `maxAlive` are alive
+ * (telegraphs in flight count as alive), HP ×1.14^(L−1), damage ×1.07^(L−1), speed +1.5%/level up
+ * to +30%, EXP +15%/level. When a wave is cleared: 2.5 s breather, heal (more after a boss),
+ * "Wave N" banner, next wave. World clock.
  */
 export class Waves {
   constructor(game) {
@@ -15,7 +17,7 @@ export class Waves {
   }
 
   reset() {
-    this.demoWave = 15;
+    this.demoWave = CONFIG.waves.demoWave;
     this.demoCleared = false;
     this.bossPending = null;
     this.bossWave = false;
@@ -28,18 +30,25 @@ export class Waves {
     this.spawnTimer = 0;
   }
 
+  // Difficulty level of a basic wave (old per-wave scaling, `scaleStep` levels per wave).
+  levelFor(w) {
+    return 1 + (w - 1) * CONFIG.waves.scaleStep;
+  }
+
   scaleFor(w) {
     const W = CONFIG.waves;
+    const L = this.levelFor(w);
     return {
-      hp: Math.pow(W.hpGrowth, w - 1),
-      dmg: Math.pow(W.dmgGrowth, w - 1),
-      speed: 1 + Math.min(W.speedMax, W.speedPerWave * (w - 1)),
+      hp: Math.pow(W.hpGrowth, L - 1),
+      dmg: Math.pow(W.dmgGrowth, L - 1),
+      speed: 1 + Math.min(W.speedMax, W.speedPerWave * (L - 1)),
+      exp: 1 + W.expPerLevel * (L - 1),
     };
   }
 
   countFor(w) {
     const W = CONFIG.waves;
-    return W.countBase + Math.floor(W.countPerWave * w);
+    return W.countBase + Math.floor(W.countPerWave * this.levelFor(w));
   }
 
   get remaining() {
@@ -48,7 +57,8 @@ export class Waves {
 
   _pickType() {
     const W = CONFIG.waves;
-    const pool = Object.keys(W.unlock).filter((t) => this.wave >= W.unlock[t]);
+    const L = this.levelFor(this.wave);
+    const pool = Object.keys(W.unlock).filter((t) => L >= W.unlock[t]);
     const sum = pool.reduce((s, t) => s + W.weights[t], 0);
     let r = Math.random() * sum;
     for (const t of pool) {
@@ -58,11 +68,13 @@ export class Waves {
     return pool[0];
   }
 
-  // Boss waves every 5 (5 Juggernaut, 10 Kitsune, 15 Raiju, then they repeat with more HP).
+  // Boss waves: 1 Juggernaut, 3 Kitsune, 5 Raiju, then they repeat (loop = repeat count).
   bossFor(w) {
-    if (w % 5 !== 0) return null;
-    const i = w / 5 - 1;
-    return { type: ['juggernaut', 'kitsune', 'raiju'][i % 3], loop: Math.floor(i / 3) };
+    const W = CONFIG.waves;
+    if (w < 1 || (w - 1) % W.bossEvery !== 0) return null;
+    const i = (w - 1) / W.bossEvery;
+    const order = W.bossOrder;
+    return { type: order[i % order.length], loop: Math.floor(i / order.length) };
   }
 
   _startWave(w) {
@@ -129,19 +141,20 @@ export class Waves {
       g.spawnEnemy(this._pickType(), { wave: this.wave, scale: this.scaleFor(this.wave) });
     }
     if (this.toSpawn === 0 && this.killed >= this.total && g.aliveCount() === 0) {
-      // Wave 15 boss down (first time) → Demo clear screen; continuing resumes with the next wave.
+      // Last demo boss down (wave 5, first time) → Demo clear screen; continuing resumes with the next wave.
       if (this.wave === this.demoWave && !this.demoCleared) {
         this.demoCleared = true;
         this.state = 'demo';
         this.timer = 1.6; // let the boss shatter and EXP burst play out first
         return;
       }
-      // Cleared: breather, heal, banner for the next wave.
+      // Cleared: breather, heal (more after a boss), banner for the next wave.
       this.state = 'break';
       this.timer = W.breakTime;
-      g.hero.heal(g.hero.stats.maxHp * W.breakHeal);
+      const heal = this.bossWave ? W.bossHeal : W.breakHeal;
+      g.hero.heal(g.hero.stats.maxHp * heal);
       const nb = this.bossFor(this.wave + 1);
-      g.hud.banner(`Wave ${this.wave + 1}`, nb ? 'boss wave' : `wave ${this.wave} cleared · +${Math.round(W.breakHeal * 100)}% HP`);
+      g.hud.banner(`Wave ${this.wave + 1}`, nb ? `boss wave · +${Math.round(heal * 100)}% HP` : `wave ${this.wave} cleared · +${Math.round(heal * 100)}% HP`);
     }
   }
 }

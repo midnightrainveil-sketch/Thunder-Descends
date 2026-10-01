@@ -241,7 +241,7 @@ export class Game {
     const pos = new THREE.Vector3(0, 0, -5);
     if (type === 'raiju') pos.set(0, 0, -CONFIG.bosses.raiju.orbitRadius);
     const Cls = { juggernaut: Juggernaut, kitsune: Kitsune, raiju: Raiju }[type];
-    const boss = new Cls(pos, this, { hpScale });
+    const boss = new Cls(pos, this, { hpScale, loop });
     boss.wave = wave;
     this.enemies.push(boss, ...(boss.proxies || []));
     this.scene.add(boss.group);
@@ -252,7 +252,7 @@ export class Game {
 
   // Kitsune shadow clones (ordinary one-hit enemies).
   spawnBossClone(pos) {
-    const c = new Kitsune(pos, this, { clone: true });
+    const c = new Kitsune(pos, this, { clone: true, loop: this.boss?.loop ?? 0 });
     this.enemies.push(c);
     this.scene.add(c.group);
     this.fx.particles.sparks(_v.set(pos.x, 1.2, pos.z), null, 20, { color: '#ff3fd2', speed: 7 });
@@ -339,7 +339,7 @@ export class Game {
     this.progression.reset();
     this.waves.reset();
     this.combat.stats = { hits: 0, crits: 0, kills: 0 };
-    this.hud.banner('Wave 1', 'survive', CONFIG.waves.bannerTime);
+    this.hud.banner('Wave 1', this.waves.bossFor(1) ? 'boss wave' : 'survive', CONFIG.waves.bannerTime);
   }
 
   // ── Update ───────────────────────────────────────────────────────────────
@@ -361,6 +361,7 @@ export class Game {
     const inp = this.mode === 'play' ? input : NO_INPUT;
     if (this.mode === 'play' && !this.hero.dead) {
       this.hero.skills.handleInput(inp, time);
+      this.hero.dash.handleInput(inp, time);
       this.runTime += time.realDt;
       // Level-up cards open shortly after the level-up burst.
       if (this.progression.pendingUpgrades > 0) {

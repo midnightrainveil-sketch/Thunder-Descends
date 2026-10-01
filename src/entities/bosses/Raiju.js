@@ -47,7 +47,7 @@ class SegmentProxy {
 }
 
 /**
- * Wave 15 — Raiju Serpent: a flying segmented dragon. The head flies a path (orbit just outside
+ * Wave 5 — Raiju Serpent: a flying segmented dragon. The head flies a path (orbit just outside
  * the rim at 2–4 m, sometimes a figure-8 crossing over the arena); the ~16 segments follow the
  * head's recorded path at fixed spacing. The head is the boss object (hits ×1.5); every segment is
  * a SegmentProxy in game.enemies so any attack can hit it (shared HP, each attack counts once).

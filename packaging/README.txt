@@ -14,9 +14,10 @@ CONTROLS
   Mouse ........... turn the camera; attacks/skills aim at the screen center
   Left / Right .... turn the camera      V ... third-person <-> fixed camera
   Hold left mouse . 3-hit combo (crits become whip strikes)
+  Shift ........... dash (invulnerable, 2 stacks, one every 3 s)
   Q ............... Thunderclaw (aim, click to fire, right-click/Esc cancels)
   E ............... Shatter -> Overdrive      R ... Demontime
   1 / 2 / 3 ....... pick a level-up card      Esc / P ... pause (frees the mouse)
   Enter ........... retry after defeat
 
-Clear 15 waves (bosses on waves 5, 10, 15) to reach Demo clear, then continue endlessly.
+Five waves - boss, basic, boss, basic, boss - to reach Demo clear, then continue endlessly.

@@ -36,7 +36,7 @@ export class Enemy {
     this.hp = this.maxHp;
     this.damage = this.cfg.damage * scale.dmg;
     this.speed = this.cfg.speed * scale.speed;
-    this.exp = this.cfg.exp;
+    this.exp = this.cfg.exp * (scale.exp ?? 1);
 
     this.group = new THREE.Group();
     this.group.name = `enemy:${type}`;

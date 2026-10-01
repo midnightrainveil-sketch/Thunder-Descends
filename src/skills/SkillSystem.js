@@ -25,7 +25,7 @@ export class SkillSystem {
 
   canCast(skill) {
     const h = this.hero;
-    if (h.dead || h.stunT > 0 || this.active || !skill.ready) return false;
+    if (h.dead || h.stunT > 0 || this.active || !skill.ready || h.dash.active) return false;
     if (!h.canCancelAttack()) return false;
     return skill.canCast();
   }
@@ -55,6 +55,7 @@ export class SkillSystem {
 
   resetCooldowns() {
     for (const s of this.list) s.cd = 0;
+    this.hero.dash.refill();
   }
 
   // Death / restart: stop everything and restore time, post-processing and the hero's nodes.

@@ -10,6 +10,8 @@ export const ICONS = {
   shatter: svg('<path d="M6 38 L34 14" stroke-width="4"/><path d="M34 14 L42 6 M36 20 L44 18 M28 12 L30 4" stroke-width="2"/><path d="M6 38 L12 38 L10 44 Z" fill="currentColor"/>'),
   // Demontime: planted sword in a time ring.
   demontime: svg('<circle cx="24" cy="26" r="16" stroke-width="2"/><path d="M24 4 V36" stroke-width="4"/><path d="M18 12 H30"/><path d="M24 36 L20 44 H28 Z" fill="currentColor"/>'),
+  // Dash: double chevron with speed lines.
+  dash: svg('<path d="M20 12 L32 24 L20 36" stroke-width="4"/><path d="M30 12 L42 24 L30 36" stroke-width="2.5"/><path d="M4 18 H14 M7 24 H17 M4 30 H14" stroke-width="2"/>'),
   // Passive: lightning bolt.
   passive: svg('<path d="M28 4 L12 28 H24 L18 44 L38 18 H26 Z" fill="currentColor" stroke-width="1.5"/>'),
   atk: svg('<path d="M24 4 V34" stroke-width="4"/><path d="M16 34 H32"/><path d="M24 34 V44"/><path d="M14 16 L24 6 L34 16" stroke-width="2"/>'),

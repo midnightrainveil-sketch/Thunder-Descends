@@ -332,6 +332,16 @@ export class DebugPanel {
       for (let i = 0; i < 8; i++) this.game.hero.rig.setBoneVisible(`bladeUlt_${i}`, v);
     });
     hero.add({ f: () => this.game.hero.rig.setFlash(1) || setTimeout(() => this.game.hero.rig.setFlash(0), 80) }, 'f').name('Hit flash (80 ms)');
+    const DS = C.hero.dash;
+    const dash = hero.addFolder('Dash (Shift)');
+    dash.add(DS, 'distance', 1, 12, 0.1).name('distance m');
+    dash.add(DS, 'duration', 0.08, 0.6, 0.01).name('duration s');
+    dash.add(DS, 'recharge', 0.2, 10, 0.1).name('recharge s/stack');
+    dash.add(DS, 'charges', 1, 5, 1).name('stacks');
+    dash.add(DS, 'graceIFrames', 0, 0.5, 0.01).name('grace i-frames s');
+    dash.add(DS, 'afterimageEvery', 0.01, 0.1, 0.002).name('afterimage every s');
+    dash.add({ f: () => this.game.hero.dash.refill() }, 'f').name('Refill stacks (C)');
+    dash.close();
     hero.close();
 
     // Enemies
@@ -367,6 +377,13 @@ export class DebugPanel {
     en.add({ f: all((e) => e.playHurt()) }, 'f').name('Hurt + hit flash');
     en.add({ f: all((e) => (e.eyeFlare = 1)) }, 'f').name('Flare eyes');
     en.add(C.enemies, 'stopDistance', 0.5, 6, 0.1).name('stop distance');
+    const bo = en.addFolder('Bosses');
+    bo.add(C.bosses, 'damageMul', 0.2, 4, 0.05).name('damage × (next spawn)');
+    bo.add(C.bosses, 'hpMul', 0.2, 4, 0.05).name('HP × (next spawn)');
+    bo.add(C.bosses, 'tempo', 0.5, 2, 0.05).name('tempo × (next spawn)');
+    bo.add(C.bosses, 'enrageAt', 0, 1, 0.05).name('enrage at HP');
+    bo.add({ f: () => this.game.boss && (this.game.boss.dmgScale = C.bosses.damageMul * (1 + C.bosses.loopDamage * this.game.boss.loop)) }, 'f').name('Apply damage × to current');
+    bo.close();
     en.close();
 
     // Model viewer
@@ -413,7 +430,7 @@ export class DebugPanel {
     help.add({ t: 'I petal impulse at mouse' }, 't').name('map').disable();
     help.add({ t: '1/2/3 spawn · K kill all · M viewer' }, 't').name('enemies').disable();
     help.add({ t: 'G god · N next wave · L level up' }, 't').name('combat').disable();
-    help.add({ t: 'Q claw · E shatter · R demontime · C cooldowns' }, 't').name('skills').disable();
+    help.add({ t: 'Q claw · E shatter · R demontime · Shift dash · C cooldowns' }, 't').name('skills').disable();
     help.close();
   }
 }

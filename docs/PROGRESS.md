@@ -719,3 +719,37 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - Attack, Q aim and fire, R and E work.
   - V → fixed → A faces screen-left; V back snaps the camera behind him.
   - Esc pauses. No errors.
+
+---
+
+## Waves boss/basic/boss/basic/boss, dash, harder bosses
+
+- **Wave order** (`Waves.bossFor`, `CONFIG.waves.bossEvery / bossOrder / demoWave`):
+  - Wave 1 Juggernaut, 2 basic, 3 Kitsune, 4 basic, 5 Raiju → Demo clear.
+  - Endless keeps alternating; bosses repeat with +60% HP and +25% damage per loop.
+- **Basic waves** are fewer but meaner. Each is scaled to level `1 + 3·(w−1)` (wave 2 → L4, wave 4 → L10) with the old per-wave curves:
+  - 6, then 10 enemies, up to 3 alive at once.
+  - All types appear from wave 2.
+  - EXP +15% per level.
+- **Healing between waves:** 20% after a basic wave, 40% after a boss.
+- **Bosses are harder** (`CONFIG.bosses`):
+  - HP ×1.15 and damage ×1.6. Every hit on the hero goes through `Boss.hitHero`, and Kitsune's spikes are scaled too.
+  - Tempo ×1.15: faster movement, telegraphs and attack timing, with enrage multiplying on top.
+  - 0.45–0.85 s between attacks (was 0.7–1.2) and enrage at 60% (was 50%).
+  - ×2 EXP so the hero still levels up: the Juggernaut alone takes him from level 1 to 4.
+- **Dash (Shift)**, `src/skills/Dash.js`, tunables in `CONFIG.hero.dash`:
+  - Movement: 5.2 m in 0.2 s in the WASD direction (the facing when no key is held), with fast-start / eased-end speed; he exits at 55% move speed.
+  - Defence: immune to damage and knockback for the whole dash plus 0.12 s.
+  - FX: additive cyan afterimages every 45 ms; a ring, dust, sparks and a petal puff at the start; a new `dash` lunge clip.
+  - Stacks: 2, refilling one at a time every 3 s (hero clock).
+  - Rules: the press is buffered for 0.15 s and cancels a basic attack at any point. It is blocked during a skill cast (Q aim included), and skills are blocked mid-dash.
+  - HUD: a SHIFT slot shows one pip per stack, and the sweep + seconds while both are spent.
+- **Debug:**
+  - Hero → Dash (Shift) folder.
+  - Enemies → Bosses folder (damage / HP / tempo multipliers, enrage threshold).
+  - C also refills the dash.
+- **Verified** with fixed-step tests:
+  - Wave sequence 1–11 is as listed.
+  - The wave 1 boss spawns with 3450 HP, ×1.60 damage and tempo 1.15.
+  - The dash moves 5.2 m, the stack refills 3 s apart, a hit mid-dash is ignored, it cancels a combo swing, and Shift during Q aim does nothing.
+  - Boss kill → level-up cards → wave 2 basic with 3 alive. No errors.

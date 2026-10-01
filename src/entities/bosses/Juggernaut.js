@@ -6,7 +6,7 @@ import { hitCircle } from '../../combat/Hitbox.js';
 const _v = new THREE.Vector3();
 
 /**
- * Wave 5 — Oni Juggernaut. Attacks:
+ * Wave 1 — Oni Juggernaut. Attacks:
  *  slam   three circles in sequence toward the hero (club overhead → slam, ×3)
  *  charge red lane to the rim, then a charge; crashes into the balustrade and is stunned 1.2 s
  *  stomp  a ring around itself
