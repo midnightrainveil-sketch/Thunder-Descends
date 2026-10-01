@@ -13,6 +13,7 @@ CONTROLS
   WASD ............ move (the hero faces where he moves)
   Mouse ........... turn the camera; attacks/skills aim at the screen center
   Left / Right .... turn the camera      V ... third-person <-> fixed camera
+  Scroll wheel .... zoom in / out
   Hold left mouse . 3-hit combo (crits become whip strikes)
   Shift ........... dash (invulnerable, 2 stacks, one every 3 s)
   Q ............... Thunderclaw (aim, click to fire, right-click/Esc cancels)

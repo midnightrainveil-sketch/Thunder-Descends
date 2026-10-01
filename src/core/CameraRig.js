@@ -186,7 +186,13 @@ export class CameraRig {
     // Look input.
     this.sinceLook += dt;
     if (allowLook && this.followWanted) {
-      const dx = input.lookDX, dy = input.lookDY;
+      const dx = input.lookDX;
+      // Mostly-horizontal motion this frame → no pitch change (stops slow downward drift).
+      const dy = Math.abs(input.lookDY) < Math.abs(dx) * F.pitchLock ? 0 : input.lookDY;
+      if (input.wheel) {
+        F.distance = THREE.MathUtils.clamp(F.distance * Math.pow(1 + F.zoomStep, input.wheel), F.zoomMin, F.zoomMax);
+        this.onZoom?.(F.distance);
+      }
       if (dx !== 0 || dy !== 0) {
         this.yaw -= dx * F.sensitivity;
         this.pitch += dy * F.sensitivity * (F.invertY ? -1 : 1);

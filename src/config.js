@@ -44,6 +44,9 @@ export const CONFIG = {
     follow: {
       fov: 56, // vertical FOV, degrees
       distance: 9.5, // m, boom length from the pivot
+      zoomStep: 0.1, // scroll wheel: ×1.1 distance per notch
+      zoomMin: 4, zoomMax: 16, // m, wheel / slider range
+      pitchLock: 0.3, // vertical look ignored while |dy| < 0.3·|dx| in a frame (sideways sweeps stay level)
       minDistance: 1.6, // m, shortest boom when pulled in at the rim
       height: 2.5, // m, pivot above the hero's feet (upper back / neck)
       shoulder: 0.85, // m, pivot shifted right so the hero doesn't hide the aim point

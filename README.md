@@ -10,6 +10,7 @@ three.js; the production build is a single self-contained `dist/index.html`.
 | WASD | Move (camera-relative; the hero faces where he moves) |
 | Mouse | Turn the third-person camera; attacks and skills aim at the screen center |
 | ← → | Turn the camera (keyboard) |
+| Scroll wheel | Zoom the camera in / out |
 | V | Switch third-person ⇄ fixed overview camera |
 | Hold left mouse | 3-hit combo — about half the swings crit into a **whip strike** |
 | Shift | Dash — invulnerable, afterimages, 2 stacks (one every 3 s) |

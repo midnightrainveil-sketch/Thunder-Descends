@@ -25,6 +25,7 @@ export class Input {
     // Mouse look (pointer lock): movement accumulated since the last frame.
     this.lookDX = 0;
     this.lookDY = 0;
+    this.wheel = 0; // accumulated wheel steps since the last frame (+ = scroll down / zoom out)
     this.locked = false;
     this.onLockChange = null; // (locked) => void
     this.wantLock = null; // () => bool, game decides when a click should grab the pointer
@@ -67,7 +68,10 @@ export class Input {
         // Linux (X11 / some Wayland setups) reports bogus jumps when the cursor is warped back
         // to the center: skip the first events after locking and any delta far larger than the
         // recent motion.
-        const dx = e.movementX, dy = e.movementY;
+        const dx = e.movementX;
+        // X11 rounds sub-pixel motion so a horizontal sweep carries a steady ±1 px vertical bias,
+        // which slowly tilts the camera: drop 1 px vertical jitter while moving sideways.
+        const dy = Math.abs(e.movementY) <= 1 && Math.abs(dx) >= 2 ? 0 : e.movementY;
         const mag = Math.max(Math.abs(dx), Math.abs(dy));
         if (this._skipLook > 0) this._skipLook--;
         else if (mag < 300 && mag <= Math.max(60, this._lastMag * 6)) {
@@ -91,6 +95,16 @@ export class Input {
     el.addEventListener('mouseenter', () => (this.mouseInside = true));
     el.addEventListener('mouseleave', () => (this.mouseInside = false));
     el.addEventListener('contextmenu', (e) => e.preventDefault());
+    el.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        // Lines / pages / pixels → roughly one step per notch on every OS.
+        const unit = e.deltaMode === 1 ? 1 / 3 : e.deltaMode === 2 ? 3 : 1 / 100;
+        this.wheel += Math.max(-3, Math.min(3, e.deltaY * unit));
+      },
+      { passive: false },
+    );
 
     // Focus loss clears everything held so nothing sticks.
     window.addEventListener('blur', () => this.clearHeld());
@@ -174,6 +188,7 @@ export class Input {
   endFrame() {
     this.lookDX = 0;
     this.lookDY = 0;
+    this.wheel = 0;
     this.keysPressed.clear();
     this.keysReleased.clear();
     this.buttonsPressed.clear();

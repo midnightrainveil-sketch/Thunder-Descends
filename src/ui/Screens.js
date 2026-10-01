@@ -103,6 +103,7 @@ export class Screens {
     };
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem('kurogane.settings') || '{}'); } catch { /* storage blocked */ }
+    this._settings = { SET, saved };
     for (const [id, S] of Object.entries(SET)) {
       const input = this.pause.querySelector(`[data-s="${id}"]`);
       const out = this.pause.querySelector(`[data-v="${id}"]`);
@@ -121,6 +122,17 @@ export class Screens {
     this.onAction = null;
     this.onPick = null;
     this.current = null;
+  }
+
+  // A setting changed outside the menu (scroll-wheel zoom): save it and refresh its slider.
+  syncSetting(id) {
+    const { SET, saved } = this._settings;
+    const S = SET[id];
+    const v = S.obj[S.key];
+    this.pause.querySelector(`[data-s="${id}"]`).value = v;
+    this.pause.querySelector(`[data-v="${id}"]`).textContent = S.fmt(v);
+    saved[id] = v;
+    try { localStorage.setItem('kurogane.settings', JSON.stringify(saved)); } catch { /* ignore */ }
   }
 
   show(name) {

@@ -91,6 +91,7 @@ export class Game {
     this.screens = new Screens(uiRoot, this);
     this.screens.onAction = (a) => this._onScreenAction(a);
     this.screens.onPick = (i) => this.pickCard(i);
+    this.rig.onZoom = () => this.screens.syncSetting('dist');
     this.mode = 'title';
     this.waves.enabled = false;
     this.screens.show('title');

@@ -768,3 +768,11 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - **Mouse look on Linux.**
   - Pointer lock now requests raw input (`unadjustedMovement`), so there is no OS acceleration and the feel matches across systems. It falls back to normal lock where unsupported.
   - Filters drop the bogus jumps that X11/Wayland report when the cursor is warped: the first 2 events after locking are skipped, as are deltas over 300 px or more than 6× the recent motion.
+
+## Linux pitch drift, scroll zoom
+
+- **The camera tilted toward top-down on Linux when looking sideways.** X11 rounds sub-pixel motion, so horizontal sweeps carried a steady +1 px vertical bias.
+  - Per event, 1 px vertical jitter is dropped while moving sideways (|dx| ≥ 2).
+  - Per frame, vertical look is ignored while |dy| < 0.3·|dx| (`follow.pitchLock`).
+  - Verified: 300 frames of sideways sweeps with a +1 px bias left the pitch unchanged, and deliberate up/down look still works.
+- **Scroll-wheel zoom.** ×1.1 distance per notch, 4–16 m. It updates and saves the pause-menu "Camera distance" slider.
