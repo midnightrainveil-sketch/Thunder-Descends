@@ -74,6 +74,7 @@ export class Hero {
     this.bladeGlowBase = 1;
     this.glowBoost = 1; // visor / core / accent glow (Overdrive)
     this.skills = null;
+    this.strikeGlow = 0; // extra blade glow while the dash strike is ready
     this.dash = new Dash(this); // Shift: i-frame dash, 2 stacks
 
     this.combo = { active: false, step: 0, buffered: false, ended: false, sinceEnd: 0, crit: false, queued: false };
@@ -250,7 +251,7 @@ export class Hero {
   _bladeLook() {
     const t = this.bladeThick;
     for (let i = 0; i < HERO_BLADE_SEGMENTS; i++) this.rig.bones[`bladeSeg_${i}`].scale.set(t, t, 1);
-    if (!this.whip?.active && !this.bladeTest) this.rig.setGlow('blade', this.bladeGlowBase);
+    if (!this.whip?.active && !this.bladeTest) this.rig.setGlow('blade', this.bladeGlowBase + this.strikeGlow);
     const g = this.glowBoost;
     this.rig.setGlow('visor', g);
     this.rig.setGlow('core', g);
@@ -375,13 +376,13 @@ export class Hero {
     }
     const inputDir = this._inDir.set(0, 0, 0);
     if (ix !== 0 || iz !== 0) inputDir.addScaledVector(cam.groundForward, iz).addScaledVector(cam.groundRight, ix).normalize();
-    this.dash.update(dt, inputDir);
+    this.dash.update(dt, inputDir, input);
     const wish = this._wish.set(0, 0, 0);
     if (!ctl.lockMove && inputDir.lengthSq() > 0) {
       const speed = H.moveSpeed * (this.attacking ? H.attackMoveMul : 1);
       wish.copy(inputDir).multiplyScalar(speed);
     }
-    if (!this.dash.active) {
+    if (!this.dash.owning) {
       const rate = wish.lengthSq() > 0 ? H.accel : H.decel;
       const dv = this._tmp.subVectors(wish, this.velocity);
       const maxStep = rate * dt;

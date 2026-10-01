@@ -56,6 +56,7 @@ export class Demontime extends Skill {
     Object.assign(h.control, { lockMove: true, lockAim: true, lockAttack: true, baseOwned: true, invulnerable: true, noKnockback: true });
     h.velocity.set(0, 0, 0);
     h.base.play('demonPlant', { fade: 0.04 });
+    g.rig.cinematic(true); // front-side close-up so the stab and the planted sword read
     g.time.hitstopRemaining = 0;
     g.time.hitstopLocked = true;
     this.shown = 0;
@@ -151,6 +152,10 @@ export class Demontime extends Skill {
       f.release = true;
       this._pulse();
     }
+    if (!f.camBack && t >= C.camBackAt) {
+      f.camBack = true;
+      g.rig.cinematic(false); // ease back to the player's camera while he lifts the blade
+    }
     if (t >= C.cast) this._endCast();
   }
 
@@ -203,6 +208,7 @@ export class Demontime extends Skill {
 
   _endCast() {
     const g = this.game;
+    g.rig.cinematic(false);
     g.time.hitstopLocked = false;
     g.time.tweenScale('world', 1, 0);
     g.postFX.setTimeRing(null, 0, false);
@@ -284,6 +290,7 @@ export class Demontime extends Skill {
   cancel() {
     if (!this.active) return;
     const g = this.game;
+    g.rig.cinematic(false);
     g.time.hitstopLocked = false;
     g.time.tweenScale('world', 1, 0);
     g.postFX.setTimeRing(null, 0, false);

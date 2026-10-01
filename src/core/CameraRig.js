@@ -40,6 +40,9 @@ export class CameraRig {
     this.followPosition = new THREE.Vector3();
     this.followQuaternion = new THREE.Quaternion();
     this.sinceLook = 0; // s since the last mouse look (recenter delay)
+    // Cinematic shot (Zero Hour cast): blends the boom to a front-side close-up of the hero.
+    this.cineWanted = false;
+    this.cineK = 0;
     this.fov = C.fov; // current base FOV (blended)
     this._pivotReady = false;
     this._m = new THREE.Matrix4();
@@ -164,6 +167,11 @@ export class CameraRig {
     return this.followWanted && this.blend > 0.5;
   }
 
+  // Cinematic close-up on/off (blends in/out on real time; mouse look is ignored while it runs).
+  cinematic(on) {
+    this.cineWanted = !!on;
+  }
+
   // Put the boom straight behind the hero now (run start / retry).
   snapBehind(hero) {
     this.yaw = hero.aimYaw;
@@ -171,6 +179,8 @@ export class CameraRig {
     this.pivot.copy(hero.position);
     this._pivotReady = true;
     this.sinceLook = 0;
+    this.cineWanted = false;
+    this.cineK = 0;
   }
 
   /**
@@ -183,9 +193,16 @@ export class CameraRig {
     const F = C.follow;
     const dt = Math.min(realDt, 0.1);
 
+    // Cinematic blend.
+    const CC = C.cine;
+    const cineTarget = this.cineWanted ? 1 : 0;
+    const cineStep = dt / Math.max(this.cineWanted ? CC.blendIn : CC.blendOut, 1e-3);
+    this.cineK = cineTarget > this.cineK ? Math.min(1, this.cineK + cineStep) : Math.max(0, this.cineK - cineStep);
+    const ck = this.cineK * this.cineK * (3 - 2 * this.cineK); // smoothstep
+
     // Look input.
     this.sinceLook += dt;
-    if (allowLook && this.followWanted) {
+    if (allowLook && this.followWanted && ck === 0) {
       const dx = input.lookDX;
       // Mostly-horizontal motion this frame → no pitch change (stops slow downward drift).
       const dy = Math.abs(input.lookDY) < Math.abs(dx) * F.pitchLock ? 0 : input.lookDY;
@@ -221,18 +238,30 @@ export class CameraRig {
     }
     this.pivot.lerp(hero.position, 1 - Math.exp(-F.followRate * dt));
 
+    // Boom parameters: the player's camera, blended toward the cinematic shot (camera in front of
+    // the hero, off to his sword side, looking back at him and the ground in front).
+    let yaw = this.yaw, pitch = this.pitch, distance = F.distance, height = F.height, shoulder = F.shoulder;
+    if (ck > 0) {
+      const cineYaw = hero.aimYaw + Math.PI + CC.sideDeg * DEG;
+      yaw = this.yaw + wrap(cineYaw - this.yaw) * ck;
+      pitch = THREE.MathUtils.lerp(this.pitch, CC.pitchDeg * DEG, ck);
+      distance = THREE.MathUtils.lerp(F.distance, CC.distance, ck);
+      height = THREE.MathUtils.lerp(F.height, CC.height, ck);
+      shoulder = THREE.MathUtils.lerp(F.shoulder, 0, ck);
+    }
+
     // Boom.
-    const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
-    const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const sy = Math.sin(yaw), cy = Math.cos(yaw);
     const fwd = this._tmp.set(sy * cp, -sp, cy * cp);
     const rx = -cy, rz = sy; // camera right on XZ (fwd × up)
-    const px = this.pivot.x + rx * F.shoulder;
-    const pz = this.pivot.z + rz * F.shoulder;
-    const py = this.pivot.y + F.height;
+    const px = this.pivot.x + rx * shoulder;
+    const pz = this.pivot.z + rz * shoulder;
+    const py = this.pivot.y + height;
     // Near the rim the camera can't go far enough back on XZ (it stays inside maxRadius, clear of
     // the tree canopies), so it first rises and looks down more steeply at the pivot (up to
     // rimPitchMax) and only then shortens the boom — the hero never fills the screen.
-    const dist = F.distance;
+    const dist = distance;
     let H = dist * cp; // horizontal back-off
     let V = dist * sp; // height above the pivot
     const hx = -sy, hz = -cy; // horizontal "behind" direction
@@ -242,7 +271,7 @@ export class CameraRig {
     let raised = false;
     if (H > hMax) {
       H = Math.max(hMax, F.minDistance);
-      const steep = Math.max(this.pitch, F.rimPitchMaxDeg * DEG);
+      const steep = Math.max(pitch, F.rimPitchMaxDeg * DEG);
       const pitch2 = Math.min(Math.acos(Math.min(1, H / dist)), steep);
       const d2 = Math.min(dist, H / Math.cos(pitch2));
       V = d2 * Math.sin(pitch2);

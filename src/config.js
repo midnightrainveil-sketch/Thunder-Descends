@@ -52,6 +52,15 @@ export const CONFIG = {
     // Third-person follow camera (default in play; the fixed pose above frames the title
     // screen, the map composition and the V toggle). Mouse look via pointer lock.
     mode: 'follow', // 'follow' | 'fixed' (V toggles in play)
+    // Cinematic close-up during the Zero Hour cast (follow camera only).
+    cine: {
+      sideDeg: -38, // camera in front of the hero, swung this far toward his sword side
+      distance: 5.6, // m
+      height: 1.05, // m, pivot above the feet (low, so the planted sword clears the skill bar)
+      pitchDeg: 6, // look-down angle
+      blendIn: 0.35, // s (real)
+      blendOut: 0.55, // s (real)
+    },
     follow: {
       fov: 56, // vertical FOV, degrees
       distance: 9.5, // m, boom length from the pivot
@@ -185,6 +194,26 @@ export const CONFIG = {
       afterimageLife: 0.28, // s
       afterimageOpacity: 0.26, // additive: overlapping ghosts add up
       ringRadius: 1.1, // m, cyan ring at the start
+      // Dash strike: attacking during or shortly after a dash snaps the hero to an enemy in front of
+      // the aim (long range) for one heavy hit with a big screen shake.
+      strike: {
+        window: 0.8, // s after the dash ends (a click during the dash counts too)
+        buffer: 0.2, // s, a click is remembered this long
+        range: 8.5, // m, from the hero to the enemy's edge
+        coneDeg: 90, // full cone around the aim direction (enemies within 2 m count from any side)
+        speed: 42, // m/s lunge
+        maxLunge: 0.2, // s, the lunge never takes longer than this
+        stopGap: 0.7, // m, stop this far from the enemy's edge
+        mult: 2.8, // ×ATK (can crit)
+        knockback: 11,
+        stun: 0.35, // s (normal enemies; bosses ignore it)
+        splashRadius: 2.4, splashMult: 0.6, // other enemies near the impact
+        hitstop: 0.11, shake: 0.7, punch: 0.08, flash: 0.22,
+        recover: 0.26, // s locked after the hit
+        afterimageEvery: 0.018, // s
+        glow: 1.2, // extra blade glow while the strike is ready
+        markerColor: '#ff5a6e',
+      },
     },
     // Base stats (spec §5). Combat uses these from Stage 3.
     maxHp: 600,
@@ -399,6 +428,7 @@ export const CONFIG = {
       // into the sword until restoreAt (time resumes); Excalibur pull, the blade comes free at pullFree.
       plantAt: 0.2, ringOut: 0.35, nanoStart: 0.3, nanoEnd: 1.6, restoreAt: 2.0, pullFree: 2.12,
       freezeTween: 0.08, // s, world time → 0 at the stab
+      camBackAt: 2.2, // s, the cinematic close-up starts easing back to the player's camera
       ringMax: 45, // m: past the screen edge
       buff: [7, 9, 9, 9], // s (hero clock)
       pulseRadius: [5, 5, 7, 7], pulseMult: [2.0, 2.0, 4.0, 4.0],

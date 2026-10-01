@@ -68,6 +68,8 @@ Controls: WASD move, camera-relative (W = away from the camera). Mouse = look / 
 
 Dash (Shift): a 5.2 m burst over 0.2 s in the WASD direction (the facing when no key is held). Immune to damage and knockback for the whole dash plus 0.12 s after; cyan afterimages trail it and a small ring and dust mark the start. 2 stacks, one refills every 3 s (hero clock). It cancels a basic attack at any point; it can't be used while a skill is being cast (Q aiming included), and skills can't be cast mid-dash. The HUD shows it as a fifth slot (SHIFT) with one pip per stack.
 
+Dash strike (after review): for 0.8 s after a dash (a click during the dash counts too), the next attack has long range. The enemy nearest the aim within 8.5 m (90° cone; anything within 2 m counts from any side) is marked with a red ring on the floor and the blade glows brighter. Attacking snaps the hero to it in an invulnerable lunge (≤ 0.2 s, afterimages, a lightning flicker toward the target) and lands one heavy thrust: 2.8×ATK (can crit), unblockable, big knockback, 0.35 s stun on normal enemies, 0.6× splash within 2.4 m, 0.11 s hitstop, heavy screen shake, zoom punch, white flash, shock rings, a wide crescent and petal burst; 0.26 s recovery. With no enemy in range the click is a normal attack.
+
 Basic attack: 3-hit combo (damage ×1.0, ×1.0, ×1.4), sector hitbox range 2.4 m, 120° arc toward the aim. Combo resets after 0.9 s without attacking. Input is buffered (a click during the current swing queues the next).
 
 ## 6. Passive — Crit Chance (whip-sword)
@@ -94,6 +96,7 @@ If nothing is in the radius, the hand still flies and the hero still dashes (it 
 
 ### R — Zero Hour (cooldown 30 s) — ultimate
 Cast (2.5 s, hero invulnerable, input locked; revised after review):
+- Camera: in the follow camera the shot swings to a low front-side close-up of the hero for the cast (blends in over 0.35 s, eases back to the player's camera at 2.2 s; mouse look is ignored meanwhile). The fixed camera is unchanged.
 - 0.00–0.20 s: the hero raises the sword overhead point-down in a two-handed grip and stabs it into the ground in front of him, standing straight (no kneel).
 - 0.20 s (the stab): a shockwave bursts out of the sword (shock rings, sparks, debris, dust, petal burst, flash, shake) and time stops. The grayscale time-stop ring sweeps out from the planted sword past the screen edge in 0.35 s. Everything it passes turns grayscale and freezes (world time = 0: enemies, projectiles, particles, petals in mid-air, swaying trees, lantern flicker). Only the hero's clock runs and the hero stays in full color.
 - 0.30–1.60 s: the sword stays planted, both hands on the hilt. Nanobots (hundreds of tiny cyan emissive cubes) stream from both arms along curved paths into the sword. The sword is upgraded: extra blocky plates assemble onto it block by block.
@@ -137,7 +140,7 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 
 ## 11. UI
 - Style: dark translucent indigo panels (#0E1426 at ~75% opacity) with angular cut corners (clip-path), 1 px cyan edge lines, crimson for HP and danger, restrained and elegant. Fonts (Google Fonts, with fallbacks): Chakra Petch for labels and text, Silkscreen for numbers and damage numbers. Sentence case, short plain labels.
-- HUD: top-left portrait (character art, head crop), segmented HP bar, level badge, thin EXP bar. Top-center wave counter + enemies remaining. Wide boss bar with name during boss fights. Bottom-center skill bar: basic attack, Q, E, R, Shift icons (supplied artwork, 96 px), key labels, radial cooldown sweep + seconds, rank pips, ready glow; R shows a buff timer ring while active; a fifth SHIFT slot shows the dash stacks as pips, with the sweep + seconds while both are spent. Bottom-left passive icon with current crit %. Floating damage numbers (normal white; crit larger white-cyan with pop and jitter; damage to the hero crimson).
+- Title splash art is a 1600×900 WebP (≈ 260 KB). HUD: top-left portrait (character art, head crop), segmented HP bar, level badge, thin EXP bar. Top-center wave counter + enemies remaining. Wide boss bar with name during boss fights. Bottom-center skill bar: basic attack, Q, E, R, Shift icons (supplied artwork, 96 px), key labels, radial cooldown sweep + seconds, rank pips, ready glow; R shows a buff timer ring while active; a fifth SHIFT slot shows the dash stacks as pips, with the sweep + seconds while both are spent. Bottom-left passive icon with current crit %. Floating damage numbers (normal white; crit larger white-cyan with pop and jitter; damage to the hero crimson).
 - Screens: title (game name over the splash art, "Click to start", controls), pause (resume, restart, screen-shake toggle, mouse-sensitivity, camera-distance and brightness sliders saved in the browser; brightness scales the scene lights, not emissive glow), level-up cards, game over (wave, kills, time, Enter to retry), demo clear (stats; continue endless or restart).
 
 ## 12. Technical architecture

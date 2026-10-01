@@ -13,7 +13,7 @@ three.js; the production build is a single self-contained `dist/index.html`.
 | Scroll wheel | Zoom the camera in / out |
 | V | Switch third-person ⇄ fixed overview camera |
 | Hold left mouse | 3-hit combo — about half the swings crit into a **whip strike** |
-| Shift | **Flash Step** — invulnerable dash, afterimages, 2 stacks (one every 3 s) |
+| Shift | **Flash Step** — invulnerable dash, afterimages, 2 stacks (one every 3 s). Attack right after it to snap to the marked enemy for a heavy hit |
 | Q | **Storm Grapple**: aim (time slows), click to fire, right-click / Esc cancels |
 | E | **Lightning Lance**: aim (time slows), click to thrust, right-click / Esc cancels → **Blade Storm** on hit |
 | R | **Zero Hour** (stop time, upgrade the blade, 7 s power buff) |

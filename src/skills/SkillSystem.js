@@ -25,7 +25,7 @@ export class SkillSystem {
 
   canCast(skill) {
     const h = this.hero;
-    if (h.dead || h.stunT > 0 || this.active || !skill.ready || h.dash.active) return false;
+    if (h.dead || h.stunT > 0 || this.active || !skill.ready || h.dash.active || h.dash.striking) return false;
     if (!h.canCancelAttack()) return false;
     return skill.canCast();
   }

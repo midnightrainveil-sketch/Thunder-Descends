@@ -70,6 +70,9 @@ export class AimRings {
     };
     this.range = make(48, 0, 0.012);
     this.target = make(0, 0.18, 0.05);
+    // Dash-strike target marker (shown on the enemy the next attack will snap to).
+    this.marker = make(6, 0.1, 0.08);
+    this.marker.material.uniforms.uColor.value.set(CONFIG.hero.dash.strike.markerColor);
     // E lane: unit plane from z = 0 (hero) to z = 1 (tip), scaled to width × length, turned to the aim.
     this.lane = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5),
@@ -89,6 +92,16 @@ export class AimRings {
     this.lane.name = 'fx:aimLane';
     scene.add(this.lane);
     postFX?.addToMask(this.lane);
+  }
+
+  showMarker(pos, r) {
+    if (!pos) {
+      this.marker.visible = false;
+      return;
+    }
+    this.marker.visible = true;
+    this.marker.position.set(pos.x, CONFIG.fx.decalY + 0.014, pos.z);
+    this.marker.scale.set(r * 2, 1, r * 2);
   }
 
   showLane(on) {
@@ -117,6 +130,6 @@ export class AimRings {
   }
 
   update(realDt) {
-    for (const m of [this.range, this.target, this.lane]) m.material.uniforms.uTime.value += realDt;
+    for (const m of [this.range, this.target, this.lane, this.marker]) m.material.uniforms.uTime.value += realDt;
   }
 }

@@ -342,6 +342,12 @@ export class DebugPanel {
     dash.add(DS, 'graceIFrames', 0, 0.5, 0.01).name('grace i-frames s');
     dash.add(DS, 'afterimageEvery', 0.01, 0.1, 0.002).name('afterimage every s');
     dash.add({ f: () => this.game.hero.dash.refill() }, 'f').name('Refill stacks (C)');
+    const DSS = DS.strike;
+    dash.add(DSS, 'window', 0.1, 2, 0.05).name('strike window s');
+    dash.add(DSS, 'range', 2, 15, 0.1).name('strike range m');
+    dash.add(DSS, 'coneDeg', 20, 180, 1).name('strike cone°');
+    dash.add(DSS, 'mult', 0.5, 6, 0.1).name('strike ×ATK');
+    dash.add(DSS, 'shake', 0, 1, 0.05).name('strike shake');
     dash.close();
     hero.close();
 

@@ -892,3 +892,24 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - **Skills:** Q Storm Grapple, E Lightning Lance → Blade Storm, R Zero Hour, Shift Flash Step, passive Chain Blade. Used on the title controls, level-up cards, skill labels and the debug panel.
 - **Bosses** (shown in banners and the boss bar): Iron Juggernaut, Shadow Fox, Storm Serpent.
 - **Single source:** display names live in `CONFIG.names` and `CONFIG.bosses.*.name`. Internal ids, class and file names are unchanged.
+
+---
+
+## Zero Hour camera, dash strike, smaller splash
+
+- **Zero Hour close-up** (`CameraRig.cinematic()`, `CONFIG.camera.cine`).
+  - During the cast the follow camera swings to a low front-side close-up, in front of the hero and toward his sword side: 5.6 m away, pivot 1.05 m, 6° down.
+  - The stab, the planted sword and the upgrade are framed above the skill bar.
+  - It blends in over 0.35 s and starts easing back at 2.2 s (0.55 s).
+  - The player's yaw and pitch are untouched, so the camera returns exactly where it was. Mouse look is ignored meanwhile, and cancel, death and restart reset it.
+- **Dash strike** (`Dash.js`, `CONFIG.hero.dash.strike`). After a dash, a 0.8 s window opens, and a click during the dash is buffered into it.
+  - The nearest enemy in front of the aim within 8.5 m gets a red floor marker (`AimRings.marker`), and the blade glows brighter.
+  - Attacking snaps the hero to it in an invulnerable lunge (≤ 0.2 s, tracks the target, afterimages, lightning flicker).
+  - Then one heavy thrust lands: 2.8×ATK (can crit), unblockable, knockback 11, 0.6× splash in 2.4 m, 0.11 s hitstop, shake 0.7, zoom punch, flash, shock rings, crescent, petals.
+  - Skills and dashes are blocked during the strike. Debug Hero → Dash folder: window, range, cone, ×ATK, shake.
+- **Splash art** re-encoded to 1600×900 WebP (q 0.8): 492 KB → 259 KB. The single-file build is now 1.36 MB (was 1.67 MB).
+- **Verified with fixed-step tests:**
+  - A plain attack doesn't snap. After a dash the marker shows; clicking lunges (invulnerable) and the hit took a Tate from 260 to 106 with trauma 0.65.
+  - After the window expires, a click is a normal attack.
+  - Ult: close-up blend 0.95 at the stab, back to 0 after the pull, yaw restored.
+  - No errors.

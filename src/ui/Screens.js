@@ -71,7 +71,7 @@ export class Screens {
       <div class="splash" style="background-image:linear-gradient(to bottom, rgba(5,7,15,0) 35%, rgba(5,7,15,0.85)), url(${SPLASH_ART})"></div>
       <h1>${CONFIG.names.game.toUpperCase()}</h1>
       <div class="ctl k-panel">
-        <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span><b>SHIFT</b><span>${N.dash} — invulnerable dash, 2 stacks</span>
+        <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span><b>SHIFT</b><span>${N.dash} — invulnerable dash; attack after it to snap and strike</span>
         <b>Q</b><span>${N.q} — aim, click to fire</span><b>E</b><span>${N.e} — aim, click to thrust</span><b>R</b><span>${N.r} — stop time, upgrade the blade</span>
         <b>ESC / P</b><span>pause</span>
       </div>
