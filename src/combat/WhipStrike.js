@@ -21,7 +21,8 @@ const SEG_LEN = 2 * VOXEL;
  * Whip strike (passive, spec §6). On a crit the 8 blade segments detach and fly along a curved
  * chain out to `reach`, sweeping `arcDeg` around the hero in `sweep` seconds. The chain is a
  * curve from the sword guard to the tip where every point samples the tip's path with a delay
- * that grows toward the hand — so each segment trails the one after it like a whip. Segments are
+ * that grows toward the tip — so the hilt leads and each segment trails the one before it, the
+ * tip last, curving back toward where the swing has already passed. Segments are
  * linked by crackling lightning, the tip leaves a bright ribbon, then everything retracts in
  * `retract` seconds and snaps back with a flash. Hero clock.
  *
@@ -110,7 +111,9 @@ export class WhipStrike {
   // Chain point at fraction f (0 = hand, 1 = tip) for chain time t.
   _chainPoint(f, t, out) {
     const W = CONFIG.whip;
-    const tf = Math.max(0, t - W.lag * (1 - f) * (1 - f * 0.3));
+    // The hand end leads and the tip trails: points nearer the hand sample the sweep ahead in
+    // time, so the chain curves back from the hilt toward where the tip has already been.
+    const tf = t + W.lag * (1 - f) * (1 - f * 0.3);
     const ang = this.yaw0 + this._angleAt(tf);
     const r0 = 0.55;
     const r = r0 + (this._radiusAt(tf) - r0) * Math.pow(f, 0.8);

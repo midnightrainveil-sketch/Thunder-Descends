@@ -10,7 +10,7 @@ export const HERO_GUARD = {
   upperArmR: [-16, 0, -12],
   forearmR: [-28, 0, 0],
   handR: [0, 0, 8],
-  weapon: [62, -38, 0],
+  weapon: [44, -38, 0],
   upperArmL: [-10, 0, 10],
   forearmL: [-26, 0, 0],
   clawFinger_0: [22, 0, 0],
@@ -33,7 +33,7 @@ const STANCE = {
 
 function idle() {
   const a = merge(STANCE, HERO_GUARD);
-  const b = merge(a, { spine: [7, 1, 0], chest: [4.5, 0, 0], head: [-9, 1, 0], 'pelvis@': [0.004, -0.035, 0], upperArmR: [-18, 0, -13], weapon: [63, -37, 0] });
+  const b = merge(a, { spine: [7, 1, 0], chest: [4.5, 0, 0], head: [-9, 1, 0], 'pelvis@': [0.004, -0.035, 0], upperArmR: [-18, 0, -13], weapon: [45, -37, 0] });
   return {
     name: 'idle',
     duration: CONFIG.hero.anim.idleDuration,
@@ -45,7 +45,7 @@ function idle() {
   };
 }
 
-// Run: two steps per cycle, sword trailing low behind, claw arm swinging opposite the legs.
+// Run: two steps per cycle, sword held forward in the guard grip, claw arm swinging opposite the legs.
 function run() {
   const contactR = {
     'pelvis@': [0, -0.05, 0],
@@ -71,10 +71,11 @@ function run() {
     spine: [14, 0, 0],
     chest: [2, phase * -9, 0],
     head: [-14, phase * 4, 0],
-    upperArmR: [26 + phase * 6, 0, -14],
-    forearmR: [-34, 0, 0],
-    handR: [0, 0, 6],
-    weapon: [150, -22, 0],
+    // Sword carried forward in the guard grip (tip ahead and off the floor), bobbing with the stride.
+    upperArmR: [-14 + phase * 4, 0, -12],
+    forearmR: [-30, 0, 0],
+    handR: [0, 0, 8],
+    weapon: [30, -38, 0],
     upperArmL: [phase * -30, 0, 10],
     forearmL: [-42, 0, 0],
     clawFinger_0: [26, 0, 0],

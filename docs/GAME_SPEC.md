@@ -57,7 +57,7 @@ Basic attack: 3-hit combo (damage ×1.0, ×1.0, ×1.4), sector hitbox range 2.4 
 
 ## 6. Passive — Crit Chance (whip-sword)
 - Every basic attack rolls crit (50% base, 100% during Demontime).
-- On crit the attack becomes a WHIP STRIKE: the 8 blade segments detach and fly out along a long curved arc like a spine, each linked to the next by crackling cyan lightning; the chain sweeps ~170° in front of the hero with a wave-like lag (each segment follows the one before it), then snaps back together with a click-flash. Reach 5.5 m (vs 2.4 m normally), 170° sector hitbox, crit damage. The sweep blows petals along the arc.
+- On crit the attack becomes a WHIP STRIKE: the 8 blade segments detach and fly out along a long curved arc like a spine, each linked to the next by crackling cyan lightning; the chain sweeps ~170° in front of the hero with a wave-like lag: the hilt end leads and each segment trails the one before it, so the chain curves back from the sword toward where the swing has already been (the tip trails last, never points ahead), then snaps back together with a click-flash. Reach 5.5 m (vs 2.4 m normally), 170° sector hitbox, crit damage. The sweep blows petals along the arc.
 - Timing: extend + sweep 0.28 s, retract 0.15 s. Hitstop 0.07 s on hit, camera shake, big crit damage number.
 - During Overdrive, crit slashes show a shortened whip-flash variant.
 

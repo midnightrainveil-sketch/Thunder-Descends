@@ -776,3 +776,9 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - Per frame, vertical look is ignored while |dy| < 0.3·|dx| (`follow.pitchLock`).
   - Verified: 300 frames of sideways sweeps with a +1 px bias left the pitch unchanged, and deliberate up/down look still works.
 - **Scroll-wheel zoom.** ×1.1 distance per notch, 4–16 m. It updates and saves the pause-menu "Camera distance" slider.
+
+## Blade fixes — run grip, whip curve
+
+- **Blade pointed into the ground while running.** This was not intended: the run clip swung the sword backward and down, and its tip reached the floor behind him. The run now keeps the guard grip, with the blade forward and to the right and its tip about 0.3 m above the floor, bobbing with the stride.
+- **Idle guard.** The tip measured 0.38 m below the floor, so the weapon pitch was lowered from 62° to 44°; the tip now sits about 0.25 m up. Attacks and skills that start from the guard pose pick this up.
+- **Whip-crit curve reversed.** Chain points nearer the hand now sample the sweep *ahead* in time (`tf = t + lag·(1−f)…`), so the hilt leads and the chain trails back toward where the tip has been. The tip keeps its own timing, so the hit arc, reach and timing are unchanged.
