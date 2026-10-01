@@ -853,3 +853,4 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - blue-gray segmented upper arms;
   - knee lights.
 - **Cost:** 522 boxes, 6.0 k triangles. In-game check: idle, side view, attack. No errors.
+- **Follow-up after review:** removed the bottom shoulder-guard band (and the spike that hung under it). The ō-sode now has two bands.

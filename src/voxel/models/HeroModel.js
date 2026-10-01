@@ -130,7 +130,7 @@ function band(x0, y0, z0, drop, len, h, depth, body) {
 }
 
 // ── Shoulder guard (right; mirrored for the left), per the reference: a navy cap on the shoulder,
-// an ō-sode of three layered bands sloping down and outward (gold lower edges, darker spiky outer
+// an ō-sode of two layered bands sloping down and outward (gold lower edges, darker spiky outer
 // ends), a gold mon on the cap front and a serrated gold blade rising diagonally from the top. ──
 function shoulderGuardBoxes() {
   const spike = [];
@@ -146,11 +146,8 @@ function shoulderGuardBoxes() {
     { p: [-12, 33, -2], s: [5, 1, 7], c: 'navyLight' },
     { p: [-12, 28, 6], s: [6, 1, 1], c: 'goldDark' },
     // Ō-sode bands, lowest first so each upper band's gold edge overlaps the one below.
-    ...band(-12, 21, -3, 0.75, 6, 5, 10, 'navyDark'),
     ...band(-11, 25, -3, 0.75, 6, 5, 10, 'navy'),
     ...band(-11, 29, -3, 0.75, 5, 5, 10, 'navy'),
-    { p: [-18, 16, -2], s: [1, 2, 8], c: 'navyDark' }, // spiky outer drip
-    { p: [-17, 15, 0], s: [1, 1, 4], c: 'gunmetal' },
     ...spike,
     // Gold mon (round crest) on the cap front, near the collar.
     { p: [-10, 29, 6], s: [3, 3, 1], c: 'gold' },
