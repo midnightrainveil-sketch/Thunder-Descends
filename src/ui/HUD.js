@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import { ICONS } from './icons.js';
 import { SKILL_ICONS } from './skillIcons.js';
+import { PORTRAIT_ART } from './art.js';
 
 // Game HUD (spec §11, real time). Dark translucent indigo panels with cut corners and 1 px cyan
 // edges; crimson for HP and danger. Top-left: portrait, segmented HP bar, level badge, EXP bar.
@@ -85,7 +86,7 @@ export class HUD {
     this.el.className = 'k-hud hidden';
     this.el.innerHTML = `
       <div class="k-tl k-panel">
-        <div class="k-portrait">${ICONS.portrait}</div>
+        <div class="k-portrait"><img src="${PORTRAIT_ART}" alt="" style="width:100%;height:100%;display:block;object-fit:cover"></div>
         <div class="k-bars">
           <div class="k-row"><span class="k-lvl">Lv 1</span><span class="k-hp">${'<i></i>'.repeat(N)}</span><span class="k-nm hpn"></span></div>
           <div class="k-row"><span class="k-nm" style="min-width:0;text-align:left;color:#8ff4ff">EXP</span><span class="k-exp"><b></b></span><span class="k-nm exn"></span></div>

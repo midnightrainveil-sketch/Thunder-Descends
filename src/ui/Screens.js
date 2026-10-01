@@ -1,9 +1,12 @@
 import { CONFIG } from '../config.js';
+import { SPLASH_ART } from './art.js';
 import { ICONS } from './icons.js';
 
 // Full-screen UI (spec §11, real time): title over the live arena, pause, level-up cards,
 // game over and demo clear. Buttons are `.interactive` (the UI root ignores the pointer otherwise).
 const CSS = `
+  .k-title { isolation: isolate; }
+  .k-title .splash { position: absolute; inset: 0; z-index: -1; background-position: center; background-size: cover; background-repeat: no-repeat; }
   .k-scr { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; font-family: var(--font-text); color: #e6e1d3; }
   .k-scr.on { display: flex; }
   .k-scr.dim { background: radial-gradient(ellipse at center, rgba(14,20,38,0.55), rgba(5,7,15,0.85)); }
@@ -64,6 +67,7 @@ export class Screens {
       return el;
     };
     this.title = mk('k-title', `
+      <div class="splash" style="background-image:linear-gradient(to bottom, rgba(5,7,15,0) 35%, rgba(5,7,15,0.85)), url(${SPLASH_ART})"></div>
       <h1>KUROGANE</h1><div class="sub">THUNDER DESCENDS</div>
       <div class="ctl k-panel">
         <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span><b>SHIFT</b><span>dash — invulnerable, 2 stacks</span>

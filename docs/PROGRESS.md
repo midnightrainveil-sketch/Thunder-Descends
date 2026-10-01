@@ -860,3 +860,9 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - The HUD slots now use the supplied artwork instead of the SVG icons (`src/ui/skillIcons.js`): LMB = segmented whip-sword, Q = claw and chain, E = thrust, R = Demontime planted sword, Shift = dash boot.
 - Each image is cropped inside its own frame and downscaled to a 96 px JPEG data URI (about 30 KB total), inlined in the single-file build.
 - The cooldown sweep, seconds, rank pips and key labels draw on top.
+
+## Splash art and portrait
+
+- **Title screen:** the supplied splash art (full resolution, WebP) under a dark bottom gradient (`src/ui/art.js`).
+- **HUD portrait:** the supplied character art, cropped to the head and horns and downscaled to a 104 px JPEG (shown at 52 px).
+- The single-file build grew to about 1.7 MB, mostly the splash.
