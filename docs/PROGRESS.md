@@ -753,3 +753,11 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - The wave 1 boss spawns with 3450 HP, ×1.60 damage and tempo 1.15.
   - The dash moves 5.2 m, the stack refills 3 s apart, a hit mid-dash is ignored, it cancels a combo swing, and Shift during Q aim does nothing.
   - Boss kill → level-up cards → wave 2 basic with 3 alive. No errors.
+
+---
+
+## Settings sliders
+
+- The pause menu has two sliders, saved in localStorage:
+  - Mouse sensitivity: default raised from 0.0024 to 0.006 rad/px, range 0.001–0.02.
+  - Brightness (`CONFIG.lighting.brightness`): default 1.4, range 0.5–3. It multiplies the hemisphere, moon and rim lights; emissive glow is unchanged.

@@ -31,10 +31,10 @@ export class Lighting {
     const L = CONFIG.lighting;
     this.hemi.color.set(L.hemiSky);
     this.hemi.groundColor.set(L.hemiGround);
-    this.hemi.intensity = L.hemiIntensity;
+    this.hemi.intensity = L.hemiIntensity * L.brightness;
 
     this.moon.color.set(L.moonColor);
-    this.moon.intensity = L.moonIntensity;
+    this.moon.intensity = L.moonIntensity * L.brightness;
     const d = this.moonDirection;
     if (L.moonFollowsSky && this.sky) {
       const az = this.sky.moonAzimuth();
@@ -48,7 +48,7 @@ export class Lighting {
     this.moon.updateMatrixWorld();
 
     this.rim.color.set(L.rimColor);
-    this.rim.intensity = L.rimIntensity;
+    this.rim.intensity = L.rimIntensity * L.brightness;
     this.rim.position.set(L.rimDir.x, L.rimDir.y, L.rimDir.z).normalize().multiplyScalar(L.moonDistance);
 
     this._fitShadow();

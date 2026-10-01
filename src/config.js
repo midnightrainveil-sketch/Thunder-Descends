@@ -50,7 +50,7 @@ export const CONFIG = {
       pitchDeg: 20, // starting look-down angle
       pitchMinDeg: -8, // looking up limit
       pitchMaxDeg: 62, // looking down limit
-      sensitivity: 0.0024, // rad per mouse pixel
+      sensitivity: 0.006, // rad per mouse pixel (pause-menu slider scales it)
       invertY: false,
       keyTurnRate: 2.4, // rad/s, ← → arrow keys turn the camera (no-mouse fallback)
       followRate: 14, // 1/s, pivot catch-up (exponential smoothing)
@@ -85,6 +85,7 @@ export const CONFIG = {
   lighting: {
     hemiSky: '#7471a6', // hemisphere sky color
     hemiGround: '#2a2c40', // hemisphere ground color
+    brightness: 1.4, // scene light multiplier (hemi, moon, rim; not emissive glow) — pause-menu slider
     hemiIntensity: 2.3,
     moonColor: '#c9d4ff',
     moonIntensity: 3.1,

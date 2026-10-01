@@ -1,3 +1,4 @@
+import { CONFIG } from '../config.js';
 import { ICONS } from './icons.js';
 
 // Full-screen UI (spec §11, real time): title over the live arena, pause, level-up cards,
@@ -21,6 +22,9 @@ const CSS = `
   .k-box .hint { font: 500 13px var(--font-text); letter-spacing: .2em; color: rgba(143,244,255,0.9); margin-top: 14px; }
   .k-btn { display: block; width: 240px; margin: 8px auto; padding: 9px 0; font: 600 14px var(--font-text); letter-spacing: .18em; color: #e6e1d3; cursor: pointer;
     background: rgba(53,224,255,0.08); border: 1px solid rgba(53,224,255,0.55); clip-path: polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); }
+  .k-sl { display: block; width: 240px; margin: 10px auto; font: 600 12px var(--font-text); letter-spacing: .12em; color: #e6e1d3; text-align: left; }
+  .k-sl b { float: right; font: 400 11px var(--font-num); color: #8ff4ff; }
+  .k-sl input { width: 100%; accent-color: #35e0ff; margin-top: 4px; }
   .k-btn:hover { background: rgba(53,224,255,0.22); color: #fff; }
   .k-over h2 { color: #ff3a4f; text-shadow: 0 0 20px rgba(215,38,61,0.6); }
   .k-clear h2 { color: #8ff4ff; text-shadow: 0 0 20px rgba(53,224,255,0.6); }
@@ -71,6 +75,8 @@ export class Screens {
       <button class="k-btn interactive" data-a="resume">Resume</button>
       <button class="k-btn interactive" data-a="restart">Restart</button>
       <button class="k-btn interactive" data-a="shake">Screen shake: on</button>
+      <label class="k-sl interactive">Mouse sensitivity <b data-v="sens"></b><input type="range" data-s="sens" min="0.001" max="0.02" step="0.0005"></label>
+      <label class="k-sl interactive">Brightness <b data-v="light"></b><input type="range" data-s="light" min="0.5" max="3" step="0.05"></label>
       <div class="hint">ESC TO RESUME</div></div>`);
     this.over = mk('dim k-over', `<div class="k-box"><h2>DEFEATED</h2><div class="stats"></div>
       <button class="k-btn interactive" data-a="restart">Retry</button><div class="hint">PRESS ENTER TO RETRY</div></div>`);
@@ -88,6 +94,28 @@ export class Screens {
       const c = e.target.closest('.k-card');
       if (c) this.onPick?.(+c.dataset.i);
     });
+    // Settings sliders (saved per browser).
+    const SET = {
+      sens: { obj: CONFIG.camera.follow, key: 'sensitivity', fmt: (v) => (v * 1000).toFixed(1) },
+      light: { obj: CONFIG.lighting, key: 'brightness', fmt: (v) => `${Math.round(v * 100)}%`, apply: () => game.map.lighting.applySettings() },
+    };
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('kurogane.settings') || '{}'); } catch { /* storage blocked */ }
+    for (const [id, S] of Object.entries(SET)) {
+      const input = this.pause.querySelector(`[data-s="${id}"]`);
+      const out = this.pause.querySelector(`[data-v="${id}"]`);
+      if (Number.isFinite(saved[id])) S.obj[S.key] = saved[id];
+      input.value = S.obj[S.key];
+      out.textContent = S.fmt(S.obj[S.key]);
+      S.apply?.();
+      input.addEventListener('input', () => {
+        S.obj[S.key] = +input.value;
+        out.textContent = S.fmt(+input.value);
+        S.apply?.();
+        saved[id] = +input.value;
+        try { localStorage.setItem('kurogane.settings', JSON.stringify(saved)); } catch { /* ignore */ }
+      });
+    }
     this.onAction = null;
     this.onPick = null;
     this.current = null;
