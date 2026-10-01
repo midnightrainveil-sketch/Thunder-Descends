@@ -7,6 +7,8 @@ import { PostFX } from './core/PostFX.js';
 import { Game } from './game/Game.js';
 import { UI } from './ui/UI.js';
 import { DebugPanel } from './debug/DebugPanel.js';
+import { AutoQuality } from './core/AutoQuality.js';
+import { warmUp } from './core/Warmup.js';
 import { CONFIG } from './config.js';
 
 const container = document.getElementById('game');
@@ -23,14 +25,20 @@ const game = new Game({ engine, rig, postFX, time, input });
 engine.onResize(() => game.onCameraChanged()); // after rig.resize (handlers run in order)
 const ui = new UI(uiRoot);
 const debug = new DebugPanel({ engine, rig, postFX, time, game, ui, input });
+const autoQuality = new AutoQuality(engine);
+// Compile every shader now (title screen) instead of hitching the first time an effect appears.
+rig.update(0);
+const warmRigs = warmUp({ engine, postFX });
 
 // Frame order: input → time → game update → FX update → camera → render → UI.
 const loop = new Loop((rawDt) => {
   engine.renderer.info.reset();
+  autoQuality.update(rawDt);
 
   // Follow camera first (mouse look, boom), so picking and the hero's WASD axes use this frame's pose.
   rig.follow(Math.min(rawDt, 0.1), game.hero, input, game.mode === 'play');
   input.centerAim = rig.following && !rig.override;
+  input.fixedAim = input.centerAim && rig.skillAim ? rig.skillAimPoint : null;
   input.update(rig.activePickCamera, game.hero.position);
   debug.handleHotkeys(input);
 
@@ -53,4 +61,4 @@ const loop = new Loop((rawDt) => {
 loop.start();
 
 // Handy for poking at things from the console during development.
-if (import.meta.env.DEV) window.THUNDER = { CONFIG, engine, rig, time, input, postFX, game, ui, debug, loop };
+if (import.meta.env.DEV) window.THUNDER = { CONFIG, engine, rig, time, input, postFX, game, ui, debug, loop, autoQuality, warmRigs };

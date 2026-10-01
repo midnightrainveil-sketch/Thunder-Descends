@@ -70,6 +70,7 @@ export class PostFX {
 
     this.applySettings();
     engine.onResize((w, h) => this.resize(w, h));
+    engine.onPixelRatio((w, h) => this.resize(w, h));
   }
 
   get uniforms() {

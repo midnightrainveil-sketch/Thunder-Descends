@@ -75,6 +75,11 @@ export const CONFIG = {
       pitchMaxDeg: 62, // looking down limit
       sensitivity: 0.006, // rad per mouse pixel (pause-menu slider scales it)
       invertY: false,
+      lookSmoothing: 0.022, // s, time constant of the light mouse-look smoothing (0 = raw; pause-menu slider)
+      lockRetryMs: 1100, // ms, retry a refused pointer lock after Chrome's Esc cooldown
+      maxLookJump: 1500, // px, a single mouse event larger than this is treated as corrupt and dropped
+      linuxMouseFix: false, // Linux X11/Wayland workaround (drops ±1 px vertical bias + warp spikes); hurts Windows
+      aimDistPerPx: 0.035, // m per mouse pixel: Storm Grapple target distance while aiming (follow camera)
       keyTurnRate: 2.4, // rad/s, ← → arrow keys turn the camera (no-mouse fallback)
       followRate: 14, // 1/s, pivot catch-up (exponential smoothing)
       maxRadius: ARENA_RADIUS + 3, // m, camera XZ stays inside this circle: past the lanterns (the camera is well above them), clear of the canopies
@@ -130,6 +135,16 @@ export const CONFIG = {
 
   render: {
     pixelRatioMax: 2,
+    minPixelRatio: 0.6, // dynamic resolution never renders below this pixel ratio
+    // Auto quality: lowers the internal resolution when frames run slow and raises it back when
+    // there is headroom, so motion stays smooth (debug Post folder can switch it off).
+    autoQuality: true,
+    aqSlowMs: 19.5, // average frame time above this (≈ below 51 fps) → step resolution down
+    aqFastMs: 15.5, // average frame time below this for aqUpAfter s → step back up
+    aqUpAfter: 4, // s of headroom before stepping up
+    aqStep: 0.1, // render scale step
+    aqMinScale: 0.55, // lowest render scale (× capped device pixel ratio)
+    aqWindow: 1.0, // s, frame-time averaging window
     msaaSamples: 4, // composer MSAA samples (renderer antialias doesn't apply to render targets)
     exposure: 1.0, // ACES tone mapping exposure
     fogColor: '#2c2d5e', // FogExp2 haze: farther = lighter, bluer (atmospheric perspective)
@@ -181,9 +196,9 @@ export const CONFIG = {
   },
 
   hero: {
-    // Dash (Shift): i-frames for the whole dash, afterimages, 2 charges.
+    // Dash (Shift): i-frames for the whole dash, afterimages, 3 charges.
     dash: {
-      charges: 2, // max stacks
+      charges: 3, // max stacks
       recharge: 3, // s per stack (hero clock; one stack refills at a time)
       distance: 5.2, // m
       duration: 0.2, // s
@@ -715,6 +730,11 @@ export const CONFIG = {
     cardDelay: 0.7, // s (real) after a level-up before the cards open
     hpSegments: 12, // segmented HP bar
     flashMax: 0.45, // cap on full-screen flashes (polish)
+    hpLow: 0.3, // HP share: red pulsing vignette + pulsing bar at or below this
+    hpMid: 0.55, // HP share: big bar turns amber at or below this
+    hpLagHold: 0.45, // s the white "damage taken" trail holds before draining
+    hpLagDrain: 0.8, // share of max HP per second the trail drains
+    hpHitFlash: 0.15, // s the big bar glows after a hit
   },
 
   // ── Bosses (Stage 5, spec §9) ───────────────────────────────────────────

@@ -15,7 +15,7 @@ CONTROLS
   Left / Right .... turn the camera      V ... third-person <-> fixed camera
   Scroll wheel .... zoom in / out
   Hold left mouse . 3-hit combo (crits become whip strikes)
-  Shift ........... Flash Step - invulnerable dash (2 stacks, one every 3 s);
+  Shift ........... Flash Step - invulnerable dash (3 stacks, one every 3 s);
                     attack right after it to snap to the marked enemy for a heavy hit
   Q ............... Storm Grapple (aim, click to fire, right-click/Esc cancels)
   E ............... Lightning Lance (aim like Q, click to thrust) -> Blade Storm

@@ -8,7 +8,8 @@ export class Engine {
     const R = CONFIG.render;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, R.pixelRatioMax));
+    this.renderScale = 1; // dynamic resolution multiplier (AutoQuality)
+    renderer.setPixelRatio(this._targetPixelRatio());
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -39,6 +40,23 @@ export class Engine {
     fn(this.width, this.height);
   }
 
+  _targetPixelRatio() {
+    const R = CONFIG.render;
+    return Math.max(R.minPixelRatio, Math.min(window.devicePixelRatio || 1, R.pixelRatioMax) * this.renderScale);
+  }
+
+  // Change the internal resolution only (no camera refit): renderer + render targets.
+  setRenderScale(scale) {
+    this.renderScale = scale;
+    this.renderer.setPixelRatio(this._targetPixelRatio());
+    this.renderer.setSize(this.width, this.height);
+    for (const fn of this._pixelHandlers || []) fn(this.width, this.height);
+  }
+
+  onPixelRatio(fn) {
+    (this._pixelHandlers ||= []).push(fn);
+  }
+
   get pixelRatio() {
     return this.renderer.getPixelRatio();
   }
@@ -54,7 +72,7 @@ export class Engine {
   _onResize() {
     this.width = this.container.clientWidth;
     this.height = this.container.clientHeight;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.render.pixelRatioMax));
+    this.renderer.setPixelRatio(this._targetPixelRatio());
     this.renderer.setSize(this.width, this.height);
     for (const fn of this._resizeHandlers) fn(this.width, this.height);
   }

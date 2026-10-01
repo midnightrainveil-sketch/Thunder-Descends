@@ -29,7 +29,9 @@ export class Input {
     this.locked = false;
     this.onLockChange = null; // (locked) => void
     this.wantLock = null; // () => bool, game decides when a click should grab the pointer
+    this.onLockError = null; // () => void, the browser refused a lock request
     this.centerAim = false; // follow camera: aim through the screen center instead of the cursor
+    this.fixedAim = null; // Vector3 set by the camera rig while a skill is being aimed
 
     this._raycaster = new THREE.Raycaster();
     this._plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -64,31 +66,43 @@ export class Input {
       this.buttonsDown.delete(e.button);
     });
     window.addEventListener('mousemove', (e) => {
-      if (this.locked) {
-        // Linux (X11 / some Wayland setups) reports bogus jumps when the cursor is warped back
-        // to the center: skip the first events after locking and any delta far larger than the
-        // recent motion.
-        const dx = e.movementX;
-        // X11 rounds sub-pixel motion so a horizontal sweep carries a steady ±1 px vertical bias,
-        // which slowly tilts the camera: drop 1 px vertical jitter while moving sideways.
-        const dy = Math.abs(e.movementY) <= 1 && Math.abs(dx) >= 2 ? 0 : e.movementY;
-        const mag = Math.max(Math.abs(dx), Math.abs(dy));
-        if (this._skipLook > 0) this._skipLook--;
-        else if (mag < 300 && mag <= Math.max(60, this._lastMag * 6)) {
-          this.lookDX += dx;
-          this.lookDY += dy;
-          this._lastMag = mag;
-        } else this._lastMag = Math.max(this._lastMag * 0.5, 10);
+      if (!this.locked) {
+        this._setMouse(e);
+        return;
       }
-      else this._setMouse(e);
+      const F = CONFIG.camera.follow;
+      // The first event after locking can carry the cursor's jump to the center: skip it.
+      if (this._skipLook > 0) {
+        this._skipLook--;
+        return;
+      }
+      let dx = e.movementX;
+      let dy = e.movementY;
+      // Only discard deltas no hand can produce (corrupt events); fast flicks always pass.
+      if (Math.abs(dx) > F.maxLookJump || Math.abs(dy) > F.maxLookJump) return;
+      if (F.linuxMouseFix) {
+        // Optional Linux (X11/Wayland) workaround: a steady ±1 px vertical bias during sideways
+        // sweeps and warp spikes. Off by default — it eats real motion on Windows.
+        if (Math.abs(dy) <= 1 && Math.abs(dx) >= 2) dy = 0;
+        const mag = Math.max(Math.abs(dx), Math.abs(dy));
+        if (mag > Math.max(60, this._lastMag * 6)) {
+          this._lastMag = Math.max(this._lastMag * 0.5, 10);
+          return;
+        }
+        this._lastMag = mag;
+      }
+      this.lookDX += dx;
+      this.lookDY += dy;
     });
+    document.addEventListener('pointerlockerror', () => this.onLockError?.());
     document.addEventListener('pointerlockchange', () => {
       const was = this.locked;
       this.locked = document.pointerLockElement === this.element;
       if (this.locked) {
         this.mouseInside = true;
-        this._skipLook = 2;
+        this._skipLook = 1;
         this._lastMag = 20;
+        this.lookDX = this.lookDY = 0;
       }
       if (was !== this.locked) this.onLockChange?.(this.locked);
     });
@@ -134,11 +148,16 @@ export class Input {
     try {
       // Raw (unaccelerated) motion where supported: same feel on every OS, no OS acceleration.
       const r = this.element.requestPointerLock({ unadjustedMovement: true });
-      if (r && r.catch) r.catch(() => {
-        try {
-          const r2 = this.element.requestPointerLock();
-          if (r2 && r2.catch) r2.catch(() => {});
-        } catch { /* not allowed right now */ }
+      if (r && r.catch) r.catch((err) => {
+        // Raw input unsupported → plain lock; refused (cooldown / no gesture) → tell the game.
+        if (err && err.name === 'NotSupportedError') {
+          try {
+            const r2 = this.element.requestPointerLock();
+            if (r2 && r2.catch) r2.catch(() => this.onLockError?.());
+          } catch {
+            this.onLockError?.();
+          }
+        } else this.onLockError?.();
       });
     } catch {
       /* not allowed right now */
@@ -155,6 +174,13 @@ export class Input {
    * aimMinDist and aimMaxDist ahead of `origin` (looking at the sky still aims forward).
    */
   update(camera, origin = null) {
+    // Skill aiming in the follow camera: the camera rig supplies the ground point directly.
+    if (this.centerAim && this.fixedAim) {
+      this.groundPoint.copy(this.fixedAim);
+      this.groundValid = true;
+      this.mouseInside = true;
+      return;
+    }
     if (!this.centerAim || !origin) {
       this._raycaster.setFromCamera(this.mouseNdc, camera);
       this.groundValid = this._raycaster.ray.intersectPlane(this._plane, this.groundPoint) !== null;

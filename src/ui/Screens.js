@@ -6,6 +6,8 @@ import { ICONS } from './icons.js';
 // game over and demo clear. Buttons are `.interactive` (the UI root ignores the pointer otherwise).
 const CSS = `
   .k-title { isolation: isolate; }
+  .k-lock { background: rgba(5,7,15,0.35); }
+  .k-lock h2 { font-size: 28px; }
   .k-title .splash { position: absolute; inset: 0; z-index: -1; background-position: center; background-size: cover; background-repeat: no-repeat; }
   .k-scr { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; font-family: var(--font-text); color: #e6e1d3; }
   .k-scr.on { display: flex; }
@@ -71,7 +73,7 @@ export class Screens {
       <div class="splash" style="background-image:linear-gradient(to bottom, rgba(5,7,15,0) 35%, rgba(5,7,15,0.85)), url(${SPLASH_ART})"></div>
       <h1>${CONFIG.names.game.toUpperCase()}</h1>
       <div class="ctl k-panel">
-        <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span><b>SHIFT</b><span>${N.dash} — invulnerable dash; attack after it to snap and strike</span>
+        <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span><b>SHIFT</b><span>${N.dash} — invulnerable dash (3); attack after it to snap and strike</span>
         <b>Q</b><span>${N.q} — aim, click to fire</span><b>E</b><span>${N.e} — aim, click to thrust</span><b>R</b><span>${N.r} — stop time, upgrade the blade</span>
         <b>ESC / P</b><span>pause</span>
       </div>
@@ -81,6 +83,7 @@ export class Screens {
       <button class="k-btn interactive" data-a="restart">Restart</button>
       <button class="k-btn interactive" data-a="shake">Screen shake: on</button>
       <label class="k-sl interactive">Mouse sensitivity <b data-v="sens"></b><input type="range" data-s="sens" min="0.001" max="0.02" step="0.0005"></label>
+      <label class="k-sl interactive">Mouse smoothing <b data-v="smooth"></b><input type="range" data-s="smooth" min="0" max="0.08" step="0.002"></label>
       <label class="k-sl interactive">Camera distance <b data-v="dist"></b><input type="range" data-s="dist" min="4" max="16" step="0.25"></label>
       <label class="k-sl interactive">Brightness <b data-v="light"></b><input type="range" data-s="light" min="0.5" max="3" step="0.05"></label>
       <div class="hint">ESC TO RESUME</div></div>`);
@@ -89,6 +92,7 @@ export class Screens {
     this.clear = mk('dim k-clear', `<div class="k-box"><h2>DEMO CLEAR</h2><div class="stats"></div>
       <button class="k-btn interactive" data-a="continue">Continue (endless)</button>
       <button class="k-btn interactive" data-a="restart">Restart</button></div>`);
+    this.lockEl = mk('k-lock', `<div class="k-box"><h2>CLICK TO CONTINUE</h2><div class="hint">THE GAME HOLDS UNTIL THE MOUSE IS CAPTURED</div></div>`);
     this.cardsEl = mk('dim', `<div class="k-cards-h"><h2>LEVEL UP</h2><div>CHOOSE YOUR UPGRADE</div></div><div class="k-cards"></div><div class="k-cards-f">CLICK OR PRESS 1 · 2 · 3</div>`);
     for (const el of [this.pause, this.over, this.clear]) {
       el.addEventListener('click', (e) => {
@@ -103,6 +107,7 @@ export class Screens {
     // Settings sliders (saved per browser).
     const SET = {
       sens: { obj: CONFIG.camera.follow, key: 'sensitivity', fmt: (v) => (v * 1000).toFixed(1) },
+      smooth: { obj: CONFIG.camera.follow, key: 'lookSmoothing', fmt: (v) => (v > 0 ? `${Math.round(v * 1000)} ms` : 'off') },
       dist: { obj: CONFIG.camera.follow, key: 'distance', fmt: (v) => `${v.toFixed(1)} m` },
       light: { obj: CONFIG.lighting, key: 'brightness', fmt: (v) => `${Math.round(v * 100)}%`, apply: () => game.map.lighting.applySettings() },
     };
@@ -138,6 +143,10 @@ export class Screens {
     this.pause.querySelector(`[data-v="${id}"]`).textContent = S.fmt(v);
     saved[id] = v;
     try { localStorage.setItem('thunder.settings', JSON.stringify(saved)); } catch { /* ignore */ }
+  }
+
+  showLockPrompt(on) {
+    this.lockEl.classList.toggle('on', on);
   }
 
   show(name) {

@@ -11,7 +11,7 @@ const easeOut = (u) => 1 - (1 - u) * (1 - u);
 /**
  * Dash (Shift). A quick burst in the WASD direction (or the facing when standing still) that is
  * immune to damage and knockback for the whole dash plus a short grace, leaving cyan afterimages
- * along the path. 2 stacks; one refills every 3 s (hero clock). Cancels a basic attack at any point;
+ * along the path. 3 stacks; one refills every 3 s (hero clock). Cancels a basic attack at any point;
  * not usable during a skill cast (Q aim included), while stunned or dead, and skills can't be cast
  * mid-dash. A Shift press is buffered briefly (hitstop, a frame where it can't start). Hero clock.
  *

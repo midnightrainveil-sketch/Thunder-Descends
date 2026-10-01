@@ -43,6 +43,8 @@ export class Thunderclaw extends Skill {
     g.postFX.setTint(C.aimTint, C.aimTintStrength, C.aimTween);
     g.postFX.setSaturation(C.aimSaturation, C.aimTween);
     g.fx.aim.show(true);
+    // Follow camera: vertical mouse slides the target along the ground (smooth, never past range).
+    g.rig.beginSkillAim(this.hero, C.range, g.input.groundValid ? g.input.groundPoint : null);
     this._updateTarget(g.input);
   }
 
@@ -52,6 +54,7 @@ export class Thunderclaw extends Skill {
     g.postFX.setTint(null, 0, duration);
     g.postFX.setSaturation(CONFIG.post.grade.saturation, duration);
     g.fx.aim.show(false);
+    g.rig.endSkillAim();
   }
 
   _updateTarget(input) {
@@ -254,6 +257,7 @@ export class Thunderclaw extends Skill {
     if (!this.active) return;
     if (this.phase === 'aim') this._restoreTime(0);
     this.game.fx.aim.show(false);
+    this.game.rig.endSkillAim();
     this.game.fx.chain.hide();
     this.phase = 'idle';
     this.hero.upper.fadeOut(0.1);

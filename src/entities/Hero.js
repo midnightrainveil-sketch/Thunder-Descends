@@ -75,7 +75,7 @@ export class Hero {
     this.glowBoost = 1; // visor / core / accent glow (Overdrive)
     this.skills = null;
     this.strikeGlow = 0; // extra blade glow while the dash strike is ready
-    this.dash = new Dash(this); // Shift: i-frame dash, 2 stacks
+    this.dash = new Dash(this); // Shift: i-frame dash, 3 stacks
 
     this.combo = { active: false, step: 0, buffered: false, ended: false, sinceEnd: 0, crit: false, queued: false };
     this.attacking = false;

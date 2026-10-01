@@ -913,3 +913,30 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - After the window expires, a click is a normal attack.
   - Ult: close-up blend 0.95 at the stab, back to 0 after the pull, yaw restored.
   - No errors.
+
+---
+
+## Windows mouse, health visibility, 3 dashes, smoothness
+
+- **Mouse on Windows.** The Linux workaround filters were the cause:
+  - The spike filter dropped any event over 6× the previous one, so on Windows fast flicks were thrown away and the camera "stuck".
+  - The vertical dead-zones and per-frame pitch lock swallowed small up/down motion, so aiming felt sticky.
+  - Fix: every mouse event is now applied. Only the first event after locking and impossible >1500 px deltas are skipped. The Linux filters are kept behind `camera.follow.linuxMouseFix` (off).
+  - Light look smoothing (22 ms time constant) evens out uneven event/frame timing. It has a pause-menu slider (0 = raw).
+- **Skill aiming.** While aiming Storm Grapple in the follow camera, vertical mouse slides the target along the ground linearly (0.035 m/px, clamped to range). The camera no longer pitches, so the target never jumps far as the view nears the horizon. The aim point sits on the screen-centre line.
+- **Pointer lock robustness.** Whenever the game wants the mouse but doesn't have it, time holds behind a "Click to continue" prompt; clicking grabs it. This covers run start, resume, and Chrome refusing a re-lock within ~1 s of Esc. A refused request is retried after 1.1 s. The debug panel counts as needing the cursor.
+- **Health visibility.**
+  - Big health bar above the skill bar: red, amber ≤ 55%, number beside it.
+  - A white trail shows damage just taken, and the bar glows briefly on each hit.
+  - At ≤ 30% the bar and the screen edges pulse red.
+  - The top-left bar is taller with a bigger number.
+- **Dashes:** 3 stacks (still one refill every 3 s); the HUD shows 3 pips.
+- **Smoothness.**
+  - Shader warm-up at load (`core/Warmup.js`): every hidden FX object plus one rig of each enemy and boss is rendered once behind the title, including the time-stop mask path. Effects, enemies and bosses no longer hitch the first time they appear (worst on Windows, where Chrome compiles shaders through Direct3D).
+  - Dynamic resolution (`core/AutoQuality.js`): when the 1 s average frame time exceeds 19.5 ms the internal resolution steps down by 0.1 (min 0.55×). After 4 s under 15.5 ms it steps back up. Debug Post folder has the toggle and render scale.
+- **Verified with fixed-step tests:**
+  - The lock prompt holds time until the lock is granted.
+  - A 180 px flick after a 2 px event turns the full 62.6°, and small vertical motion pitches.
+  - Q aim distance goes 6.6 → 8.7 → 1.5 → 9 (clamped) and restores on cancel.
+  - Low-HP UI and vignette are on at 24%; 3 dash pips.
+  - Auto quality steps 1 → 0.9 on 30 ms frames and back up with headroom. No errors.

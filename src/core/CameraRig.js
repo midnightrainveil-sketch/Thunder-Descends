@@ -36,6 +36,14 @@ export class CameraRig {
     this.blend = 0; // 0 = fixed pose, 1 = follow pose
     this.yaw = Math.PI; // follow look direction on XZ (atan2(x, z)); π looks toward −Z like the fixed camera
     this.pitch = F.pitchDeg * DEG;
+    this.yawT = this.yaw; // mouse-look targets; yaw / pitch follow them with light smoothing
+    this.pitchT = this.pitch;
+    // Skill aiming (Storm Grapple): vertical mouse moves the target along the ground instead of
+    // pitching the camera, so the aim point slides linearly and never jumps to the horizon.
+    this.skillAim = false;
+    this.skillAimDist = 6;
+    this.skillAimMax = 9;
+    this.skillAimPoint = new THREE.Vector3();
     this.pivot = new THREE.Vector3();
     this.followPosition = new THREE.Vector3();
     this.followQuaternion = new THREE.Quaternion();
@@ -172,10 +180,24 @@ export class CameraRig {
     this.cineWanted = !!on;
   }
 
+  // Skill aim on/off. `startPoint` (the current aim point) seeds the distance.
+  beginSkillAim(hero, maxDist, startPoint) {
+    const F = CONFIG.camera.follow;
+    this.skillAim = true;
+    this.skillAimMax = maxDist;
+    const d = startPoint ? Math.hypot(startPoint.x - hero.position.x, startPoint.z - hero.position.z) : maxDist * 0.6;
+    this.skillAimDist = THREE.MathUtils.clamp(d, F.aimMinDist, maxDist);
+  }
+
+  endSkillAim() {
+    this.skillAim = false;
+  }
+
   // Put the boom straight behind the hero now (run start / retry).
   snapBehind(hero) {
-    this.yaw = hero.aimYaw;
-    this.pitch = CONFIG.camera.follow.pitchDeg * DEG;
+    this.yaw = this.yawT = hero.aimYaw;
+    this.pitch = this.pitchT = CONFIG.camera.follow.pitchDeg * DEG;
+    this.skillAim = false;
     this.pivot.copy(hero.position);
     this._pivotReady = true;
     this.sinceLook = 0;
@@ -204,32 +226,40 @@ export class CameraRig {
     this.sinceLook += dt;
     if (allowLook && this.followWanted && ck === 0) {
       const dx = input.lookDX;
-      // Mostly-horizontal motion this frame → no pitch change (stops slow downward drift).
-      const dy = Math.abs(input.lookDY) < Math.abs(dx) * F.pitchLock ? 0 : input.lookDY;
+      // Linux workaround only: mostly-horizontal motion this frame → no pitch change.
+      const dy = F.linuxMouseFix && Math.abs(input.lookDY) < Math.abs(dx) * F.pitchLock ? 0 : input.lookDY;
       if (input.wheel) {
         F.distance = THREE.MathUtils.clamp(F.distance * Math.pow(1 + F.zoomStep, input.wheel), F.zoomMin, F.zoomMax);
         this.onZoom?.(F.distance);
       }
       if (dx !== 0 || dy !== 0) {
-        this.yaw -= dx * F.sensitivity;
-        this.pitch += dy * F.sensitivity * (F.invertY ? -1 : 1);
+        this.yawT -= dx * F.sensitivity;
+        if (this.skillAim) {
+          // Mouse up = farther, down = nearer (along the ground).
+          this.skillAimDist = THREE.MathUtils.clamp(this.skillAimDist - dy * F.aimDistPerPx * (F.invertY ? -1 : 1), F.aimMinDist, this.skillAimMax);
+        } else this.pitchT += dy * F.sensitivity * (F.invertY ? -1 : 1);
         this.sinceLook = 0;
       }
       let k = 0;
       if (input.isDown('ArrowLeft')) k += 1;
       if (input.isDown('ArrowRight')) k -= 1;
       if (k !== 0) {
-        this.yaw += k * F.keyTurnRate * dt;
+        this.yawT += k * F.keyTurnRate * dt;
         this.sinceLook = 0;
       }
       // Recenter behind the back while he runs roughly away from the camera.
-      if (F.recenter && this.sinceLook > F.recenterDelay && hero.velocity.lengthSq() > 1) {
-        const d = wrap(hero.aimYaw - this.yaw);
-        if (Math.abs(d) < F.recenterMaxDeg * DEG) this.yaw += d * (1 - Math.exp(-F.recenterRate * dt));
+      if (F.recenter && !this.skillAim && this.sinceLook > F.recenterDelay && hero.velocity.lengthSq() > 1) {
+        const d = wrap(hero.aimYaw - this.yawT);
+        if (Math.abs(d) < F.recenterMaxDeg * DEG) this.yawT += d * (1 - Math.exp(-F.recenterRate * dt));
       }
     }
-    this.yaw = wrap(this.yaw);
-    this.pitch = THREE.MathUtils.clamp(this.pitch, F.pitchMinDeg * DEG, F.pitchMaxDeg * DEG);
+    this.pitchT = THREE.MathUtils.clamp(this.pitchT, F.pitchMinDeg * DEG, F.pitchMaxDeg * DEG);
+    // Light smoothing evens out uneven mouse-event / frame timing without noticeable lag.
+    const sk = F.lookSmoothing > 0 ? 1 - Math.exp(-dt / F.lookSmoothing) : 1;
+    const dYaw = wrap(this.yawT - this.yaw);
+    this.yaw = wrap(this.yaw + dYaw * sk);
+    this.yawT = this.yaw + (dYaw - dYaw * sk); // keep the target unwrapped relative to yaw
+    this.pitch += (this.pitchT - this.pitch) * sk;
 
     // Pivot chases the hero.
     if (!this._pivotReady) {
@@ -283,6 +313,12 @@ export class CameraRig {
     else this._lookAt.copy(this.followPosition).addScaledVector(fwd, dist); // straight along the look direction
     this._m.lookAt(this.followPosition, this._lookAt, UP);
     this.followQuaternion.setFromRotationMatrix(this._m);
+
+    // Skill aim point: on the screen-center line (pivot + shoulder), skillAimDist ahead of the hero.
+    if (this.skillAim) {
+      const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw);
+      this.skillAimPoint.set(hero.position.x + rx * F.shoulder + fx * this.skillAimDist, 0, hero.position.z + rz * F.shoulder + fz * this.skillAimDist);
+    }
 
     // Blend.
     const want = this.followWanted ? 1 : 0;

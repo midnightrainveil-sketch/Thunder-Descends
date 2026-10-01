@@ -138,7 +138,7 @@ export class DebugPanel {
     }
     if (this.orbit.enabled) this.orbit.update();
     this.viewer.update(realDt);
-    this.game.lockBlocked = this.viewer.active || this.orbit.enabled;
+    this.game.lockBlocked = this.viewer.active || this.orbit.enabled || this.enabled; // these need the cursor
   }
 
   previewTimeRing() {
@@ -210,6 +210,8 @@ export class DebugPanel {
     const post = gui.addFolder('Post');
     const apply = () => this.postFX.applySettings();
     post.add(C.render, 'exposure', 0.2, 3, 0.01).onChange(() => this.engine.applySettings());
+    post.add(C.render, 'autoQuality').name('auto quality (dyn. res)');
+    post.add(this.engine, 'renderScale', 0.5, 1, 0.05).name('render scale').listen().onChange((v) => this.engine.setRenderScale(v));
     post.add(C.post.bloom, 'strength', 0, 3, 0.01).name('bloom strength').onChange(apply);
     post.add(C.post.bloom, 'radius', 0, 1, 0.01).name('bloom radius').onChange(apply);
     post.add(C.post.bloom, 'threshold', 0, 3, 0.01).name('bloom threshold').onChange(apply);

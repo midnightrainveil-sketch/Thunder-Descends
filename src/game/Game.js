@@ -105,6 +105,14 @@ export class Game {
     this._releasing = false;
     this._lockPauseT = -1;
     input.wantLock = () => this._wantLock();
+    // Waiting for the pointer lock (run start, resume, a refused request): time holds and a
+    // "click to continue" prompt shows until the lock is granted — never a dead camera.
+    this.awaitLock = false;
+    input.onLockError = () => {
+      // Chrome refuses a re-lock within ~1 s of the player pressing Esc: retry once after that.
+      clearTimeout(this._lockRetry);
+      this._lockRetry = setTimeout(() => this.awaitLock && this.input.requestLock(), CONFIG.camera.follow.lockRetryMs);
+    };
     input.onLockChange = (locked) => {
       if (locked) return;
       if (this._releasing) this._releasing = false;
@@ -116,7 +124,9 @@ export class Game {
   }
 
   _wantLock() {
-    return CONFIG.camera.mode === 'follow' && this.mode === 'play' && !this.lockBlocked && !this.rig.override;
+    // No pointer-lock support at all (rare embeds): play without it rather than wait forever.
+    const canLock = !!this.engine.renderer.domElement.requestPointerLock;
+    return canLock && CONFIG.camera.mode === 'follow' && this.mode === 'play' && !this.lockBlocked && !this.rig.override;
   }
 
   // Give the cursor back without pausing (debug panel, menus).
@@ -141,8 +151,18 @@ export class Game {
     const follow = CONFIG.camera.mode === 'follow';
     this.rig.followWanted = follow && this.mode !== 'title';
     const want = this._wantLock();
-    if (this.mode === 'play' && this._prevMode !== 'play' && want) this.input.requestLock();
     if (!want && this.input.locked) this.releasePointer();
+    const need = want && !this.input.locked;
+    if (need && !this.awaitLock) {
+      this.awaitLock = true;
+      this.time.paused = true;
+      this.screens.showLockPrompt(true);
+      this.input.requestLock();
+    } else if (!need && this.awaitLock) {
+      this.awaitLock = false;
+      this.screens.showLockPrompt(false);
+      if (this.mode === 'play') this.time.paused = false;
+    }
     this._prevMode = this.mode;
   }
 
@@ -360,7 +380,7 @@ export class Game {
     } else if (mode === 'over' && input.wasPressed('Enter')) this.restart();
     if (input.wasPressed('KeyV') && this.mode !== 'title') this.toggleCameraMode();
     this._syncCamera();
-    const inp = this.mode === 'play' ? input : NO_INPUT;
+    const inp = this.mode === 'play' && !this.awaitLock ? input : NO_INPUT;
     if (this.mode === 'play' && !this.hero.dead) {
       this.hero.skills.handleInput(inp, time);
       this.hero.dash.handleInput(inp, time);

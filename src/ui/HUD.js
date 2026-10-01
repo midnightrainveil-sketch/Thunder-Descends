@@ -16,15 +16,31 @@ const CSS = `
   .k-tl { position: absolute; left: 16px; top: 14px; display: flex; gap: 10px; align-items: stretch; padding: 8px 12px 8px 8px; }
   .k-portrait { width: 52px; height: 52px; border: 1px solid rgba(53,224,255,0.6); }
   .k-portrait svg { width: 100%; height: 100%; display: block; }
-  .k-bars { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 250px; }
+  .k-bars { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 280px; }
   .k-row { display: flex; align-items: center; gap: 8px; }
   .k-lvl { font: 400 12px var(--font-num); color: #0e1426; background: #35e0ff; padding: 2px 6px; clip-path: polygon(5px 0,100% 0,100% 100%,0 100%,0 5px); }
   .k-lvl.flash { background: #fff; box-shadow: 0 0 12px #35e0ff; }
-  .k-hp { display: flex; gap: 2px; flex: 1; height: 12px; }
+  .k-hp { display: flex; gap: 2px; flex: 1; height: 16px; }
   .k-hp i { flex: 1; background: rgba(215, 38, 61, 0.18); transform: skewX(-18deg); }
   .k-hp i.on { background: linear-gradient(#ff5a6e, #d7263d); box-shadow: 0 0 6px rgba(215,38,61,0.5); }
   .k-hp i.part { background: linear-gradient(90deg, #d7263d var(--k), rgba(215,38,61,0.18) var(--k)); }
   .k-nm { font: 400 11px var(--font-num); color: rgba(236,232,222,0.85); min-width: 76px; text-align: right; }
+  .k-nm.hpn { font: 400 14px var(--font-num); color: #f4f1ea; min-width: 84px; }
+  /* Big health bar above the skill bar (always in view) + damage-lag trail. */
+  .k-hpb { position: absolute; left: 50%; bottom: 102px; transform: translateX(-50%); width: min(520px, 70vw); display: flex; align-items: center; gap: 10px; }
+  .k-hpb .bar { position: relative; flex: 1; height: 14px; background: rgba(40, 8, 14, 0.75); border: 1px solid rgba(255, 90, 110, 0.55); transform: skewX(-18deg); overflow: hidden; }
+  .k-hpb .bar u { position: absolute; inset: 0; background: rgba(255,255,255,0.75); transform-origin: left; }
+  .k-hpb .bar b { position: absolute; inset: 0; background: linear-gradient(#ff6a7c, #d7263d 60%, #9a1528); transform-origin: left; box-shadow: 0 0 10px rgba(215,38,61,0.6); }
+  .k-hpb .bar.mid b { background: linear-gradient(#ffb36a, #e0702a 60%, #a24a14); }
+  .k-hpb .n { font: 400 16px var(--font-num); color: #fff; text-shadow: 0 1px 3px #000; min-width: 92px; }
+  .k-hpb.low .bar { animation: k-hp-pulse .6s ease-in-out infinite alternate; }
+  .k-hpb.hit .bar { box-shadow: 0 0 16px rgba(255,255,255,0.8); }
+  @keyframes k-hp-pulse { from { border-color: rgba(255,90,110,0.55); } to { border-color: #fff; box-shadow: 0 0 18px rgba(255,58,79,0.9); } }
+  /* Low-HP warning vignette. */
+  .k-lowhp { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(210,10,30,0.75) 100%); box-shadow: inset 0 0 60px rgba(255,30,50,0.6); }
+  .k-lowhp.on { animation: k-low-pulse 1s ease-in-out infinite; }
+  @keyframes k-low-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
   .k-exp { flex: 1; height: 4px; background: rgba(53,224,255,0.15); position: relative; }
   .k-exp b { position: absolute; inset: 0; background: linear-gradient(90deg, #1aa6c4, #35e0ff); transform-origin: left; }
   .k-tc { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -85,6 +101,7 @@ export class HUD {
     this.el = document.createElement('div');
     this.el.className = 'k-hud hidden';
     this.el.innerHTML = `
+      <div class="k-lowhp"></div>
       <div class="k-tl k-panel">
         <div class="k-portrait"><img src="${PORTRAIT_ART}" alt="" style="width:100%;height:100%;display:block;object-fit:cover"></div>
         <div class="k-bars">
@@ -98,7 +115,8 @@ export class HUD {
       </div>
       <div class="k-skills k-panel">${SLOTS.map((s) => `<div class="k-slot" data-id="${s.id}"><img class="art" src="${SKILL_ICONS[s.icon]}" alt=""><div class="buff"></div><div class="sweep"></div><div class="sec"></div><span class="key">${s.key}</span><div class="pips">${s.id === 'lmb' ? '' : '<i></i>'.repeat(s.id === 'dash' ? CONFIG.hero.dash.charges : 4)}</div></div>`).join('')}</div>
       <div class="k-bl k-panel"><div class="ic">${ICONS.passive}</div><div><div class="t">CRIT</div><div class="v cr">50%</div></div></div>
-      <div class="k-banner"><div class="big"></div><div class="small"></div></div>`;
+      <div class="k-banner"><div class="big"></div><div class="small"></div></div>
+      <div class="k-hpb"><div class="bar"><u></u><b></b></div><div class="n"></div></div>`;
     root.appendChild(this.el);
     const q = (s) => this.el.querySelector(s);
     this.lvl = q('.k-lvl');
@@ -116,6 +134,15 @@ export class HUD {
     this.slots = Object.fromEntries(SLOTS.map((s) => [s.id, this.el.querySelector(`.k-slot[data-id="${s.id}"]`)]));
     this.cr = q('.cr');
     this.bannerEl = q('.k-banner');
+    this.hpb = q('.k-hpb');
+    this.hpbBar = q('.k-hpb .bar');
+    this.hpbFill = q('.k-hpb .bar b');
+    this.hpbLag = q('.k-hpb .bar u');
+    this.hpbNum = q('.k-hpb .n');
+    this.lowEl = q('.k-lowhp');
+    this.hpLag = 1; // trailing white "damage taken" segment (0..1)
+    this.hpPrev = 1;
+    this.hitT = 0;
     this.bannerT = 0;
     this._lvlT = 0;
     this._cache = {};
@@ -167,6 +194,22 @@ export class HUD {
       });
     });
     this._set('hpn', `${Math.ceil(S.hp)} / ${Math.round(S.maxHp)}${game.godMode ? ' god' : ''}`, (v) => (this.hpn.textContent = v));
+    // Big bar: fill, damage-lag trail (holds, then drains), colour by level, low-HP warning.
+    const U = CONFIG.ui;
+    if (hpK < this.hpPrev - 1e-4) this.hitT = U.hpHitFlash;
+    if (hpK > this.hpLag) this.hpLag = hpK;
+    this._lagHold = hpK < this.hpPrev - 1e-4 ? U.hpLagHold : Math.max(0, (this._lagHold || 0) - realDt);
+    if (this._lagHold <= 0) this.hpLag = Math.max(hpK, this.hpLag - U.hpLagDrain * realDt);
+    this.hpPrev = hpK;
+    this.hitT = Math.max(0, this.hitT - realDt);
+    this._set('hpbf', Math.round(hpK * 1000), (v) => (this.hpbFill.style.transform = `scaleX(${v / 1000})`));
+    this._set('hpbl', Math.round(this.hpLag * 1000), (v) => (this.hpbLag.style.transform = `scaleX(${v / 1000})`));
+    this._set('hpbn', `${Math.ceil(S.hp)} / ${Math.round(S.maxHp)}`, (v) => (this.hpbNum.textContent = v));
+    const low = hpK > 0 && hpK <= U.hpLow;
+    this.hpbBar.classList.toggle('mid', hpK > U.hpLow && hpK <= U.hpMid);
+    this.hpb.classList.toggle('low', low);
+    this.hpb.classList.toggle('hit', this.hitT > 0);
+    this.lowEl.classList.toggle('on', low && !game.hero.dead);
     this._set('lvl', P.level, (v) => (this.lvl.textContent = `Lv ${v}`));
     this._set('ex', Math.round((P.exp / P.expToNext) * 200), (v) => (this.exBar.style.transform = `scaleX(${v / 200})`));
     this._set('exn', `${Math.floor(P.exp)} / ${P.expToNext}`, (v) => (this.exn.textContent = v));
