@@ -97,7 +97,7 @@ export class Demontime extends Skill {
       g.fx.particles.dust(ground, 14, { speed: 4, clock: 'hero' });
       g.map.petalImpulse(ground, 6, 9);
       g.postFX.flash(0.35, 0.2, 0xdffbff);
-      g.rig.shake(0.45, 0.3);
+      g.rig.shake(C.plantShake, 0.3);
       g.rig.punch(0.05, 0.25);
     }
     // Time-stop ring: sweep out from the sword → hold → rush back into it.
@@ -199,7 +199,7 @@ export class Demontime extends Skill {
       if (e.dead || Math.hypot(e.position.x - h.position.x, e.position.z - h.position.z) > R + e.radius) continue;
       if (seen.has(e.owner || e)) continue;
       seen.add(e.owner || e);
-      g.combat.heroHitsEnemy(e, { mult: this.r(C.pulseMult), knockback: 8, unblockable: true, from: h.position, shake: 0.5, skill: 'r' });
+      g.combat.heroHitsEnemy(e, { mult: this.r(C.pulseMult), knockback: 8, unblockable: true, from: h.position, shake: C.pulseHitShake, skill: 'r' });
     }
     const fx = g.fx;
     fx.shock.ring(h.position, { r0: 0.4, r1: R, duration: 0.4, color: '#35e0ff', intensity: 3, thickness: 0.2, clock: 'hero' });
@@ -210,7 +210,7 @@ export class Demontime extends Skill {
     fx.particles.dust(h.position, 16, { speed: 5, size: 0.18, clock: 'hero' });
     g.map.petalImpulse(h.position, R + 4, 14);
     g.postFX.flash(0.55, 0.3, 0xdffbff);
-    g.rig.shake(0.7, 0.45);
+    g.rig.shake(C.releaseShake, 0.45);
     g.rig.punch(0.06, 0.3);
   }
 

@@ -436,6 +436,7 @@ export const CONFIG = {
       chainRange: 4, chainMult: 0.3,
     },
     demontime: {
+      plantShake: 0.12, releaseShake: 0.16, pulseHitShake: 0.08, // kept small so the sword pull stays readable
       cooldown: [30, 30, 30, 30],
       cast: 2.5, // s total (hero clock, invulnerable, input locked)
       // Timeline (s): raise + two-handed stab → time-stop shockwave out of the sword at plantAt (ring
