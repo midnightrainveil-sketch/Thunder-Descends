@@ -817,3 +817,23 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - Lifesteal: a 61-damage hit healed 2.4 HP.
   - E: aim → world ×0.21 with the lane shown; right-click cancels with no cooldown; click fires (cooldown 10 s); auto-fires at 2.5 s.
   - No shader or page errors.
+
+---
+
+## Hero model v3 — reference sheet, finer blocks
+
+- **Block size.** The hero alone now uses `HERO_VOXEL = 0.06` m, half the other characters' block, at the user's request. Rebuilt on that grid (`src/voxel/models/HeroModel.js`) to match the character reference sheet.
+- **Rig compatibility.** Every joint pivot is exactly 2× the old grid, so all bone lengths in meters are unchanged: the clips, the hand-solved attack poses, the whip, Thunderclaw, Shatter, Demontime and the afterimages work as before.
+  - The rig origin moved to `[-1, 0, -1]`, since the mirror axis is now x = 1.
+  - Blade segments are still 0.24 m (`HERO_SEG_LEN_M`, now used by `WhipStrike`, `Demontime` and the blade trail instead of `2·VOXEL`).
+- **New details:**
+  - Broad crescent horns (row by row), crest blade, angled eyes.
+  - Wide V core.
+  - Winged pauldrons built from stair-stepped feather plates (`feather()`: narrow gold tips, gilded front edges), gold mon.
+  - Wider glowing back fins, backpack light bar and vents.
+  - Shorter crimson sashes and a raised crotch so the legs read long; hip tassets with red cords.
+  - Big gold knee guards, sabatons with gold toe caps and heel spurs.
+  - Larger gray gauntlet with three hooked talons + thumb.
+  - Nodachi with wraps, tsuba, seams, spine and a glowing point.
+- **Palette** (`HERO_PALETTE`): added `clawLight`, `slate` and `goldLight`. Emissive levels were lowered (V 1.3–1.8, eyes 2.4) because the finer model has more glowing blocks.
+- **Cost:** 541 boxes and 5.7 k triangles (was 216 / 2.3 k), still 2 draw calls.

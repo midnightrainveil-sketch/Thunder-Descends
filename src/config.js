@@ -2,7 +2,8 @@
 // Systems read these objects live, so the debug panel can edit them at runtime.
 
 // ── Block scales (spec §2) ────────────────────────────────────────────────
-export const VOXEL = 0.12; // m, character block size (hero ≈ 20 blocks tall)
+export const VOXEL = 0.12; // m, character block size (enemies)
+export const HERO_VOXEL = 0.06; // m, the hero alone uses half-size blocks so his detailed design reads (≈ 42 blocks tall)
 export const BOSS_VOXEL = 0.18; // m, large boss block size
 export const ENV_VOXEL = 0.25; // m, environment prop block size
 export const ENV_BIG_VOXEL = 0.5; // m, canopy cubes, big structures, crest

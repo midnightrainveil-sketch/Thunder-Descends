@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { CONFIG, VOXEL } from '../config.js';
+import { CONFIG } from '../config.js';
 import { clampToArena } from '../world/ArenaBounds.js';
-import { buildHeroRig, HERO_BLADE_SEGMENTS } from '../voxel/models/HeroModel.js';
+import { buildHeroRig, HERO_BLADE_SEGMENTS, HERO_SEG_LEN_M } from '../voxel/models/HeroModel.js';
 import { Animator, EASE } from '../anim/Animator.js';
 import { heroClips, HERO_UPPER_MASK } from '../anim/clips/heroClips.js';
 import { BladeTrail } from '../fx/BladeTrail.js';
@@ -484,7 +484,7 @@ export class Hero {
     // Trail from blade base to tip.
     const B = this.rig.bones;
     const base = B.bladeRoot.localToWorld(this._v1.set(0, 0, H.trail.baseInset));
-    const tip = B[`bladeSeg_${HERO_BLADE_SEGMENTS - 1}`].localToWorld(this._v2.set(0, 0, 2 * VOXEL));
+    const tip = B[`bladeSeg_${HERO_BLADE_SEGMENTS - 1}`].localToWorld(this._v2.set(0, 0, HERO_SEG_LEN_M));
     this.trail.update(dt, base, tip);
   }
 

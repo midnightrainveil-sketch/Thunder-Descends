@@ -19,6 +19,9 @@ export const HERO_PALETTE = {
   goldDark: '#8C6A30',
   claw: '#4B5162',
   clawDark: '#2E323D',
+  clawLight: '#666D80',
+  slate: '#5C6784', // blue-gray detail plates
+  goldLight: '#E3BE6A', // horn and feather tips
 };
 
 export const ENEMY_PALETTE = {

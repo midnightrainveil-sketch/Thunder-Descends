@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { CONFIG, VOXEL } from '../config.js';
+import { CONFIG } from '../config.js';
 import { Skill } from './Skill.js';
-import { HERO_BLADE_SEGMENTS } from '../voxel/models/HeroModel.js';
+import { HERO_BLADE_SEGMENTS, HERO_SEG_LEN_M } from '../voxel/models/HeroModel.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
 const _b = new THREE.Vector3();
 const easeOut = (u) => 1 - Math.pow(1 - u, 3);
 const easeIn = (u) => u * u * u;
-const SEG_LEN = 2 * VOXEL;
+const SEG_LEN = HERO_SEG_LEN_M;
 const ARM_BONES = ['upperArmL', 'forearmL', 'clawHand', 'upperArmR', 'forearmR', 'handR'];
 
 /**
