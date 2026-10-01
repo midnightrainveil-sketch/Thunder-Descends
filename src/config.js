@@ -43,7 +43,7 @@ export const CONFIG = {
     mode: 'follow', // 'follow' | 'fixed' (V toggles in play)
     follow: {
       fov: 56, // vertical FOV, degrees
-      distance: 7.5, // m, boom length from the pivot
+      distance: 9.5, // m, boom length from the pivot
       minDistance: 1.6, // m, shortest boom when pulled in at the rim
       height: 2.5, // m, pivot above the hero's feet (upper back / neck)
       shoulder: 0.85, // m, pivot shifted right so the hero doesn't hide the aim point

@@ -76,6 +76,7 @@ export class Screens {
       <button class="k-btn interactive" data-a="restart">Restart</button>
       <button class="k-btn interactive" data-a="shake">Screen shake: on</button>
       <label class="k-sl interactive">Mouse sensitivity <b data-v="sens"></b><input type="range" data-s="sens" min="0.001" max="0.02" step="0.0005"></label>
+      <label class="k-sl interactive">Camera distance <b data-v="dist"></b><input type="range" data-s="dist" min="4" max="16" step="0.25"></label>
       <label class="k-sl interactive">Brightness <b data-v="light"></b><input type="range" data-s="light" min="0.5" max="3" step="0.05"></label>
       <div class="hint">ESC TO RESUME</div></div>`);
     this.over = mk('dim k-over', `<div class="k-box"><h2>DEFEATED</h2><div class="stats"></div>
@@ -97,6 +98,7 @@ export class Screens {
     // Settings sliders (saved per browser).
     const SET = {
       sens: { obj: CONFIG.camera.follow, key: 'sensitivity', fmt: (v) => (v * 1000).toFixed(1) },
+      dist: { obj: CONFIG.camera.follow, key: 'distance', fmt: (v) => `${v.toFixed(1)} m` },
       light: { obj: CONFIG.lighting, key: 'brightness', fmt: (v) => `${Math.round(v * 100)}%`, apply: () => game.map.lighting.applySettings() },
     };
     let saved = {};

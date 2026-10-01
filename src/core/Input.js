@@ -64,17 +64,28 @@ export class Input {
     });
     window.addEventListener('mousemove', (e) => {
       if (this.locked) {
-        // Some browsers report a huge spike on the first event after locking.
-        if (Math.abs(e.movementX) < 400 && Math.abs(e.movementY) < 400) {
-          this.lookDX += e.movementX;
-          this.lookDY += e.movementY;
-        }
-      } else this._setMouse(e);
+        // Linux (X11 / some Wayland setups) reports bogus jumps when the cursor is warped back
+        // to the center: skip the first events after locking and any delta far larger than the
+        // recent motion.
+        const dx = e.movementX, dy = e.movementY;
+        const mag = Math.max(Math.abs(dx), Math.abs(dy));
+        if (this._skipLook > 0) this._skipLook--;
+        else if (mag < 300 && mag <= Math.max(60, this._lastMag * 6)) {
+          this.lookDX += dx;
+          this.lookDY += dy;
+          this._lastMag = mag;
+        } else this._lastMag = Math.max(this._lastMag * 0.5, 10);
+      }
+      else this._setMouse(e);
     });
     document.addEventListener('pointerlockchange', () => {
       const was = this.locked;
       this.locked = document.pointerLockElement === this.element;
-      if (this.locked) this.mouseInside = true;
+      if (this.locked) {
+        this.mouseInside = true;
+        this._skipLook = 2;
+        this._lastMag = 20;
+      }
       if (was !== this.locked) this.onLockChange?.(this.locked);
     });
     el.addEventListener('mouseenter', () => (this.mouseInside = true));
@@ -107,8 +118,14 @@ export class Input {
   requestLock() {
     if (this.locked || !this.element.requestPointerLock) return;
     try {
-      const r = this.element.requestPointerLock();
-      if (r && r.catch) r.catch(() => {});
+      // Raw (unaccelerated) motion where supported: same feel on every OS, no OS acceleration.
+      const r = this.element.requestPointerLock({ unadjustedMovement: true });
+      if (r && r.catch) r.catch(() => {
+        try {
+          const r2 = this.element.requestPointerLock();
+          if (r2 && r2.catch) r2.catch(() => {});
+        } catch { /* not allowed right now */ }
+      });
     } catch {
       /* not allowed right now */
     }

@@ -761,3 +761,10 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - The pause menu has two sliders, saved in localStorage:
   - Mouse sensitivity: default raised from 0.0024 to 0.006 rad/px, range 0.001–0.02.
   - Brightness (`CONFIG.lighting.brightness`): default 1.4, range 0.5–3. It multiplies the hemisphere, moon and rim lights; emissive glow is unchanged.
+
+## Camera distance, Linux mouse
+
+- **Camera distance.** The follow boom default went from 7.5 m to 9.5 m. A pause-menu slider sets it (4–16 m) and is saved.
+- **Mouse look on Linux.**
+  - Pointer lock now requests raw input (`unadjustedMovement`), so there is no OS acceleration and the feel matches across systems. It falls back to normal lock where unsupported.
+  - Filters drop the bogus jumps that X11/Wayland report when the cursor is warped: the first 2 events after locking are skipped, as are deltas over 300 px or more than 6× the recent motion.
