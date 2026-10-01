@@ -837,3 +837,19 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - Nodachi with wraps, tsuba, seams, spine and a glowing point.
 - **Palette** (`HERO_PALETTE`): added `clawLight`, `slate` and `goldLight`. Emissive levels were lowered (V 1.3–1.8, eyes 2.4) because the finer model has more glowing blocks.
 - **Cost:** 541 boxes and 5.7 k triangles (was 216 / 2.3 k), still 2 draw calls.
+
+### Correction after review: shoulder guards and back thrusters, not wings
+- **Shoulder guards.** The feathered "wings" were a misreading of the reference and are gone. Each shoulder now carries an ō-sode shoulder guard:
+  - a navy cap with a gold mon;
+  - three layered bands sloping down and outward (`band()` staircase: gold lower edge, darker spiky outer end, down to elbow height);
+  - a serrated gold blade rising diagonally from the top.
+- **Back thrusters.** The back fins became two tall thruster pods: waist to above the head, mounted to the backpack, a gold inner stripe, and cyan glow at the top nozzle and bottom exhaust.
+- **Other details matched to the reference:**
+  - red bead rope hanging in a U down the chest;
+  - tall gold bars framing the chest;
+  - a gold belt plate over a long navy center panel with crimson strips on both sides to the ankles;
+  - a long back sash under a knotted rope belt;
+  - front thigh tassets with a gold zigzag;
+  - blue-gray segmented upper arms;
+  - knee lights.
+- **Cost:** 522 boxes, 6.0 k triangles. In-game check: idle, side view, attack. No errors.

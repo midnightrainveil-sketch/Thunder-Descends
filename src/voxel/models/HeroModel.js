@@ -4,9 +4,10 @@ import { HERO_PALETTE } from '../palettes.js';
 import { Rig } from '../../anim/Rig.js';
 
 // KUROGANE — mecha samurai (spec §5; final look per the character reference sheet: navy armor,
-// tan-gold trim, huge gold crescent horns, wing-like layered pauldrons with gold-tipped feathers and
-// a gold mon, tall glowing back fins, wide cyan V chest core, long crimson sash, segmented nodachi
-// with a glowing edge, oversized gray claw gauntlet).
+// tan-gold trim, broad gold crescent horns, ō-sode shoulder guards sloping down and outward with a
+// serrated gold blade on top and a gold mon, two tall back thruster pods with cyan nozzles, wide cyan
+// V chest core framed by gold bars, red bead rope, long navy center panel between crimson strips,
+// segmented nodachi with a glowing edge, oversized gray claw gauntlet).
 //
 // The hero alone uses a finer block (HERO_VOXEL = 0.06 m, half the other characters) so the details
 // of the reference read; he is ~42 blocks tall (~2.5 m to the helmet, horns to ~3 m).
@@ -98,6 +99,7 @@ function legBoxes() {
       { p: [-4, 9, 2], s: [4, 1, 2], c: 'gold' },
       { p: [-3, 13, 2], s: [2, 1, 1], c: 'goldDark' },
       { p: [-6, 11, -1], s: [1, 2, 3], c: 'gold' }, // knee side plate
+      { p: [-6, 10, 1], s: [1, 1, 1], c: 'cyan', e: 1.4 }, // knee light
     ],
     thigh: [
       { p: [-4, 12, -2], s: [4, 8, 4], c: 'navy' },
@@ -112,58 +114,60 @@ function legBoxes() {
   };
 }
 
-// A feather plate as a voxel staircase from (x0, y0) stepping outward (−X) by one block per step and
-// rising `dy` blocks per step; navy body, a lighter top row, gold tip.
-function feather(x0, y0, z0, dy, len, depth, body) {
+// A sloped armor band as a voxel staircase from (x0, y0) stepping outward (−X) one block per step
+// and dropping `drop` blocks per step: navy plate with a gold lower edge, darker outer end.
+function band(x0, y0, z0, drop, len, h, depth, body) {
   const out = [];
-  const h = Math.max(3, Math.ceil(Math.abs(dy)) + 2);
   for (let i = 0; i < len; i++) {
-    const y = y0 + Math.round(i * dy);
-    const last = i === len - 1;
-    if (last) {
-      // Narrow gold tip (centered in depth) so the side view isn't a wall of gold.
-      out.push({ p: [x0 - i - 1, y, z0 + 1], s: [1, h, Math.max(1, depth - 2)], c: 'gold' });
-    } else {
-      out.push({ p: [x0 - i - 1, y, z0], s: [1, h, depth], c: body });
-      out.push({ p: [x0 - i - 1, y + h - 1, z0], s: [1, 1, depth], c: i % 2 ? 'navyLight' : 'slate' });
-      out.push({ p: [x0 - i - 1, y + h - 1, z0 + depth - 1], s: [1, 1, 1], c: i === len - 2 ? 'gold' : 'goldDark' }); // gilded front edge
-    }
+    const x = x0 - i - 1;
+    const y = y0 - Math.round(i * drop);
+    const outer = i === len - 1;
+    out.push({ p: [x, y, z0], s: [1, h, depth], c: outer ? 'navyDark' : body });
+    out.push({ p: [x, y, z0], s: [1, 1, depth], c: outer ? 'goldDark' : 'gold' }); // gold lower edge
+    out.push({ p: [x, y + h - 1, z0], s: [1, 1, depth], c: i % 2 ? 'navyLight' : body });
   }
-  const tip = out[out.length - 1];
-  out.push({ p: [tip.p[0], dy >= 0 ? tip.p[1] + h : tip.p[1] - 1, tip.p[2]], s: [1, 1, 1], c: 'goldLight' });
   return out;
 }
 
-// ── Pauldron (right; mirrored for the left): a rounded shell under a wing of layered feather plates
-// fanning up and out (gold tips), a short lower skirt with a gold hem and a gold mon on the front. ─
-function pauldronBoxes() {
+// ── Shoulder guard (right; mirrored for the left), per the reference: a navy cap on the shoulder,
+// an ō-sode of three layered bands sloping down and outward (gold lower edges, darker spiky outer
+// ends), a gold mon on the cap front and a serrated gold blade rising diagonally from the top. ──
+function shoulderGuardBoxes() {
+  const spike = [];
+  for (let i = 0; i < 7; i++) {
+    const x = -12 - i;
+    const y = 32 + Math.round(i * 1.35);
+    spike.push({ p: [x, y, 0], s: [1, 3, 2], c: 'gold' });
+    if (i % 2 === 0) spike.push({ p: [x, y + 3, 0], s: [1, 1, 2], c: 'goldLight' }); // serration teeth
+  }
+  spike.push({ p: [-19, 42, 0], s: [1, 2, 2], c: 'goldLight' }); // tip
   return [
-    { p: [-12, 26, -4], s: [6, 7, 10], c: 'navy' }, // shell
-    { p: [-12, 32, -3], s: [6, 2, 8], c: 'navyLight' }, // rounded top
-    { p: [-11, 34, -2], s: [4, 1, 6], c: 'navy' },
-    { p: [-12, 33, 5], s: [6, 1, 1], c: 'gold' }, // front rim
-    { p: [-13, 24, -4], s: [5, 2, 10], c: 'navy' }, // skirt plate
-    { p: [-13, 23, -4], s: [5, 1, 10], c: 'gold' }, // gold hem
-    // Feathers, steep → shallow → drooping, back layers deeper.
-    ...feather(-11, 33, -3, 1.5, 6, 7, 'navy'),
-    ...feather(-12, 31, -2, 1.0, 7, 6, 'navy'),
-    ...feather(-12, 29, -2, 0.6, 7, 6, 'navyDark'),
-    ...feather(-12, 27, -1, 0.25, 7, 5, 'navy'),
-    ...feather(-13, 25, 0, -0.3, 5, 4, 'navyDark'),
-    // Gold mon (round crest) on the front of the shell.
-    { p: [-11, 28, 6], s: [3, 3, 1], c: 'gold' },
-    { p: [-10, 27, 6], s: [1, 5, 1], c: 'gold' },
-    { p: [-12, 29, 6], s: [5, 1, 1], c: 'gold' },
-    { p: [-10, 29, 7], s: [1, 1, 1], c: 'goldDark' },
+    { p: [-12, 28, -3], s: [6, 5, 9], c: 'navy' }, // cap on the shoulder
+    { p: [-12, 33, -2], s: [5, 1, 7], c: 'navyLight' },
+    { p: [-12, 28, 6], s: [6, 1, 1], c: 'goldDark' },
+    // Ō-sode bands, lowest first so each upper band's gold edge overlaps the one below.
+    ...band(-12, 21, -3, 0.75, 6, 5, 10, 'navyDark'),
+    ...band(-11, 25, -3, 0.75, 6, 5, 10, 'navy'),
+    ...band(-11, 29, -3, 0.75, 5, 5, 10, 'navy'),
+    { p: [-18, 16, -2], s: [1, 2, 8], c: 'navyDark' }, // spiky outer drip
+    { p: [-17, 15, 0], s: [1, 1, 4], c: 'gunmetal' },
+    ...spike,
+    // Gold mon (round crest) on the cap front, near the collar.
+    { p: [-10, 29, 6], s: [3, 3, 1], c: 'gold' },
+    { p: [-9, 28, 6], s: [1, 5, 1], c: 'gold' },
+    { p: [-11, 30, 6], s: [5, 1, 1], c: 'gold' },
+    { p: [-9, 30, 7], s: [1, 1, 1], c: 'goldDark' },
   ];
 }
 
+// Blue-gray segmented upper arm.
 function upperArmBoxes() {
   return [
-    { p: [-8, 27, -2], s: [4, 2, 4], c: 'navyDark' }, // shoulder cap
-    { p: [-8, 22, -2], s: [4, 5, 4], c: 'navy' },
-    { p: [-8, 23, 2], s: [4, 1, 1], c: 'gold' }, // band
-    { p: [-9, 23, -1], s: [1, 3, 2], c: 'slate' },
+    { p: [-8, 27, -2], s: [4, 2, 4], c: 'navyDark' }, // shoulder joint
+    { p: [-8, 22, -2], s: [4, 5, 4], c: 'slate' },
+    { p: [-8, 24, -2], s: [4, 1, 4], c: 'clawDark' }, // segment seam
+    { p: [-8, 22, 2], s: [4, 1, 1], c: 'gold' }, // band
+    { p: [-9, 23, -1], s: [1, 3, 2], c: 'clawLight' },
   ];
 }
 
@@ -192,48 +196,59 @@ export function heroDefinition() {
     { p: [-4, 20, -3], s: [10, 1, 1], c: 'crimson' },
     { p: [0, 18, -1], s: [2, 2, 4], c: 'navyDark' }, // crotch (high, so the legs read long)
   ]);
-  // Front: navy panel with a gold V over a long crimson sash with ragged ends.
-  const vee = [
-    { p: [-2, 18, 6], s: [1, 1, 1], c: 'gold' },
-    { p: [-1, 17, 6], s: [1, 1, 1], c: 'gold' },
-    { p: [0, 16, 6], s: [1, 1, 1], c: 'gold' },
-    { p: [0, 15, 6], s: [1, 1, 1], c: 'goldDark' },
+  // Front: gold belt plate over a long navy center panel (mask-like face), crimson strips on both
+  // sides hanging to the ankles.
+  const strip = [
+    { p: [-3, 3, 5], s: [2, 17, 1], c: 'crimson' },
+    { p: [-3, 2, 5], s: [1, 1, 1], c: 'crimsonDark' }, // ragged end
+    { p: [-2, 5, 5], s: [1, 2, 1], c: 'crimsonDark' },
   ];
   add('sashFront', 'sashFront', [
-    { p: [-2, 9, 5], s: [2, 10, 1], c: 'crimson' },
-    { p: [0, 10, 5], s: [2, 9, 1], c: 'crimsonDark' },
-    { p: [2, 9, 5], s: [2, 10, 1], c: 'crimson' },
-    { p: [-2, 8, 5], s: [1, 1, 1], c: 'crimson' },
-    { p: [3, 8, 5], s: [1, 1, 1], c: 'crimson' },
-    { p: [0, 9, 5], s: [1, 1, 1], c: 'crimsonDark' },
-    { p: [-2, 15, 6], s: [6, 4, 1], c: 'navy' }, // front panel
-    { p: [-1, 14, 6], s: [4, 1, 1], c: 'navy' },
-    { p: [0, 13, 6], s: [2, 1, 1], c: 'navy' },
-    { p: [-2, 19, 6], s: [6, 1, 1], c: 'gold' },
-    ...vee,
-    ...M(vee),
+    ...strip,
+    ...M(strip),
+    { p: [-1, 8, 6], s: [4, 11, 1], c: 'navy' }, // center panel
+    { p: [0, 7, 6], s: [2, 1, 1], c: 'navy' }, // pointed end
+    { p: [-1, 8, 6], s: [1, 9, 1], c: 'navyDark' }, // panel edges
+    { p: [2, 8, 6], s: [1, 9, 1], c: 'navyDark' },
+    { p: [0, 15, 7], s: [2, 1, 1], c: 'navyLight' }, // mask face
+    { p: [-1, 14, 7], s: [1, 1, 1], c: 'navyLight' },
+    { p: [2, 14, 7], s: [1, 1, 1], c: 'navyLight' },
+    { p: [0, 12, 7], s: [2, 1, 1], c: 'navyDark' },
+    { p: [-1, 18, 6], s: [4, 3, 1], c: 'gold' }, // gold belt plate
+    { p: [0, 19, 7], s: [2, 1, 1], c: 'goldDark' },
   ]);
   add('sashBack', 'sashBack', [
-    { p: [-2, 9, -4], s: [6, 11, 1], c: 'crimson' },
-    { p: [0, 10, -4], s: [2, 10, 1], c: 'crimsonDark' },
-    { p: [-1, 7, -4], s: [4, 2, 1], c: 'crimson' },
+    { p: [-1, 4, -4], s: [4, 16, 1], c: 'crimson' }, // long back sash to the ankles
+    { p: [0, 5, -4], s: [2, 14, 1], c: 'crimsonDark' },
+    { p: [-1, 3, -4], s: [1, 1, 1], c: 'crimson' },
+    { p: [2, 3, -4], s: [1, 1, 1], c: 'crimsonDark' },
+    { p: [-4, 20, -4], s: [10, 1, 1], c: 'crimson' }, // knotted rope belt
     { p: [-2, 17, -5], s: [6, 3, 1], c: 'crimsonDark' }, // knot
     { p: [0, 15, -5], s: [2, 2, 1], c: 'crimson' },
   ]);
-  // Hip tassets with gold hems and a hanging red cord.
+  // Thigh tassets: front-outer plates with a gold zigzag trim, a gold hem and a hanging red cord.
   const tasset = [
-    { p: [-7, 15, -2], s: [2, 6, 6], c: 'navy' },
-    { p: [-7, 15, -2], s: [2, 1, 6], c: 'gold' },
-    { p: [-7, 20, -2], s: [2, 1, 6], c: 'goldDark' },
-    { p: [-8, 16, 0], s: [1, 3, 2], c: 'gold' },
-    { p: [-6, 13, 4], s: [1, 7, 1], c: 'crimson' }, // red cord
-    { p: [-6, 12, 4], s: [1, 1, 1], c: 'crimsonDark' },
+    { p: [-8, 12, 1], s: [4, 9, 3], c: 'navy' },
+    { p: [-8, 12, 1], s: [4, 1, 3], c: 'gold' }, // hem
+    { p: [-8, 20, 1], s: [4, 1, 3], c: 'navyDark' },
+    { p: [-8, 18, 4], s: [2, 1, 1], c: 'gold' }, // zigzag
+    { p: [-7, 17, 4], s: [2, 1, 1], c: 'gold' },
+    { p: [-6, 16, 4], s: [2, 1, 1], c: 'gold' },
+    { p: [-8, 15, 4], s: [2, 1, 1], c: 'gold' },
+    { p: [-7, 14, 4], s: [2, 1, 1], c: 'gold' },
+    { p: [-9, 13, -1], s: [1, 7, 4], c: 'navyDark' }, // side plate
+    { p: [-9, 7, 2], s: [1, 13, 1], c: 'crimson' }, // red cord
+    { p: [-9, 6, 2], s: [1, 1, 1], c: 'crimsonDark' },
   ];
   add('sashR', 'sashR', tasset);
   add('sashL', 'sashL', M(tasset));
 
   // Torso
+  const lowBeads = [[-4, 25], [-3, 24], [-2, 23], [-1, 22]].map(([x, y], i) => ({ p: [x, y, 5], s: [1, 1, 1], c: i % 2 ? 'crimson' : 'crimsonDark' }));
   add('spine', 'spine', [
+    ...lowBeads,
+    ...M(lowBeads),
+    { p: [0, 22, 5], s: [2, 1, 1], c: 'crimson' }, // rope knot at the belt
     { p: [-3, 22, -2], s: [8, 4, 6], c: 'navyDark' },
     { p: [-2, 22, 4], s: [6, 1, 1], c: 'navyLight' }, // ab plates
     { p: [-2, 24, 4], s: [6, 1, 1], c: 'navyLight' },
@@ -242,12 +257,10 @@ export function heroDefinition() {
     { p: [4, 23, 4], s: [1, 2, 1], c: 'goldDark' },
   ]);
   const pec = { p: [-5, 28, 4], s: [5, 4, 1], c: 'navyLight' };
-  const chestTrim = { p: [-6, 27, 3], s: [1, 5, 1], c: 'gold' };
-  const beads = [
-    { p: [-6, 32, 1], s: [1, 1, 1], c: 'crimson' },
-    { p: [-5, 32, 3], s: [1, 1, 1], c: 'crimson' },
-    { p: [-4, 31, 4], s: [1, 1, 1], c: 'crimsonDark' },
-  ];
+  const chestTrim = { p: [-7, 24, 3], s: [2, 9, 2], c: 'gold' }; // tall gold bar framing the chest
+  // Red bead rope: from the collar down the chest sides (continues on the spine, see below).
+  const beadPath = [[-5, 32], [-6, 31], [-6, 30], [-6, 29], [-6, 28], [-5, 27], [-5, 26]];
+  const beads = beadPath.map(([x, y], i) => ({ p: [x, y, 5], s: [1, 1, 1], c: i % 2 ? 'crimsonDark' : 'crimson' }));
   // Wide V chest core: two arms from the shoulders down to the sternum (glow group 'core').
   const vArm = [
     { p: [-5, 31, 5], s: [2, 1, 1], c: 'cyan', e: 1.3 },
@@ -281,18 +294,23 @@ export function heroDefinition() {
     { p: [0, 26, 5], s: [2, 1, 1], c: 'core', e: 2.2 }, // sternum point
   ], { glow: G.core });
 
-  // Back fins: two tall panels rising above the head, glowing inner edges and tips.
-  const fin = [
-    { p: [-8, 28, -6], s: [3, 13, 2], c: 'navyLight' },
-    { p: [-8, 27, -7], s: [3, 11, 1], c: 'navy' },
-    { p: [-9, 30, -6], s: [1, 9, 1], c: 'navyDark' },
-    { p: [-8, 32, -5], s: [1, 8, 1], c: 'slate' },
-    { p: [-5, 30, -6], s: [1, 11, 1], c: 'cyan', e: 1.1 },
-    { p: [-8, 41, -6], s: [3, 1, 1], c: 'navyLight' },
-    { p: [-7, 42, -6], s: [2, 1, 1], c: 'cyan', e: 1.4 },
-    { p: [-6, 43, -6], s: [1, 2, 1], c: 'cyan', e: 1.6 },
+  // Back thruster pods: two tall rocket pods behind the shoulders, from the waist to above the
+  // head, gold stripe on the inner side, cyan glow at the top and the bottom exhaust.
+  const pod = [
+    { p: [-9, 20, -9], s: [3, 21, 3], c: 'navy' }, // pod body
+    { p: [-9, 22, -10], s: [3, 17, 1], c: 'navyLight' }, // rear face
+    { p: [-8, 24, -11], s: [1, 13, 1], c: 'slate' }, // rear rib
+    { p: [-6, 24, -8], s: [1, 11, 1], c: 'gold' }, // inner gold stripe
+    { p: [-10, 26, -9], s: [1, 10, 2], c: 'navyDark' }, // outer edge
+    { p: [-10, 41, -9], s: [3, 2, 3], c: 'navyDark' }, // nozzle collar (top)
+    { p: [-10, 43, -9], s: [3, 2, 3], c: 'cyan', e: 1.6 }, // top glow
+    { p: [-9, 45, -8], s: [1, 1, 1], c: 'cyan', e: 2.0 },
+    { p: [-9, 18, -9], s: [3, 2, 3], c: 'navyDark' }, // bottom nozzle
+    { p: [-8, 17, -8], s: [1, 1, 1], c: 'cyan', e: 1.8 }, // exhaust glow
+    { p: [-9, 19, -10], s: [3, 1, 1], c: 'cyan', e: 1.3 },
+    { p: [-6, 27, -8], s: [4, 3, 2], c: 'navyDark' }, // mount bracket to the backpack
   ];
-  add('finTips', 'chest', [...fin, ...M(fin)], { glow: G.accent });
+  add('finTips', 'chest', [...pod, ...M(pod)], { glow: G.accent });
 
   // Head: navy kabuto, gold crescent horns, gold side flaps, stepped neck guard, dark center crest.
   // The face layer (z = 4) is built cell by cell so the visor part's eyes never overlap it.
@@ -343,8 +361,8 @@ export function heroDefinition() {
   add('visor', 'head', [...eye, ...M(eye), { p: [0, 40, 4], s: [2, 1, 1], c: 'cyan', e: 2.4 }], { glow: G.visor });
 
   // Shoulders: pauldrons on their own joints (lag), right sword arm, left claw gauntlet.
-  add('pauldronR', 'pauldronR', pauldronBoxes());
-  add('pauldronL', 'pauldronL', M(pauldronBoxes()));
+  add('pauldronR', 'pauldronR', shoulderGuardBoxes());
+  add('pauldronL', 'pauldronL', M(shoulderGuardBoxes()));
   add('upperArmR', 'upperArmR', upperArmBoxes());
   add('upperArmL', 'upperArmL', M(upperArmBoxes()));
   addSplit('forearmR', 'forearmR', [
