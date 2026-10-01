@@ -5,6 +5,7 @@ import { Animator } from '../../anim/Animator.js';
 import { bossClips } from '../../anim/clips/bossClips.js';
 import { clampToArena } from '../../world/ArenaBounds.js';
 import { wrapAngle as wrap } from '../../combat/Hitbox.js';
+import { audio } from '../../audio/Audio.js';
 
 const _v = new THREE.Vector3();
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -133,6 +134,8 @@ export class Boss {
   // ── Telegraph helpers ───────────────────────────────────────────────────
   decal(shape, opts) {
     const d = this.ctx.fx.decals.show(shape, opts);
+    d.sfx = 'slam'; // the telegraph lands with a boom
+    audio.play('warn');
     this.decalList.push(d);
     return d;
   }
@@ -327,6 +330,7 @@ export class Boss {
     g.fx.particles.dust(p, 20, { speed: 5, size: 0.22 });
     g.fx.particles.debris(_v.set(p.x, 0.3, p.z), 14, { speed: 5 });
     g.hud.bossBanner(this.name);
+    audio.play('bossIntro');
   }
 
   afterUpdate() {}
@@ -371,6 +375,7 @@ export class Boss {
       g.fx.particles.sparks(p, null, 16, { color: CONFIG.fx.emberColor, intensity: 3.5, speed: 9, life: 0.4, clock: 'hero' });
       g.fx.shock.ring(p, { r0: 0.2, r1: 2.2, duration: 0.3, color: '#ffb35a', intensity: 2.4, clock: 'hero' });
       g.rig.shake(0.25, 0.2);
+      audio.play('bossBoom');
     }
     if (this.dyingT >= B.deathTime) {
       this.dead = true;

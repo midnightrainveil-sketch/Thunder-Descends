@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { Skill } from './Skill.js';
 import { clampToArena } from '../world/ArenaBounds.js';
 import { EASE } from '../anim/Animator.js';
+import { audio } from '../audio/Audio.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -43,6 +44,7 @@ export class Thunderclaw extends Skill {
     g.postFX.setTint(C.aimTint, C.aimTintStrength, C.aimTween);
     g.postFX.setSaturation(C.aimSaturation, C.aimTween);
     g.fx.aim.show(true);
+    audio.play('aim');
     // Follow camera: vertical mouse slides the target along the ground (smooth, never past range).
     g.rig.beginSkillAim(this.hero, C.range, g.input.groundValid ? g.input.groundPoint : null);
     this._updateTarget(g.input);
@@ -91,6 +93,7 @@ export class Thunderclaw extends Skill {
     Object.assign(h.control, { lockMove: true, lockAim: true, lockAttack: true });
     h.aimYaw = Math.atan2(this.target.x - h.position.x, this.target.z - h.position.z);
     h.upper.play('clawThrow', { fade: 0.05 });
+    audio.play('clawLaunch');
     h.upper.targetWeight = 1;
     h.upper.weightFade = 0.05;
     this.hero.rig.worldPosition('clawHand', this.clawPos);
@@ -153,6 +156,7 @@ export class Thunderclaw extends Skill {
     const g = this.game;
     this.phase = 'grab';
     this.t = 0;
+    audio.play('clawGrab');
     const R = this.r(C.radius);
     const seen = new Set();
     const cand = g.enemies.filter((e) => {
@@ -204,6 +208,7 @@ export class Thunderclaw extends Skill {
     const g = this.game;
     this.phase = 'reattach';
     this.t = 0;
+    audio.play('clawLand');
     this.clawPos.copy(this.clawPos); // keep the hand where it grabbed; it flies back from here
     h.control.invulnerable = false;
     h.control.baseOwned = false;
@@ -212,7 +217,7 @@ export class Thunderclaw extends Skill {
       if (e.dead || Math.hypot(e.position.x - h.position.x, e.position.z - h.position.z) > C.landRadius + e.radius) continue;
       if (seen.has(e.owner || e)) continue;
       seen.add(e.owner || e);
-      g.combat.heroHitsEnemy(e, { mult: C.landMult, knockback: 3, from: h.position, shake: 0.3 });
+      g.combat.heroHitsEnemy(e, { mult: C.landMult, knockback: 3, from: h.position, shake: 0.3, skill: 'q2' });
     }
     g.fx.shock.ring(h.position, { r0: 0.3, r1: C.landRadius * 1.2, duration: 0.3, color: '#8ff4ff', intensity: 2.6, thickness: 0.22, clock: 'hero' });
     g.fx.particles.dust(h.position, 12, { speed: 3.5, clock: 'hero' });

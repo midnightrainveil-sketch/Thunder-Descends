@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { clampToArena } from '../world/ArenaBounds.js';
+import { audio } from '../audio/Audio.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -33,7 +34,7 @@ export class Dash {
 
   reset() {
     if (this.active) this._end(false);
-    this.charges = this.cfg.charges;
+    this.charges = this.maxCharges;
     this.rechargeT = 0;
     this.active = false;
     this.t = 0;
@@ -57,14 +58,23 @@ export class Dash {
   }
 
   // Debug C: all stacks back.
+  // Stacks and recharge include the Armory / card bonuses.
+  get maxCharges() {
+    return this.cfg.charges + (this.hero.bonus?.dashCharges || 0);
+  }
+
+  get rechargeTime() {
+    return this.cfg.recharge * (this.hero.bonus?.dashRechargeMul ?? 1);
+  }
+
   refill() {
-    this.charges = this.cfg.charges;
+    this.charges = this.maxCharges;
     this.rechargeT = 0;
   }
 
   // 0..1 progress of the stack currently refilling (0 when full).
   get recharge01() {
-    return this.charges >= this.cfg.charges ? 0 : Math.min(1, this.rechargeT / this.cfg.recharge);
+    return this.charges >= this.maxCharges ? 0 : Math.min(1, this.rechargeT / this.rechargeTime);
   }
 
   // Real time (runs through hitstop and slow-mo): remember the press for `buffer` seconds.
@@ -86,11 +96,13 @@ export class Dash {
    */
   update(dt, inputDir, input) {
     const D = this.cfg;
-    if (this.charges < D.charges) {
+    const max = this.maxCharges;
+    const rt = this.rechargeTime;
+    if (this.charges < max) {
       this.rechargeT += dt;
-      if (this.rechargeT >= D.recharge) {
+      if (this.rechargeT >= rt) {
         this.charges++;
-        this.rechargeT = this.charges < D.charges ? this.rechargeT - D.recharge : 0;
+        this.rechargeT = this.charges < max ? this.rechargeT - rt : 0;
       }
     }
     if (this.requestT > 0 && this.canStart()) {
@@ -116,9 +128,22 @@ export class Dash {
       this.afterT += D.afterimageEvery;
       h.ctx?.fx.afterimages.spawn(h, { life: D.afterimageLife, opacity: D.afterimageOpacity });
     }
+    // Thunder Step (card): enemies the dash passes through are zapped once.
+    if (h.bonus.thunderStep && h.ctx) this._thunderStep(h.ctx);
     if (this.t >= D.duration) {
       this._end(true);
       this.windowT = D.strike.window;
+    }
+  }
+
+  _thunderStep(g) {
+    const h = this.hero;
+    for (const e of g.enemies) {
+      if (e.dead || e.invulnerable || this.stepHit.has(e.owner || e)) continue;
+      if (Math.hypot(e.position.x - h.position.x, e.position.z - h.position.z) > e.radius + 1.0) continue;
+      this.stepHit.add(e.owner || e);
+      g.fx.lightning.bolt(_v.set(h.position.x, 0.9, h.position.z), _w.set(e.position.x, 1.0, e.position.z), { life: 0.1, width: 0.07, jitter: 0.25, intensity: 3.5 });
+      g.combat.heroHitsEnemy(e, { mult: CONFIG.cards.thunderStepMult, knockback: 3, unblockable: true, from: h.position, hitstop: 0, shake: 0.12, skill: 'step' });
     }
   }
 
@@ -200,6 +225,7 @@ export class Dash {
     h.group.rotation.y = h.legYaw;
     h.base.play('dash', { fade: 0.03 });
     g?.fx.aim.showMarker(null);
+    audio.play('strikeLunge');
     if (g) {
       g.fx.lightning.bolt(_v.set(h.position.x, 1.1, h.position.z), _w.set(target.position.x, 1.1, target.position.z), { life: 0.1, width: 0.06, jitter: 0.2, intensity: 3 });
       g.fx.particles.dust(h.position, 6, { speed: 3, clock: 'hero' });
@@ -248,8 +274,10 @@ export class Dash {
     const impact = _v.set(e.position.x, 1.1, e.position.z);
     if (!e.dead && !e.invulnerable) {
       const crit = Math.random() < h.critChance;
-      g.combat.heroHitsEnemy(e, { mult: S.mult, crit, knockback: S.knockback, stun: S.stun, unblockable: true, from: h.position, hitstop: S.hitstop, shake: S.shake });
+      g.combat.heroHitsEnemy(e, { mult: S.mult * h.bonus.strikeMul, crit, knockback: S.knockback, stun: S.stun, unblockable: true, from: h.position, hitstop: S.hitstop, shake: S.shake, strike: true });
     }
+    g.score?.onStrike();
+    audio.play('strikeImpact');
     // Splash around the impact (one hit per multi-part boss).
     const seen = new Set([e.owner || e]);
     for (const o of g.enemies) {
@@ -285,11 +313,13 @@ export class Dash {
     const h = this.hero;
     if (inputDir.lengthSq() > 1e-6) this.dir.copy(inputDir).setY(0).normalize();
     else this.dir.set(Math.sin(h.aimYaw), 0, Math.cos(h.aimYaw));
-    if (this.charges >= D.charges) this.rechargeT = 0;
+    if (this.charges >= this.maxCharges) this.rechargeT = 0;
     this.charges--;
     this.active = true;
     this.t = 0;
     this.afterT = 0;
+    this.stepHit = new Set();
+    audio.play('dash');
 
     h.interruptAttack();
     h.trail.stop();

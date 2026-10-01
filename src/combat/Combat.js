@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { audio } from '../audio/Audio.js';
 
 const _v = new THREE.Vector3();
 const _d = new THREE.Vector3();
@@ -55,8 +56,13 @@ export class Combat {
     _d.multiplyScalar(1 / len);
     const kb = (opts.knockback ?? 2) * (blocked ? C.blockedKnockback : 1);
     const killed = enemy.takeDamage(dmg, { dirX: _d.x, dirZ: _d.z, knockback: kb, stun: blocked ? 0 : opts.stun ?? 0, blocked, skill: opts.skill ?? null });
+    const boss = !!(enemy.isBoss || enemy.owner?.isBoss);
+    if (!blocked) this.game.score?.onHit(dmg, { crit: !!opts.crit, skill: opts.skill ?? null, boss, strike: !!opts.strike });
+    audio.play(blocked ? 'blocked' : 'hit', { crit: !!opts.crit, heavy: (opts.mult ?? 1) >= 2 || !!opts.strike });
+    // Storm Caller (legendary card): every Nth hit calls lightning down on the target.
+    if (!opts.storm && hero.bonus.stormCaller && ++hero.stormCount % CONFIG.cards.stormEvery === 0) this._stormStrike(enemy);
     // Lifesteal: a small share of damage dealt (blocked hits don't feed it).
-    if (!blocked && !hero.dead) hero.heal(dmg * CONFIG.hero.lifesteal);
+    if (!blocked && !hero.dead) hero.heal(dmg * (CONFIG.hero.lifesteal + hero.bonus.lifesteal));
     // Passive IV: crits heal 1% max HP.
     if (opts.crit && hero.passiveRank >= 4) hero.heal(S.maxHp * CONFIG.cards.passiveHeal);
 
@@ -87,6 +93,35 @@ export class Combat {
     return { damage: dmg, blocked, killed };
   }
 
+  // Dodges are counted once per attacker per 0.6 s (a slam's many frames count as one).
+  _dodge(source) {
+    const now = performance.now();
+    this._dodgeT ||= new WeakMap();
+    const key = source && typeof source === 'object' ? source : this;
+    if (now - (this._dodgeT.get(key) || 0) < 600) return;
+    this._dodgeT.set(key, now);
+    this.game.score?.onDodge();
+  }
+
+  // Storm Caller: a lightning bolt from the sky onto `target`, damaging everything around it.
+  _stormStrike(target) {
+    const K = CONFIG.cards;
+    const g = this.game;
+    const p = target.position;
+    g.fx.lightning.bolt(_v.set(p.x + (Math.random() - 0.5), 14, p.z + (Math.random() - 0.5)), _h.set(p.x, 0.2, p.z), { life: 0.18, width: 0.16, jitter: 0.6, intensity: 5 });
+    g.fx.shock.ring(p, { r0: 0.3, r1: K.stormRadius + 0.5, duration: 0.3, color: '#bff6ff', intensity: 3, thickness: 0.25 });
+    g.fx.particles.sparks(_v.set(p.x, 0.4, p.z), null, 24, { speed: 10, life: 0.35 });
+    g.rig.shake(0.3, 0.25);
+    audio.play('strikeImpact');
+    const seen = new Set();
+    for (const e of g.enemies) {
+      if (e.dead || seen.has(e.owner || e)) continue;
+      if (Math.hypot(e.position.x - p.x, e.position.z - p.z) > K.stormRadius + e.radius) continue;
+      seen.add(e.owner || e);
+      this.heroHitsEnemy(e, { mult: K.stormMult, knockback: 4, unblockable: true, from: p, hitstop: 0, shake: 0, storm: true });
+    }
+  }
+
   killEnemy(enemy, pushDir = null) {
     if (enemy.owner) enemy = enemy.owner; // a Raiju segment → the Raiju
     if (!enemy.dead) {
@@ -95,6 +130,17 @@ export class Combat {
     }
     if (enemy._killed) return;
     enemy._killed = true;
+    const sc = this.game.score;
+    if (enemy.isBoss) {
+      sc?.onBossKill(enemy);
+      audio.play('bossKill');
+    } else {
+      sc?.onKill(enemy);
+      audio.play('kill');
+    }
+    // Time Thief (card): kills cut the skill cooldowns.
+    const hero = this.game.hero;
+    if (hero.bonus.timeThief) for (const s of hero.skills.list) s.cd = Math.max(0, s.cd - CONFIG.cards.timeThief);
     enemy.group.visible = false;
     const boss = !!enemy.isBoss;
     this.fx.shatter.burst(enemy.rig, enemy.palette, pushDir, boss ? 1.6 : 1);
@@ -114,7 +160,12 @@ export class Combat {
   // Enemy damage to the hero (melee, slam, bolt). `from` = attacker position.
   enemyHitsHero(source, damage, knockback, from = source.position) {
     const hero = this.game.hero;
-    if (hero.dead || hero.iFrames > 0 || hero.control.invulnerable) return false;
+    if (hero.dead) return false;
+    if (hero.iFrames > 0 || hero.control.invulnerable) {
+      // A hit that lands during a dash (or the dash strike's lunge) is a dodge: style + feedback.
+      if (hero.dash.active || hero.dash.striking === 'lunge') this._dodge(source);
+      return false;
+    }
     const C = CONFIG.combat;
     _d.set(hero.position.x - from.x, 0, hero.position.z - from.z);
     const len = _d.length() || 1;
@@ -122,6 +173,17 @@ export class Combat {
     const dmg = Math.max(1, Math.round(damage * (1 + (Math.random() * 2 - 1) * C.damageJitter)));
     const god = this.game.godMode;
     hero.takeHit(god ? 0 : dmg, _d, knockback ?? C.hurtKnockback);
+    this.game.score?.onHurt();
+    audio.play('hurt');
+    // Second Wind (legendary card): survive one lethal hit per run.
+    if (hero.stats.hp <= 0 && hero.bonus.secondWind && !hero.bonus.secondWindUsed) {
+      hero.bonus.secondWindUsed = true;
+      hero.stats.hp = hero.stats.maxHp * CONFIG.cards.secondWindHp;
+      hero.iFrames = 1.5;
+      this.fx.shock.ring(hero.position, { r0: 0.3, r1: 4, duration: 0.5, color: '#ffd166', intensity: 3, thickness: 0.25, clock: 'hero' });
+      this.fx.numbers.show(_v.set(hero.position.x, 2.6, hero.position.z), 'SECOND WIND', 'label', { color: '#ffd166' });
+      audio.play('levelUp');
+    }
     const p = _v.set(hero.position.x, 1.3, hero.position.z);
     this.fx.numbers.show(p, god ? 'GOD' : dmg, 'hero');
     this.fx.particles.sparks(p, _d, 10, { color: '#ff3a4f', intensity: 3, speed: 7, life: 0.25 });

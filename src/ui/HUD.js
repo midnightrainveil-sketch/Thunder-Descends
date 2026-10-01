@@ -36,6 +36,32 @@ const CSS = `
   .k-hpb.low .bar { animation: k-hp-pulse .6s ease-in-out infinite alternate; }
   .k-hpb.hit .bar { box-shadow: 0 0 16px rgba(255,255,255,0.8); }
   @keyframes k-hp-pulse { from { border-color: rgba(255,90,110,0.55); } to { border-color: #fff; box-shadow: 0 0 18px rgba(255,58,79,0.9); } }
+  /* Score, style rank, combo, feed (top right). */
+  .k-tr { position: absolute; right: 18px; top: 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+  .k-score { font: 400 26px var(--font-num); color: #f4f1ea; text-shadow: 0 2px 6px rgba(0,0,0,0.8); letter-spacing: .04em; }
+  .k-score small { display: block; font: 600 10px var(--font-text); letter-spacing: .3em; color: rgba(143,244,255,0.85); }
+  .k-rank { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .k-rank .ltr { font: 800 58px var(--font-text); line-height: .9; font-style: italic; text-shadow: 0 0 18px currentColor, 0 3px 0 rgba(0,0,0,0.7); transition: transform .12s; }
+  .k-rank .ltr.pop { transform: scale(1.35) rotate(-4deg); }
+  .k-rank .side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .k-rank .nm { font: 700 12px var(--font-text); letter-spacing: .25em; text-transform: uppercase; }
+  .k-rank .mtr { width: 130px; height: 5px; background: rgba(255,255,255,0.12); transform: skewX(-20deg); }
+  .k-rank .mtr b { display: block; height: 100%; background: currentColor; transform-origin: left; box-shadow: 0 0 8px currentColor; }
+  .k-rank .mul { font: 400 11px var(--font-num); color: rgba(236,232,222,0.8); }
+  .k-combo { font: 700 22px var(--font-text); color: #fff; text-shadow: 0 0 10px rgba(53,224,255,0.7), 0 2px 0 rgba(0,0,0,0.7); transition: opacity .3s; }
+  .k-combo small { font: 600 11px var(--font-text); letter-spacing: .2em; color: #8ff4ff; margin-left: 6px; }
+  .k-feed { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; margin-top: 4px; min-height: 80px; }
+  .k-feed div { font: 700 13px var(--font-text); letter-spacing: .14em; text-shadow: 0 2px 4px rgba(0,0,0,0.8); animation: k-feed 1.6s ease-out forwards; }
+  .k-feed div b { font: 400 12px var(--font-num); margin-left: 8px; color: #fff; }
+  @keyframes k-feed { 0% { opacity: 0; transform: translateX(14px); } 10% { opacity: 1; transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+  /* Achievement toast (top centre, under the wave box). */
+  .k-toast { position: absolute; left: 50%; top: 74px; transform: translateX(-50%); padding: 8px 18px; display: flex; gap: 12px; align-items: center; opacity: 0; transition: opacity .3s, transform .3s; }
+  .k-toast.on { opacity: 1; transform: translate(-50%, 6px); }
+  .k-toast .ic { width: 26px; height: 26px; color: #ffd166; }
+  .k-toast .ic svg { width: 100%; height: 100%; }
+  .k-toast .t { font: 600 10px var(--font-text); letter-spacing: .3em; color: #ffd166; }
+  .k-toast .n { font: 700 15px var(--font-text); letter-spacing: .08em; }
+  .k-toast .r { font: 400 12px var(--font-num); color: #8ff4ff; }
   /* Low-HP warning vignette. */
   .k-lowhp { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(210,10,30,0.75) 100%); box-shadow: inset 0 0 60px rgba(255,30,50,0.6); }
@@ -116,7 +142,14 @@ export class HUD {
       <div class="k-skills k-panel">${SLOTS.map((s) => `<div class="k-slot" data-id="${s.id}"><img class="art" src="${SKILL_ICONS[s.icon]}" alt=""><div class="buff"></div><div class="sweep"></div><div class="sec"></div><span class="key">${s.key}</span><div class="pips">${s.id === 'lmb' ? '' : '<i></i>'.repeat(s.id === 'dash' ? CONFIG.hero.dash.charges : 4)}</div></div>`).join('')}</div>
       <div class="k-bl k-panel"><div class="ic">${ICONS.passive}</div><div><div class="t">CRIT</div><div class="v cr">50%</div></div></div>
       <div class="k-banner"><div class="big"></div><div class="small"></div></div>
-      <div class="k-hpb"><div class="bar"><u></u><b></b></div><div class="n"></div></div>`;
+      <div class="k-hpb"><div class="bar"><u></u><b></b></div><div class="n"></div></div>
+      <div class="k-tr">
+        <div class="k-score"><small>SCORE</small><span class="sv">0</span></div>
+        <div class="k-rank"><div class="side"><span class="nm"></span><span class="mtr"><b></b></span><span class="mul"></span></div><span class="ltr">D</span></div>
+        <div class="k-combo"><span class="cv"></span><small>HITS</small></div>
+        <div class="k-feed"></div>
+      </div>
+      <div class="k-toast k-panel"><div class="ic">${ICONS.core}</div><div><div class="t">ACHIEVEMENT</div><div class="n"></div></div><div class="r"></div></div>`;
     root.appendChild(this.el);
     const q = (s) => this.el.querySelector(s);
     this.lvl = q('.k-lvl');
@@ -134,6 +167,19 @@ export class HUD {
     this.slots = Object.fromEntries(SLOTS.map((s) => [s.id, this.el.querySelector(`.k-slot[data-id="${s.id}"]`)]));
     this.cr = q('.cr');
     this.bannerEl = q('.k-banner');
+    this.scoreEl = q('.k-score .sv');
+    this.rankEl = q('.k-rank');
+    this.rankLtr = q('.k-rank .ltr');
+    this.rankNm = q('.k-rank .nm');
+    this.rankMtr = q('.k-rank .mtr b');
+    this.rankMul = q('.k-rank .mul');
+    this.comboEl = q('.k-combo');
+    this.comboV = q('.k-combo .cv');
+    this.feedEl = q('.k-feed');
+    this.toastEl = q('.k-toast');
+    this.shownScore = 0;
+    this.toastQ = [];
+    this.toastT = 0;
     this.hpb = q('.k-hpb');
     this.hpbBar = q('.k-hpb .bar');
     this.hpbFill = q('.k-hpb .bar b');
@@ -179,7 +225,59 @@ export class HUD {
     fn(value);
   }
 
+  // Callout in the feed under the rank ("DODGE", "WAVE 2 CLEAR +800").
+  feed(text, color = '#8ff4ff', points = 0) {
+    const d = document.createElement('div');
+    d.style.color = color;
+    d.textContent = text;
+    if (points > 0) {
+      const b = document.createElement('b');
+      b.textContent = `+${points.toLocaleString('en-US')}`;
+      d.appendChild(b);
+    }
+    this.feedEl.prepend(d);
+    while (this.feedEl.children.length > 5) this.feedEl.lastChild.remove();
+    setTimeout(() => d.remove(), 1700);
+  }
+
+  rankPop() {
+    this.rankLtr.classList.add('pop');
+    setTimeout(() => this.rankLtr.classList.remove('pop'), 140);
+  }
+
+  toast(def) {
+    this.toastQ.push(def);
+  }
+
   update(realDt, game) {
+    // Score (counts up), style rank, combo.
+    const sc = game.score;
+    if (sc) {
+      this.shownScore += (sc.score - this.shownScore) * Math.min(1, realDt * 10);
+      if (Math.abs(sc.score - this.shownScore) < 1) this.shownScore = sc.score;
+      this._set('sv', Math.round(this.shownScore), (v) => (this.scoreEl.textContent = v.toLocaleString('en-US')));
+      const R = sc.rankDef;
+      this._set('rk', sc.rank, () => {
+        this.rankLtr.textContent = R.id;
+        this.rankNm.textContent = R.name;
+        this.rankEl.style.color = R.color;
+      });
+      this._set('rp', Math.round(sc.rankProgress * 100), (v) => (this.rankMtr.style.transform = `scaleX(${v / 100})`));
+      this._set('rm', `×${sc.mult.toFixed(2)}`, (v) => (this.rankMul.textContent = v));
+      this._set('cb', sc.combo, (v) => (this.comboV.textContent = v));
+      this.comboEl.style.opacity = sc.combo >= 3 ? 1 : 0;
+      this.rankEl.style.opacity = sc.style > 0 || sc.rank > 0 ? 1 : 0.45;
+    }
+    // Achievement toasts, one at a time.
+    this.toastT -= realDt;
+    if (this.toastT <= 0 && this.toastQ.length) {
+      const d = this.toastQ.shift();
+      this.toastEl.querySelector('.n').textContent = d.name;
+      this.toastEl.querySelector('.r').textContent = `+${d.reward} ◆`;
+      this.toastEl.classList.add('on');
+      this.toastT = CONFIG.ui.toastTime;
+    } else if (this.toastT <= 0) this.toastEl.classList.remove('on');
+
     const S = game.hero.stats;
     const P = game.progression;
     const W = game.waves;
@@ -250,10 +348,10 @@ export class HUD {
     if (R.buffActive) rel.style.setProperty('--b', (R.buffT / R.buffMax).toFixed(3));
     const dash = game.hero.dash;
     const dEl = this.slots.dash;
-    const dMax = CONFIG.hero.dash.charges;
+    const dMax = dash.maxCharges;
     const empty = dash.charges <= 0;
     this._set('dp', empty ? Math.round((1 - dash.recharge01) * 100) : 0, (v) => dEl.style.setProperty('--p', v / 100));
-    const dLeft = empty ? Math.ceil((1 - dash.recharge01) * CONFIG.hero.dash.recharge * 10) / 10 : 0;
+    const dLeft = empty ? Math.ceil((1 - dash.recharge01) * dash.rechargeTime * 10) / 10 : 0;
     this._set('ds', dLeft, (v) => (dEl.querySelector('.sec').textContent = v > 0 ? v.toFixed(1) : ''));
     this._set('dc', `${dash.charges}/${dMax}`, () => {
       const pips = dEl.querySelectorAll('.pips i');

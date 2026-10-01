@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { audio } from '../audio/Audio.js';
 
 // Floor telegraph decals (pooled): circle, sector or rectangle outlines that fill up over the
 // windup, flash when they resolve, then fade. World clock. Local shader coords:
@@ -120,7 +121,7 @@ export class Decals {
     m.position.set(x, CONFIG.fx.decalY, z);
     m.rotation.set(0, yaw, 0);
     m.visible = true;
-    Object.assign(d, { active: true, t: 0, duration, resolved: false, rt: 0 });
+    Object.assign(d, { active: true, t: 0, duration, resolved: false, rt: 0, sfx: null });
     d.cancel = () => this._fadeOut(d);
     d.setTransform = (nx, nz, nyaw) => {
       m.position.x = nx;
@@ -163,6 +164,7 @@ export class Decals {
           d.resolved = true;
           d.cancelled = false;
           d.rt = 0;
+          if (d.sfx) audio.play(d.sfx);
         }
       } else {
         d.rt += worldDt;

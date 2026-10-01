@@ -34,6 +34,7 @@ export class Projectiles {
   }
 
   fire(pos, yaw, damage, owner) {
+    audio.play('shot');
     const b = this.b[this.next];
     this.next = (this.next + 1) % POOL;
     Object.assign(b, { alive: true, yaw, t: 0, damage, owner, radius: this.opt.radius });

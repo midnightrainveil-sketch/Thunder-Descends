@@ -9,6 +9,7 @@ import { WhipStrike } from '../combat/WhipStrike.js';
 import { AttackInstance, hitSector, relativeYaw } from '../combat/Hitbox.js';
 import { SkillSystem } from '../skills/SkillSystem.js';
 import { Dash } from '../skills/Dash.js';
+import { audio } from '../audio/Audio.js';
 
 const DEG = Math.PI / 180;
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -121,6 +122,13 @@ export class Hero {
     const H = CONFIG.hero;
     Object.assign(this.stats, { maxHp: H.maxHp, hp: H.maxHp, atk: H.atk, critRate: H.critRate, critDamage: H.critDamage, attackSpeed: 1 });
     this.passiveRank = 1; // whip-sword passive (cards II–IV)
+    // Run bonuses from the Armory (meta) and special cards; reset every run.
+    this.bonus = {
+      dashCharges: 0, dashRechargeMul: 1, cooldownMul: 1, lifesteal: 0, strikeMul: 1,
+      thunderStep: false, timeThief: false, stormCaller: false, secondWind: false, secondWindUsed: false,
+    };
+    this.specialCards = {};
+    this.stormCount = 0;
     this.whipReachBonus = 0;
     this.statCards = { atk: 0, hp: 0, aspd: 0 };
   }
@@ -212,9 +220,11 @@ export class Hero {
     if (this.combo.crit && this.whip) {
       this.attack.active = false; // the whip's sweep does the hitting
       this.whip.start(dir);
+      audio.play('whip');
       const W = CONFIG.whip;
       this.ctx?.map.petalSweep(this.position, this.aim, W.arcDeg, W.reach, W.petalStrength, dir);
     } else {
+      audio.play('swing', { step });
       this.trail.start();
       const A = CONFIG.hero.anim;
       const [hs, he] = A.hitWindows[step];

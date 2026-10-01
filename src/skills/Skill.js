@@ -28,7 +28,7 @@ export class Skill {
   }
 
   get cooldownMax() {
-    return this.r(this.cfg.cooldown);
+    return this.r(this.cfg.cooldown) * (this.hero.bonus?.cooldownMul ?? 1);
   }
 
   get ready() {

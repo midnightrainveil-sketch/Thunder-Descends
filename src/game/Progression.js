@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { audio } from '../audio/Audio.js';
 
 const _v = new THREE.Vector3();
 
@@ -48,5 +49,6 @@ export class Progression {
     g.fx.particles.sparks(_v.set(p.x, 0.3, p.z), _v.clone().set(0, 1, 0), 26, { color: '#8ff4ff', intensity: 3.5, speed: 8, spread: 0.6, life: 0.6, clock: 'hero' });
     g.fx.numbers.show(_v.set(p.x, 2.7, p.z), 'LEVEL UP', 'label', { color: '#8ff4ff' });
     g.hud.flashLevel();
+    audio.play('levelUp');
   }
 }

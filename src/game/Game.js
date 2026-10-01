@@ -16,6 +16,11 @@ import { Progression } from './Progression.js';
 import { HUD } from '../ui/HUD.js';
 import { Screens } from '../ui/Screens.js';
 import { rollCards } from './Upgrades.js';
+import { Score } from './Score.js';
+import { Achievements } from './Achievements.js';
+import { meta } from './Meta.js';
+import { save } from './Save.js';
+import { audio } from '../audio/Audio.js';
 
 // Input stub for non-play modes (title / menus): the hero idles.
 const NO_INPUT = { isDown: () => false, wasPressed: () => false, wasReleased: () => false, isButtonDown: () => false, wasButtonPressed: () => false, wasButtonReleased: () => false, groundValid: false, groundPoint: new THREE.Vector3() };
@@ -47,6 +52,18 @@ export class Game {
     this.spikes = new Projectiles(scene, this.fx, { color: '#ff3fd2', size: [0.1, 0.1, 0.5], speed: F.speed, radius: 0.16, life: F.range / F.speed });
     this.boss = null;
     this.hud = new HUD(uiRoot);
+    // Run goals: score / combo / style rank, achievements (pay Thunder Cores), Armory (meta).
+    this.score = new Score(this);
+    this.achievements = new Achievements();
+    this.score.onFeed = (t, c, p) => this.hud.feed(t, c, p);
+    this.score.onRank = (k, up) => up && this.hud.rankPop();
+    this.achievements.onToast = (d) => this.hud.toast(d);
+    this.runCores = 0;
+    this.rerollsLeft = 0;
+    this.pickT = 0;
+    this.armoryReturn = 'title';
+    this.beatT = 0;
+    this._duck = false;
 
     this.hero = new Hero();
     this.hero.attachFX(this);
@@ -64,7 +81,10 @@ export class Game {
 
     this.progression = new Progression(this);
     this.waves = new Waves(this);
-    this.fx.exp.onCollect = (v) => this.progression.addExp(v);
+    this.fx.exp.onCollect = (v) => {
+      audio.play('exp');
+      this.progression.addExp(v);
+    };
     const boltFrom = new THREE.Vector3();
     this.projectiles.onHitHero = (b) => {
       boltFrom.set(b.p.x - Math.sin(b.yaw), 0, b.p.z - Math.cos(b.yaw)); // pushed along the bolt's path
@@ -175,6 +195,10 @@ export class Game {
     if (a === 'resume') this.setPaused(false);
     else if (a === 'restart') this.restart();
     else if (a === 'continue') this.continueEndless();
+    else if (a === 'armory') this.openArmory();
+    else if (a === 'back') this.screens.show(this.armoryReturn || 'title');
+    else if (a === 'reroll') this.rerollCards();
+    else if (a.startsWith('buy:')) this.buyUpgrade(a.slice(4));
     else if (a === 'shake') {
       const S = CONFIG.camera.shake;
       S.enabled = !S.enabled;
@@ -199,12 +223,31 @@ export class Game {
     this.cards = cards;
     this.mode = 'cards';
     this.time.paused = true;
-    this.screens.showCards(cards);
+    this.pickT = 0;
+    this.rerollsLeft = CONFIG.cards.rerolls;
+    this.screens.showCards(cards, this.rerollsLeft);
   }
 
+  rerollCards() {
+    if (this.mode !== 'cards' || this.pickT > 0 || this.rerollsLeft <= 0) return;
+    this.rerollsLeft--;
+    this.cards = rollCards(this);
+    audio.play('reroll');
+    this.screens.showCards(this.cards, this.rerollsLeft);
+  }
+
+  // Apply at once; the picked card flares for a moment before the screen closes (update()).
   pickCard(i) {
-    if (this.mode !== 'cards' || !this.cards?.[i]) return;
-    this.cards[i].apply();
+    if (this.mode !== 'cards' || this.pickT > 0 || !this.cards?.[i]) return;
+    const c = this.cards[i];
+    c.apply();
+    audio.play('cardPick', { rarity: c.rarity });
+    if (c.rarity === 'legendary') this.achievements.unlock('legendary');
+    this.screens.markPicked(i);
+    this.pickT = CONFIG.ui.cardPickDelay;
+  }
+
+  _afterPick() {
     this.progression.pendingUpgrades = Math.max(0, this.progression.pendingUpgrades - 1);
     this.cards = null;
     if (this.progression.pendingUpgrades > 0) return this.openCards(); // queued level-ups
@@ -214,11 +257,69 @@ export class Game {
     this.cardT = 0;
   }
 
+  openArmory() {
+    if (this.screens.current !== 'armory') this.armoryReturn = this.screens.current || 'title';
+    this.screens.renderArmory();
+    this.screens.show('armory');
+  }
+
+  buyUpgrade(id) {
+    if (!meta.buy(id)) {
+      audio.play('denied');
+      return;
+    }
+    audio.play('buy');
+    if (meta.allMaxed()) this.achievements.unlock('maxed');
+    this.screens.renderArmory(id);
+  }
+
+  // End of a run (death) or the demo clear: pay Thunder Cores for the score not yet paid, update
+  // personal bests, show the results breakdown.
+  _finishRun(which) {
+    const sc = this.score;
+    const S = CONFIG.score;
+    if (sc.score >= 50000) this.achievements.unlock('score50');
+    if (sc.score >= 150000) this.achievements.unlock('score150');
+    const earned = save.addCores((sc.score - sc.settled) * S.coresPerScore + (sc.bossKills - sc.settledBosses) * S.coresPerBoss);
+    sc.settled = sc.score;
+    sc.settledBosses = sc.bossKills;
+    this.runCores += earned;
+    const b = save.data.best;
+    const newBest = sc.score > b.score;
+    b.score = Math.max(b.score, sc.score);
+    b.wave = Math.max(b.wave, this.waves.wave);
+    b.combo = Math.max(b.combo, sc.maxCombo);
+    b.rank = Math.max(b.rank, sc.bestRank);
+    if (which === 'clear') b.clearTime = b.clearTime ? Math.min(b.clearTime, this.runTime) : this.runTime;
+    save.write();
+    this.screens.setResults(which, {
+      score: sc.score,
+      newBest,
+      best: b.score,
+      rows: [
+        ['WAVE', this.waves.wave],
+        ['LEVEL', this.progression.level],
+        ['KILLS', sc.kills],
+        ['BOSSES', sc.bossKills],
+        ['MAX COMBO', sc.maxCombo],
+        ['DODGES', sc.dodges],
+        ['DASH STRIKES', sc.strikes],
+        ['FLAWLESS WAVES', sc.flawlessWaves],
+        ['TIME', fmtTime(this.runTime)],
+      ],
+      rank: CONFIG.score.ranks[sc.bestRank],
+      cores: this.runCores,
+      total: save.data.cores,
+      achievements: this.achievements.unlockedThisRun.map((a) => a.name),
+    });
+  }
+
   onDemoClear() {
     this.mode = 'clear';
     this.time.paused = true;
-    const s = this.combat.stats;
-    this.screens.setStats('clear', [`WAVES ${this.waves.wave}`, `LEVEL ${this.progression.level}`, `KILLS ${s.kills} · WHIP STRIKES ${s.crits}`, `TIME ${fmtTime(this.runTime)}`]);
+    audio.play('victory');
+    this.achievements.unlock('clear');
+    this._finishRun('clear');
     this.screens.show('clear');
   }
 
@@ -239,6 +340,7 @@ export class Game {
     const pos = far.length ? far[Math.floor(Math.random() * far.length)].spawn.clone() : randomRimPoint(this.hero.position, E.spawnMinDist, new THREE.Vector3());
     if (opts.instant) return this._createEnemy(type, pos, opts);
     this.fx.shock.beam(pos);
+    audio.play('spawn');
     this.fx.decals.show('circle', { x: pos.x, z: pos.z, radius: 0.9, duration: E.spawnBeam, color: CONFIG.fx.emberColor });
     this.pendingSpawns.push({ type, pos, t: E.spawnBeam, opts });
     return null;
@@ -334,6 +436,7 @@ export class Game {
     this.fx.aim.show(false);
     this.fx.nanobots.clear();
     this.hero.playDeath();
+    audio.play('death');
     this.time.tweenScale('both', C.deathSlowmo, C.deathSlowmoTween);
     this.deathT = 0;
     this.postFX.setSaturation(0.35, 0.8);
@@ -356,9 +459,17 @@ export class Game {
     this.spikes.clear();
     this.fx.clear();
     this.hero.reset();
+    meta.applyToHero(this.hero); // Armory bonuses
     this.rig.snapBehind(this.hero);
     this.progression.reset();
+    this.progression.pendingUpgrades += meta.startCards(); // Head Start: free card(s)
     this.waves.reset();
+    this.score.reset();
+    this.achievements.unlockedThisRun = [];
+    this.runCores = 0;
+    this.pickT = 0;
+    save.data.runs++;
+    save.write();
     this.combat.stats = { hits: 0, crits: 0, kills: 0 };
     this.hud.banner('Wave 1', this.waves.bossFor(1) ? 'boss wave' : 'survive', CONFIG.waves.bannerTime);
   }
@@ -366,7 +477,7 @@ export class Game {
   // ── Update ───────────────────────────────────────────────────────────────
   update(time, input) {
     const mode = this.mode;
-    if (mode === 'title' && (input.wasButtonPressed(0) || input.wasPressed('Enter'))) this.startRun();
+    if (mode === 'title' && this.screens.current === 'title' && (input.wasButtonPressed(0) || input.wasPressed('Enter'))) this.startRun();
     else if (mode === 'play') {
       const sk = this.hero.skills;
       const aiming = (sk.q.active && sk.q.phase === 'aim') || (sk.e.active && sk.e.phase === 'aim');
@@ -377,7 +488,13 @@ export class Game {
       if (!fresh && (input.wasPressed('Escape') || input.wasPressed('KeyP'))) this.setPaused(false);
     } else if (mode === 'cards') {
       for (let i = 0; i < 3; i++) if (input.wasPressed(`Digit${i + 1}`) || input.wasPressed(`Numpad${i + 1}`)) this.pickCard(i);
-    } else if (mode === 'over' && input.wasPressed('Enter')) this.restart();
+      if (input.wasPressed('KeyR')) this.rerollCards();
+      if (this.pickT > 0) {
+        this.pickT -= time.realDt;
+        if (this.pickT <= 0) this._afterPick();
+      }
+    } else if (mode === 'over' && this.screens.current === 'over' && input.wasPressed('Enter')) this.restart();
+    this._audio(time);
     if (input.wasPressed('KeyV') && this.mode !== 'title') this.toggleCameraMode();
     this._syncCamera();
     const inp = this.mode === 'play' && !this.awaitLock ? input : NO_INPUT;
@@ -385,6 +502,7 @@ export class Game {
       this.hero.skills.handleInput(inp, time);
       this.hero.dash.handleInput(inp, time);
       this.runTime += time.realDt;
+      this.score.update(time.heroDt);
       // Level-up cards open shortly after the level-up burst.
       if (this.progression.pendingUpgrades > 0) {
         this.cardT += time.realDt;
@@ -432,12 +550,30 @@ export class Game {
     if (this.deathT >= 0) {
       this.deathT += time.realDt;
       if (this.deathT >= CONFIG.combat.deathOverlayDelay && this.mode === 'play') {
-        const s = this.combat.stats;
         this.mode = 'over';
-        this.screens.setStats('over', [`WAVE ${this.waves.wave}`, `LEVEL ${this.progression.level}`, `KILLS ${s.kills} · WHIP STRIKES ${s.crits}`, `TIME ${fmtTime(this.runTime)}`]);
+        this._finishRun('over');
         this.screens.show('over');
       }
     }
+  }
+
+  // Music intensity (title/menus calm, waves battle, bosses full), menu duck, low-HP heartbeat.
+  _audio(time) {
+    const playing = this.mode === 'play' && !this.hero.dead;
+    audio.music?.setIntensity(playing ? (this.boss ? 2 : 1) : 0);
+    const duck = this.mode !== 'play' && this.mode !== 'title';
+    if (duck !== this._duck) {
+      this._duck = duck;
+      audio.setMenuDuck(duck);
+    }
+    const S = this.hero.stats;
+    if (playing && !this.awaitLock && S.hp > 0 && S.hp / S.maxHp <= CONFIG.ui.hpLow) {
+      this.beatT -= time.realDt;
+      if (this.beatT <= 0) {
+        this.beatT = CONFIG.audio.lowHpBeat;
+        audio.play('heartbeat');
+      }
+    } else this.beatT = 0;
   }
 
   // Hard overlap resolve: enemies never overlap each other or the hero.

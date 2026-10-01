@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { Skill } from './Skill.js';
 import { HERO_BLADE_SEGMENTS, HERO_SEG_LEN_M } from '../voxel/models/HeroModel.js';
+import { audio } from '../audio/Audio.js';
 
 const _v = new THREE.Vector3();
 const _w = new THREE.Vector3();
@@ -57,6 +58,7 @@ export class Demontime extends Skill {
     h.velocity.set(0, 0, 0);
     h.base.play('demonPlant', { fade: 0.04 });
     g.rig.cinematic(true); // front-side close-up so the stab and the planted sword read
+    audio.play('ultRaise');
     g.time.hitstopRemaining = 0;
     g.time.hitstopLocked = true;
     this.shown = 0;
@@ -83,6 +85,8 @@ export class Demontime extends Skill {
     if (!f.plant && t >= C.plantAt) {
       f.plant = true;
       g.time.tweenScale('world', 0, C.freezeTween);
+      audio.play('ultStab');
+      audio.setTimeStop(true, 0.25);
       const ground = _b.copy(h.position).addScaledVector(_w.set(Math.sin(h.aimYaw), 0, Math.cos(h.aimYaw)), 0.45).setY(0.05);
       this.ground = this.ground || new THREE.Vector3();
       this.ground.copy(ground);
@@ -107,6 +111,7 @@ export class Demontime extends Skill {
     // The shockwave comes back: inward rings converging on the sword.
     if (!f.back && t >= C.nanoEnd) {
       f.back = true;
+      audio.play('ultReturn');
       const d = C.restoreAt - C.nanoEnd;
       g.fx.shock.ring(this.ground || this.center, { r0: 12, r1: 0.3, duration: d, color: '#bff6ff', intensity: 2.4, thickness: 0.22, clock: 'hero' });
       g.fx.shock.ring(this.ground || this.center, { r0: 6, r1: 0.2, duration: d * 0.8, color: '#ff5a6e', intensity: 1.8, thickness: 0.14, clock: 'hero' });
@@ -125,6 +130,7 @@ export class Demontime extends Skill {
     while (this.shown < HERO_BLADE_SEGMENTS && t >= plateStart + this.shown * plateStep) {
       const name = `bladeUlt_${this.shown}`;
       h.rig.setBoneVisible(name, true);
+      audio.play('plate');
       h.rig.worldPosition(name, _v);
       g.fx.particles.hitStar(_v, { color: '#ff5a6e', intensity: 3, rays: 5, speed: 5, size: 0.035, life: 0.12, clock: 'hero' });
       this.shown++;
@@ -139,6 +145,7 @@ export class Demontime extends Skill {
 
     if (!f.restore && t >= C.nanoEnd) {
       f.restore = true;
+      audio.setTimeStop(false, C.restoreAt - C.nanoEnd);
       g.time.tweenScale('world', 1, C.restoreAt - C.nanoEnd);
     }
     if (!f.pull && t >= C.restoreAt) {
@@ -150,6 +157,7 @@ export class Demontime extends Skill {
     // The blade comes free of the ground: release pulse.
     if (!f.release && t >= C.pullFree) {
       f.release = true;
+      audio.play('ultRelease');
       this._pulse();
     }
     if (!f.camBack && t >= C.camBackAt) {
@@ -191,7 +199,7 @@ export class Demontime extends Skill {
       if (e.dead || Math.hypot(e.position.x - h.position.x, e.position.z - h.position.z) > R + e.radius) continue;
       if (seen.has(e.owner || e)) continue;
       seen.add(e.owner || e);
-      g.combat.heroHitsEnemy(e, { mult: this.r(C.pulseMult), knockback: 8, unblockable: true, from: h.position, shake: 0.5 });
+      g.combat.heroHitsEnemy(e, { mult: this.r(C.pulseMult), knockback: 8, unblockable: true, from: h.position, shake: 0.5, skill: 'r' });
     }
     const fx = g.fx;
     fx.shock.ring(h.position, { r0: 0.4, r1: R, duration: 0.4, color: '#35e0ff', intensity: 3, thickness: 0.2, clock: 'hero' });
@@ -290,6 +298,7 @@ export class Demontime extends Skill {
   cancel() {
     if (!this.active) return;
     const g = this.game;
+    audio.setTimeStop(false, 0.1);
     g.rig.cinematic(false);
     g.time.hitstopLocked = false;
     g.time.tweenScale('world', 1, 0);

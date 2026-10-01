@@ -138,6 +138,17 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
   - Stats (up to 5 times each): ATK +10% · max HP +12% · attack speed +8%.
 - Maxed options leave the pool. Cards show icon, title, description, current → next rank.
 
+## 10b. Score, style & meta progression (revised after review)
+- **Score**: damage dealt, kills, boss kills, wave clears and flawless waves, all × a combo multiplier (combo resets after a few seconds without a hit) × the style-rank multiplier.
+- **Style meter** (DMC-style D → C → B → A → S → SS → SSS): hits, crits, kills, skill hits, dash strikes and dodges (taking a hit during i-frames) fill it; getting hurt drains it; it decays over time. Repeating the same action loses value, so variety ranks up faster. A higher rank at level-up gives better card odds.
+- **Cards** have a rarity (common / rare / epic / legendary). Stat cards roll a rarity that scales their bonus. Special cards: Vampiric Edge, Thunder Lunge, Spare Capacitor, Thunder Step, Time Thief, Storm Caller, Second Wind. There is one reroll per level-up. Cards are dealt and picked with animations and sounds.
+- **Thunder Cores** are earned per run (score / 250, plus a bonus per boss killed). They are spent in the **Armory** (from the title screen) on 8 permanent upgrades with rising costs. Achievements (17) pay out cores. Bests, runs and the wallet are saved in localStorage (`thunder.save`).
+- The results screen shows score, best, rank, combo, cores earned, NEW BEST and achievements unlocked this run.
+
+## 11b. Audio (revised after review)
+- Fully procedural Web Audio, no audio files (`src/audio`). Buses: hero, world (low-passed during Zero Hour's time stop), ui and music, through one compressor. Volume sliders are in settings.
+- Generative music in the D "in" scale: a drone on menus, taiko and koto in waves, and a driving pattern for bosses. A heartbeat plays at low HP.
+
 ## 11. UI
 - Style: dark translucent indigo panels (#0E1426 at ~75% opacity) with angular cut corners (clip-path), 1 px cyan edge lines, crimson for HP and danger, restrained and elegant. Fonts (Google Fonts, with fallbacks): Chakra Petch for labels and text, Silkscreen for numbers and damage numbers. Sentence case, short plain labels.
 - Health (after review): a big health bar sits just above the skill bar (red, amber at ≤ 55%, number beside it) with a white trailing segment showing damage just taken (holds 0.45 s, then drains); at ≤ 30% the bar pulses and the screen edges pulse red. The top-left bar is larger too.

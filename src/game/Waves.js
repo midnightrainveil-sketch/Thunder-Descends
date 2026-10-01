@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { audio } from '../audio/Audio.js';
 
 /**
  * Wave director (spec §9). Waves alternate boss / basic: 1 Juggernaut, 2 basic, 3 Kitsune,
@@ -79,6 +80,8 @@ export class Waves {
 
   _startWave(w) {
     this.wave = w;
+    this.game.score?.onWaveStart();
+    audio.play('waveStart');
     this.killed = 0;
     this.spawnTimer = 0.3;
     this.state = 'running';
@@ -143,12 +146,16 @@ export class Waves {
     if (this.toSpawn === 0 && this.killed >= this.total && g.aliveCount() === 0) {
       // Last demo boss down (wave 5, first time) → Demo clear screen; continuing resumes with the next wave.
       if (this.wave === this.demoWave && !this.demoCleared) {
+        g.score?.onWaveClear(this.wave);
         this.demoCleared = true;
         this.state = 'demo';
         this.timer = 1.6; // let the boss shatter and EXP burst play out first
         return;
       }
       // Cleared: breather, heal (more after a boss), banner for the next wave.
+      g.score?.onWaveClear(this.wave);
+      audio.play('waveClear');
+      if (this.wave >= 10) g.achievements?.unlock('wave10');
       this.state = 'break';
       this.timer = W.breakTime;
       const heal = this.bossWave ? W.bossHeal : W.breakHeal;

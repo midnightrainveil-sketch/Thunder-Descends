@@ -3,6 +3,7 @@ import { CONFIG } from '../config.js';
 import { Skill } from './Skill.js';
 import { clampToArena } from '../world/ArenaBounds.js';
 import { hitRect, hitSector, AttackInstance } from '../combat/Hitbox.js';
+import { audio } from '../audio/Audio.js';
 
 const DEG = Math.PI / 180;
 const _v = new THREE.Vector3();
@@ -42,6 +43,7 @@ export class Shatter extends Skill {
     g.postFX.setTint(C.aimTint, C.aimTintStrength, C.aimTween);
     g.postFX.setSaturation(C.aimSaturation, C.aimTween);
     g.fx.aim.showLane(true);
+    audio.play('aim');
     this._updateAim(g.input);
   }
 
@@ -120,6 +122,7 @@ export class Shatter extends Skill {
     const g = this.game;
     this.phase = 'thrust';
     this.t = 0;
+    audio.play('thrust');
     h.base.play('shatterThrust', { fade: 0.03 });
     const len = this.r(C.length);
     const wid = this.r(C.width);
@@ -194,6 +197,7 @@ export class Shatter extends Skill {
     const h = this.hero;
     const g = this.game;
     const n = this.slashN++;
+    audio.play(final ? 'swing' : 'slash', { step: 2 });
     const range = C.slashRange * (final ? 1.15 : 1);
     const arc = (final ? C.slashArcDeg + 30 : C.slashArcDeg) * DEG;
     this.hits.reset();
@@ -202,7 +206,7 @@ export class Shatter extends Skill {
       const crit = Math.random() < h.critChance;
       g.combat.heroHitsEnemy(e, {
         mult: final ? C.finalMult : C.slashMult, crit, knockback: final ? 6 : 0.6, from: h.position,
-        hitstop: final ? C.finalHitstop : crit ? 0.02 : 0, shake: final ? C.finalShake : 0.06,
+        hitstop: final ? C.finalHitstop : crit ? 0.02 : 0, shake: final ? C.finalShake : 0.06, skill: 'od',
       });
       if (this.r(C.chain)) this._chainLightning(e);
     }

@@ -940,3 +940,14 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - Q aim distance goes 6.6 → 8.7 → 1.5 → 9 (clamped) and restores on cancel.
   - Low-HP UI and vignette are on at 24%; 3 dash pips.
   - Auto quality steps 1 → 0.9 on 30 ms frames and back up with headroom. No errors.
+
+---
+
+## Update — Sound & reasons to play
+
+### What was built
+- **Sound** (`src/audio/Audio.js`, `src/audio/Music.js`): procedural SFX for every action, hit, skill, boss telegraph, UI hover/click and card reveal/pick (with a rising chime per rarity). Generative layered music follows the game's intensity, the world is low-passed during the time stop, and a heartbeat plays at low HP. Master, music and SFX volume sliders.
+- **Score & style** (`src/game/Score.js`): live score, combo counter, style ranks D to SSS with multipliers and an event feed in the HUD.
+- **Cards**: rarities, 7 special cards, one reroll, and deal/pick animations.
+- **Meta** (`src/game/{Save,Meta,Achievements}.js`): Thunder Cores, an Armory with 8 permanent upgrades, 17 achievements with toasts, saved bests, and a results screen.
+- All numbers are in `CONFIG.audio`, `CONFIG.score`, `CONFIG.meta`, `CONFIG.achievements` and `CONFIG.cards`.

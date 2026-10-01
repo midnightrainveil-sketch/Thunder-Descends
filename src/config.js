@@ -735,6 +735,8 @@ export const CONFIG = {
     hpLagHold: 0.45, // s the white "damage taken" trail holds before draining
     hpLagDrain: 0.8, // share of max HP per second the trail drains
     hpHitFlash: 0.15, // s the big bar glows after a hit
+    toastTime: 3, // s an achievement toast stays up
+    cardPickDelay: 0.45, // s the picked card glows before the screen closes
   },
 
   // ── Bosses (Stage 5, spec §9) ───────────────────────────────────────────
@@ -792,8 +794,91 @@ export const CONFIG = {
     },
   },
 
+  // ── Audio (procedural Web Audio: no files) ─────────────────────────────
+  audio: {
+    master: 0.8, music: 0.45, sfx: 0.8, // volumes 0..1 (pause-menu sliders, saved)
+    timeStopCutoff: 700, // Hz, lowpass on world sound + music while time is stopped
+    musicBpm: 96,
+    lowHpBeat: 0.85, // s between heartbeat thumps at low HP
+  },
+
+  // ── Score, combo and style rank (run goals) ─────────────────────────────
+  score: {
+    damageScore: 1, // score per point of damage dealt (× combo × rank multipliers)
+    comboTimeout: 3, // s without landing a hit → combo ends
+    comboStep: 0.02, comboMax: 2, // combo multiplier 1 + 0.02 per hit, capped at ×2
+    kill: { ronin: 150, teppo: 180, tate: 240, clone: 60 }, // base kill bonus (× multipliers)
+    bossKill: 6000, // × (1 + endless loop)
+    waveClear: 400, // × wave number
+    flawless: 800, // × wave number, cleared without taking damage
+    // Style meter (0..1000): gains on good play, decays, drops when hit. Ranks multiply score.
+    style: {
+      hit: 9, crit: 15, kill: 40, skillHit: 14, dashStrike: 90, dodge: 70, bossHit: 6,
+      hurt: -220, decay: 22, decayRank: 9, // per second (+ per rank above D)
+      repeatAfter: 4, repeatMul: 0.35, // the same action more than 4 times in a row gains less
+    },
+    ranks: [
+      { id: 'D', name: 'Dull', at: 0, mult: 1, color: '#9aa3b5' },
+      { id: 'C', name: 'Charged', at: 120, mult: 1.2, color: '#8ff4ff' },
+      { id: 'B', name: 'Brutal', at: 260, mult: 1.4, color: '#5fb8ff' },
+      { id: 'A', name: 'Arcing', at: 420, mult: 1.7, color: '#b07aff' },
+      { id: 'S', name: 'Stormborn', at: 600, mult: 2.0, color: '#ffd166' },
+      { id: 'SS', name: 'Skyrender', at: 780, mult: 2.5, color: '#ff9f43' },
+      { id: 'SSS', name: 'Thunder Descends', at: 920, mult: 3.0, color: '#ff4d6d' },
+    ],
+    coresPerScore: 1 / 250, // Thunder Cores earned per score point at the end of a run
+    coresPerBoss: 15,
+  },
+
+  // ── Meta progression: Armory (permanent upgrades bought with Thunder Cores) ──
+  meta: {
+    costGrowth: 1.65, // each level costs this much more than the last
+    upgrades: [
+      { id: 'hp', name: 'Reinforced Frame', desc: '+6% max HP', icon: 'hp', max: 5, cost: 50, value: 0.06 },
+      { id: 'atk', name: 'Honed Edge', desc: '+5% ATK', icon: 'atk', max: 5, cost: 50, value: 0.05 },
+      { id: 'crit', name: 'Storm Heart', desc: '+2% crit chance', icon: 'passive', max: 5, cost: 60, value: 0.02 },
+      { id: 'dash', name: 'Capacitor', desc: 'Dash recharge −8%', icon: 'dash', max: 5, cost: 60, value: 0.08 },
+      { id: 'cd', name: 'Overclock', desc: 'Skill cooldowns −5%', icon: 'time', max: 5, cost: 70, value: 0.05 },
+      { id: 'leech', name: 'Vampiric Alloy', desc: '+1% lifesteal', icon: 'leech', max: 3, cost: 90, value: 0.01 },
+      { id: 'start', name: 'Head Start', desc: 'Start each run with a free upgrade card', icon: 'aspd', max: 2, cost: 150, value: 1 },
+      { id: 'dash4', name: 'Fourth Charge', desc: '+1 dash charge', icon: 'dash', max: 1, cost: 600, value: 1 },
+    ],
+  },
+
+  // Achievements (one-time, pay Thunder Cores).
+  achievements: [
+    { id: 'firstBlood', name: 'First Blood', desc: 'Destroy an enemy', reward: 10 },
+    { id: 'juggernaut', name: 'Iron Breaker', desc: 'Defeat the Iron Juggernaut', reward: 40 },
+    { id: 'kitsune', name: 'Fox Hunt', desc: 'Defeat the Shadow Fox', reward: 60 },
+    { id: 'raiju', name: 'Storm Chaser', desc: 'Defeat the Storm Serpent', reward: 80 },
+    { id: 'clear', name: 'Thunder Descends', desc: 'Clear the demo (wave 5)', reward: 120 },
+    { id: 'rankS', name: 'Stormborn', desc: 'Reach style rank S', reward: 40 },
+    { id: 'rankSSS', name: 'Living Storm', desc: 'Reach style rank SSS', reward: 120 },
+    { id: 'combo50', name: 'Chain Reaction', desc: '50-hit combo', reward: 40 },
+    { id: 'combo150', name: 'Endless Chain', desc: '150-hit combo', reward: 100 },
+    { id: 'flawless', name: 'Untouchable', desc: 'Clear a wave without taking damage', reward: 40 },
+    { id: 'strikes', name: 'Flash Master', desc: '10 dash strikes in one run', reward: 40 },
+    { id: 'dodges', name: 'Ghost Step', desc: '15 dodges in one run', reward: 50 },
+    { id: 'legendary', name: 'Legend', desc: 'Take a legendary card', reward: 40 },
+    { id: 'score50', name: 'Rising Storm', desc: 'Score 50,000 in one run', reward: 60 },
+    { id: 'score150', name: 'Tempest', desc: 'Score 150,000 in one run', reward: 150 },
+    { id: 'wave10', name: 'Endless Thunder', desc: 'Reach wave 10', reward: 150 },
+    { id: 'maxed', name: 'Fully Forged', desc: 'Max every Armory upgrade', reward: 300 },
+  ],
+
   // Level-up cards (spec §10).
   cards: {
+    // Rarity: odds (weights) and stat-card strength. Higher style rank at level-up = better odds.
+    rarity: {
+      common: { weight: 62, mult: 1, color: '#8ff4ff' },
+      rare: { weight: 26, mult: 1.5, color: '#5fa8ff' },
+      epic: { weight: 10, mult: 2.2, color: '#c07aff' },
+      legendary: { weight: 2, mult: 3.5, color: '#ffc94d' },
+    },
+    rankLuckEpic: 2.5, rankLuckLegendary: 0.8, // extra weight per style rank above D
+    rerolls: 1, // free rerolls per card screen
+    leech: 0.03, strikeDmg: 0.5, thunderStepMult: 0.9, timeThief: 0.5, // special card values
+    stormEvery: 6, stormMult: 2.5, stormRadius: 2.5, secondWindHp: 0.35,
     statMax: 5, // each stat card at most 5 times
     atk: 0.1, hp: 0.12, attackSpeed: 0.08,
     passiveCritDamage: 0.3, passiveWhipReach: 1.5, passiveHeal: 0.01,
