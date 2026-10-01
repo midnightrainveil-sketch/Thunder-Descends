@@ -1,4 +1,4 @@
-// KUROGANE — every tunable number lives here, grouped by system (spec §13).
+// Thunder Descends — every tunable number lives here, grouped by system (spec §13).
 // Systems read these objects live, so the debug panel can edit them at runtime.
 
 // ── Block scales (spec §2) ────────────────────────────────────────────────
@@ -13,6 +13,16 @@ export const FLOOR_BLOCK = 1.0; // m, floor block size
 export const ARENA_RADIUS = 11; // m, play circle radius centered at origin
 
 export const CONFIG = {
+  // Player-facing names (title screen, cards, HUD, banners). Internal ids stay q / e / r.
+  names: {
+    game: 'Thunder Descends',
+    q: 'Storm Grapple', // pull-chain claw (was Thunderclaw)
+    e: 'Lightning Lance', // aimed thrust (was Shatter)
+    overdrive: 'Blade Storm', // E phase 2 (was Overdrive)
+    r: 'Zero Hour', // time-stop ultimate (was Demontime)
+    dash: 'Flash Step',
+    passive: 'Chain Blade', // crits become whip strikes
+  },
   camera: {
     elevationDeg: 38, // look-down angle from horizontal
     yawDeg: 0, // 0 = looking straight from the front (+Z → −Z)
@@ -702,7 +712,7 @@ export const CONFIG = {
     expBurst: 2, // EXP multiplier on the boss's exp value (fewer waves → bosses carry the levelling)
     recover: [0.1, 0.95], // s between attacks (random range, ÷ tempo)
     juggernaut: {
-      name: 'Oni Juggernaut', hp: 3000, exp: 150, radius: 1.3, speed: 2.8, keepDist: 3.2,
+      name: 'Iron Juggernaut', hp: 3000, exp: 150, radius: 1.3, speed: 2.8, keepDist: 3.2,
       slam: { damage: 40, radius: 2.2, first: 0.85, next: 0.45, spacing: [2.4, 4.6, 6.8] },
       charge: { damage: 55, telegraph: 0.9, speed: 15, width: 2.6, stun: 1.2, knockback: 12 },
       stomp: { damage: 35, radius: 4.5, telegraph: 0.8 },
@@ -710,7 +720,7 @@ export const CONFIG = {
       weights: { slam: 3, charge: 2, stomp: 2 },
     },
     kitsune: {
-      name: 'Kage Kitsune', hp: 4500, exp: 220, radius: 0.55, speed: 5.0, keepDist: 4.5,
+      name: 'Shadow Fox', hp: 4500, exp: 220, radius: 0.55, speed: 5.0, keepDist: 4.5,
       blink: { damage: 30, flash: 0.5, behind: 1.4, reach: 2.2, arcDeg: 150 },
       dash: { damage: 28, telegraph: 0.8, speed: 26, width: 1.3, count: 3, length: 7 },
       fan: { damage: 18, telegraph: 0.6, count: 11, arcDeg: 90, speed: 11, range: 12 },
@@ -719,7 +729,7 @@ export const CONFIG = {
       tailSway: { amp: 22, speed: 2.4 }, // degrees, Hz-ish
     },
     raiju: {
-      name: 'Raiju Serpent', hp: 7000, exp: 320, segments: 16, spacing: 0.95, radius: 0.75, headMult: 1.5,
+      name: 'Storm Serpent', hp: 7000, exp: 320, segments: 16, spacing: 0.95, radius: 0.75, headMult: 1.5,
       orbitRadius: 13.2, height: [2, 4], orbitSpeed: 0.42, // rad/s
       flipRate: 0.22, // per second: chance to reverse the orbit direction
       surge: { rate: 0.3, mul: 2.2, duration: 0.6 }, // random orbit speed bursts (per second, ×, s)

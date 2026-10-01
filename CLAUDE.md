@@ -1,4 +1,4 @@
-# KUROGANE — project conventions
+# Thunder Descends — project conventions
 
 Before starting any stage, read docs/GAME_SPEC.md and docs/PROGRESS.md. If I change a design decision during review, update docs/GAME_SPEC.md to match.
 

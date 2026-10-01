@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# KUROGANE - opens the game in your default browser (Chrome, Chromium or Firefox with WebGL2).
+# Thunder Descends - opens the game in your default browser (Chrome, Chromium or Firefox with WebGL2).
 DIR="$(cd "$(dirname "$0")" && pwd)"
 if command -v xdg-open >/dev/null 2>&1; then
   xdg-open "$DIR/index.html" >/dev/null 2>&1 &

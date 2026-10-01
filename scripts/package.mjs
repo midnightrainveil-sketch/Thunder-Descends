@@ -1,10 +1,10 @@
-// Builds release/KUROGANE-<version>.zip: the single-file game + Windows/Linux launchers.
+// Builds release/ThunderDescends-<version>.zip: the single-file game + Windows/Linux launchers.
 // Dependency-free zip writer (deflate via node:zlib, Unix modes kept so play-linux.sh stays executable).
 import { readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { deflateRawSync, crc32 } from 'node:zlib';
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-const name = `KUROGANE-${pkg.version}`;
+const name = `ThunderDescends-${pkg.version}`;
 const files = [
   ['dist/index.html', 'index.html', 0o644],
   ['packaging/play-windows.bat', 'play-windows.bat', 0o644],

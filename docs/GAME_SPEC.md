@@ -1,7 +1,7 @@
-# KUROGANE — Game Spec
+# Thunder Descends — Game Spec
 
 ## 1. Vision
-A short, punchy, playable 3D arena action demo in the browser. The player controls KUROGANE, a mecha samurai, in a circular moonlit shrine arena ringed by sakura trees, fighting waves of robot soldiers (max 1–2 on the field at a time) and 3 bosses. EXP from kills upgrades skills.
+A short, punchy, playable 3D arena action demo in the browser. The player controls a mecha samurai, in a circular moonlit shrine arena ringed by sakura trees, fighting waves of robot soldiers (max 1–2 on the field at a time) and 3 bosses. EXP from kills upgrades skills.
 
 Art: blocky low-resolution voxel art — every character and prop is built from big, clearly visible cubes, like chunky 3D pixel art — with a mature, grounded, cinematic tone. Low block count, bold simple shapes, detail through color blocking only. Realistic adult proportions; nothing chibi, cute or big-headed.
 
@@ -31,11 +31,17 @@ Build priorities, in order: (1) visuals and effects, (2) gameplay feel, (3) UI. 
 - Rim: the platform ends in a visible stone foundation wall that drops into mist, most visible at the front edge. A low blocky stone balustrade (~0.5 m, never hides characters) runs around the rim with 4 gaps (front-left, front-right, back-left, back-right) that act as enemy spawn gates. 8 stone tōrō lanterns sit on the rim with warm flickering fire boxes and soft light pools on the floor.
 - Back: a large blocky vermilion torii gate just beyond the back edge, blocky stone steps descending behind it, a small blocky shrine hall with a stepped roof further back half-hidden by trees, a distant blocky five-tier pagoda silhouette on a far ridge.
 - Sakura: 7–9 large blocky sakura trees (5–9 m tall) around the back and sides, outside the rim, stair-stepped leaning dark trunks, big canopies made of 0.5 m cubes in pale pink, soft pink and white (a couple of green cubes) forming a few overlapping rounded clusters with stepped edges. One large "hero tree" behind-left frames the torii. No trees in the front arc between the camera and the arena; canopies may overhang the rim slightly but never hide the play area. Canopies sway gently in the wind.
-- Petals: drifting sakura petals (tiny pink cubes) across the whole scene, landing, resting and fading on the floor; a petal carpet under the trees. Petals react to gameplay: shockwaves, slams, dashes and sweeps push them away. Petals run on the world clock, so they slow during Q aiming and freeze in mid-air during the Demontime time-stop.
+- Petals: drifting sakura petals (tiny pink cubes) across the whole scene, landing, resting and fading on the floor; a petal carpet under the trees. Petals react to gameplay: shockwaves, slams, dashes and sweeps push them away. Petals run on the world clock, so they slow during Q aiming and freeze in mid-air during the Zero Hour time-stop.
 - Sky & distance: deep indigo gradient sky, faint stars, a large pale moon with a soft halo and thin clouds drifting across it, three layered big-block mountain ridges fading into the distance (atmospheric perspective), thin ground mist rolling around the rim and below the platform edge.
 - Lighting: cool moonlight (main shadow caster), dim blue hemisphere fill, warm lantern pools, a subtle back/rim light so silhouettes separate from the floor, dappled canopy shadows at the arena edges.
 
-## 5. The hero — KUROGANE
+## Names (revised after review)
+- Game: **Thunder Descends** (was KUROGANE / Thunder Descends). No Japanese names on screen.
+- Skills: Q **Storm Grapple** (was Thunderclaw), E **Lightning Lance** → phase 2 **Blade Storm** (was Shatter → Overdrive), R **Zero Hour** (was Demontime), Shift **Flash Step** (dash), passive **Chain Blade** (crits become whip strikes).
+- Bosses: **Iron Juggernaut**, **Shadow Fox**, **Storm Serpent**.
+- All player-facing names live in `CONFIG.names` (bosses in `CONFIG.bosses.*.name`); code keeps the old internal ids (`thunderclaw`, `shatter`, `demontime`, `Juggernaut.js`, …).
+
+## 5. The hero
 Design (final look per the character reference sheet, built from 0.06 m blocks): a tall mecha samurai with a heavy armored upper body and long armored legs. No wings: the big shapes at the shoulders are shoulder guards, and the tall shapes behind them are back thrusters.
 - Head: navy kabuto with a broad gold crescent kuwagata (thick at the brow, sweeping out and up to fine tips), gold side flaps, a dark center crest blade, a stepped neck guard with a gold edge, a jaw mask, two angled cyan eyes and a cyan forehead jewel on a gold plate.
 - Torso: broad navy chest with light pec plates framed by tall gold bars, a wide glowing cyan V core running from the shoulders down to the sternum, a gold collar, a red bead rope hanging in a U from the collar down the chest to the belt, a dark segmented abdomen, a backpack with a cyan light bar and vents.
@@ -43,8 +49,8 @@ Design (final look per the character reference sheet, built from 0.06 m blocks):
 - Back thrusters: two tall rocket pods behind the shoulders, from the waist to above the head, mounted to the backpack; navy with a lighter rear face, a gold stripe on the inner side, cyan glow at the top nozzle and the bottom exhaust.
 - Waist: belt with a red sash band, a gold belt plate over a long navy center panel (mask-like face) between crimson strips hanging to the ankles, a long crimson back sash under a knotted rope belt, front-outer thigh tassets with a gold zigzag trim, a gold hem and hanging red cords.
 - Legs: navy thighs and shins with lighter front plates, cyan light strips on the thighs and shins, big gold knee guards, red ankle bands, heavy sabatons with gold toe caps, side plates and heel spurs.
-- Arms: blue-gray segmented upper arms; right forearm navy with a gold bracer (cyan strip); left arm an oversized gray claw gauntlet (~2× the right forearm) with a navy/gold bracer band, slate front plate, cyan lights, a dark wrist chain housing, a palm with knuckle plates and three hooked segmented talons plus a thumb; it detaches for Thunderclaw.
-- Nodachi (~2.0 m): crimson hilt with dark wraps, gold pommel, square gold tsuba; the blade is 8 segments (0.24 m each, alternating steel shades with seams, dark spine) with a glowing cyan edge row and a glowing point; the segments split apart for the crit whip, and Demontime adds navy side plates and a crimson spine glow.
+- Arms: blue-gray segmented upper arms; right forearm navy with a gold bracer (cyan strip); left arm an oversized gray claw gauntlet (~2× the right forearm) with a navy/gold bracer band, slate front plate, cyan lights, a dark wrist chain housing, a palm with knuckle plates and three hooked segmented talons plus a thumb; it detaches for Storm Grapple.
+- Nodachi (~2.0 m): crimson hilt with dark wraps, gold pommel, square gold tsuba; the blade is 8 segments (0.24 m each, alternating steel shades with seams, dark spine) with a glowing cyan edge row and a glowing point; the segments split apart for the crit whip, and Zero Hour adds navy side plates and a crimson spine glow.
 
 Base stats (all in config.js):
 | Stat | Value |
@@ -65,28 +71,28 @@ Dash (Shift): a 5.2 m burst over 0.2 s in the WASD direction (the facing when no
 Basic attack: 3-hit combo (damage ×1.0, ×1.0, ×1.4), sector hitbox range 2.4 m, 120° arc toward the aim. Combo resets after 0.9 s without attacking. Input is buffered (a click during the current swing queues the next).
 
 ## 6. Passive — Crit Chance (whip-sword)
-- Every basic attack rolls crit (50% base, 100% during Demontime).
+- Every basic attack rolls crit (50% base, 100% during Zero Hour).
 - On crit the attack becomes a WHIP STRIKE: the 8 blade segments detach and fly out along a long curved arc like a spine, each linked to the next by crackling cyan lightning; the chain sweeps ~170° in front of the hero with a wave-like lag: the hilt end leads and each segment trails the one before it, so the chain curves back from the sword toward where the swing has already been (the tip trails last, never points ahead), then snaps back together with a click-flash. Reach 5.5 m (vs 2.4 m normally), 170° sector hitbox, crit damage. The sweep blows petals along the arc.
 - Timing: extend + sweep 0.28 s, retract 0.15 s. Hitstop 0.07 s on hit, camera shake, big crit damage number.
-- During Overdrive, crit slashes show a shortened whip-flash variant.
+- During Blade Storm, crit slashes show a shortened whip-flash variant.
 
 ## 7. Skills
 All numbers in config.js. Each skill has rank 1–4 (rank-ups come from level-up cards, §10). One skill at a time, none while stunned; a basic attack can be cancelled into a skill once its hit is out.
 
-### Q — Thunderclaw (cooldown 6 s)
+### Q — Storm Grapple (cooldown 6 s)
 1. Press Q → targeting mode. World and hero time slow to ×0.15, the screen tints cold blue and desaturates slightly. A 9 m range ring shows around the hero and a 2.5 m AoE reticle follows the mouse, clamped to max range and to the arena. Left-click confirms. Right-click or Esc cancels (no cooldown). Auto-fires at the cursor after 2.5 real seconds.
 2. Launch (0.18 s): the left claw hand detaches and flies to the target; a thick chain of voxel links trails from the empty wrist to the hand, with a slight sag and lightning crawling along it.
 3. Grab (0.2 s): up to 3 enemies in the radius are yanked together to the center, clustered inside the claw's lightning grip, take 1.2×ATK and are stunned 1.5 s. Bosses are not moved; they take the damage and a 0.6 s stun.
 4. Pull-dash (0.25 s): the chain retracts and drags the hero to the grab point (invulnerable meanwhile). Landing: 2 m impact, 0.8×ATK, shake, petal burst. The hand reattaches with a spark.
 If nothing is in the radius, the hand still flies and the hero still dashes (it doubles as mobility).
 
-### E — Shatter (cooldown 10 s) → Phase 2: Overdrive
+### E — Lightning Lance (cooldown 10 s) → Phase 2: Blade Storm
 0. Aim (like Q): press E → targeting mode. World and hero time slow to ×0.15, the screen tints cold blue and desaturates. A cyan lane on the floor (thrust length incl. the lunge × width, bright edges, chevrons flowing outward) points from the hero toward the aim point. Left-click fires, right-click or Esc cancels (no cooldown), auto-fires after 2.5 real seconds. The cooldown starts on firing.
-1. Shatter: 0.12 s windup, one-handed straight thrust along the aimed lane. Rectangle hitbox 3.5 m long × 1.2 m wide, 1.8×ATK, stun 1.0 s, spear-like cyan shockwave from the blade tip.
-2. If it hits at least one enemy → Overdrive (1.0 s): two-handed grip, lightning-fast: a slash every 0.08 s (~12 slashes) in a 120° cone, 3.2 m range, 0.45×ATK each, each can crit. The hero glows, leaves cyan afterimages, drifts toward the aim at 1.5 m/s and can't be knocked back. Every slash spawns a crescent arc at a varied angle; it ends with a heavier final slash.
-3. If Shatter misses, nothing more happens (normal recovery).
+1. Lightning Lance: 0.12 s windup, one-handed straight thrust along the aimed lane. Rectangle hitbox 3.5 m long × 1.2 m wide, 1.8×ATK, stun 1.0 s, spear-like cyan shockwave from the blade tip.
+2. If it hits at least one enemy → Blade Storm (1.0 s): two-handed grip, lightning-fast: a slash every 0.08 s (~12 slashes) in a 120° cone, 3.2 m range, 0.45×ATK each, each can crit. The hero glows, leaves cyan afterimages, drifts toward the aim at 1.5 m/s and can't be knocked back. Every slash spawns a crescent arc at a varied angle; it ends with a heavier final slash.
+3. If Lightning Lance misses, nothing more happens (normal recovery).
 
-### R — Demontime (cooldown 30 s) — ultimate
+### R — Zero Hour (cooldown 30 s) — ultimate
 Cast (2.5 s, hero invulnerable, input locked; revised after review):
 - 0.00–0.20 s: the hero raises the sword overhead point-down in a two-handed grip and stabs it into the ground in front of him, standing straight (no kneel).
 - 0.20 s (the stab): a shockwave bursts out of the sword (shock rings, sparks, debris, dust, petal burst, flash, shake) and time stops. The grayscale time-stop ring sweeps out from the planted sword past the screen edge in 0.35 s. Everything it passes turns grayscale and freezes (world time = 0: enemies, projectiles, particles, petals in mid-air, swaying trees, lantern flicker). Only the hero's clock runs and the hero stays in full color.
@@ -106,25 +112,25 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 | Tate Brute | 260 | 35 | 2.2 | Tank (~1.05× height, 1.3× width). Frontal 120° shield blocks 80% damage unless stunned or hit from behind. 0.9 s slam telegraph, 2.2 m radius. Tower shield, hammer. | 20 | 3 |
 
 ## 9. Waves & bosses
-- Order: boss, basic, boss, basic, boss — wave 1 Oni Juggernaut, wave 2 basic, wave 3 Kage Kitsune, wave 4 basic, wave 5 Raiju Serpent → Demo clear. Endless keeps alternating (bosses on odd waves, repeating in the same order).
+- Order: boss, basic, boss, basic, boss — wave 1 Iron Juggernaut, wave 2 basic, wave 3 Shadow Fox, wave 4 basic, wave 5 Storm Serpent → Demo clear. Endless keeps alternating (bosses on odd waves, repeating in the same order).
 - Basic waves: max 3 enemies alive. A basic wave w is scaled to level L = 1 + 3·(w−1) (wave 2 → L4, wave 4 → L10) and has 4 + floor(0.6·L) enemies (6, then 10), spawned one at a time as slots free up, from the 4 balustrade gaps or random rim points at least 5 m from the hero (1 s spawn telegraph: orange vertical beam + ground ring). All three types appear from wave 2.
 - Scaling per level: HP ×1.14^(L−1), damage ×1.07^(L−1), speed +1.5%/level (max +30%), EXP +15%/level.
 - Between waves: 2.5 s breather, hero heals 20% max HP (40% after a boss wave), big "Wave N" banner.
 - Boss difficulty (all bosses): HP ×1.15, damage ×1.6, tempo ×1.45 (movement, telegraphs and attack timing are faster; enrage multiplies on top; capped at ×2.1), enrage at 60% HP. Base walk speeds: Juggernaut 2.8 m/s, Kitsune 5 m/s; Raiju orbits at 0.42 rad/s.
 - Unpredictable bosses: every attack runs at a random tempo (×0.8–1.35, so telegraph lengths vary), recovery between attacks is random (0.1–0.95 s ÷ tempo) with a 35% chance to chain straight into the next attack, and walking bosses switch footwork at random every 0.35–1.1 s: approach (to keep distance), circle-strafe either way, a fast flank dash (×3.2 speed) to a point 60–130° around the hero, or a back-step. The Raiju randomly reverses its orbit, surges (×2.2 for 0.6 s) and crosses the arena more often (45%). Bosses give ×2 EXP (they carry the levelling now that there are fewer waves).
 - Boss waves (boss alone, with an intro); base HP below, before the ×1.15:
-  - Wave 1 — Oni Juggernaut (HP 3000): ~2.2× hero height, hulking but properly proportioned brute, horns, furnace chest, spiked club. Triple ground slam (three red circles in sequence toward the hero), charge across the arena to the rim (red lane telegraph; stunned 1.2 s when it crashes into the balustrade), shockwave stomp. Enrage at 60% HP: faster, chest flares.
-  - Wave 3 — Kage Kitsune (HP 4500): tall agile ninja mech, fox mask, 3 segmented tails, twin blades. Teleport-behind strike (magenta flash telegraph 0.5 s), triple dash-slash (three lane telegraphs, then fast dashes), tail spike fan (projectiles). At 60% HP: 2 shadow clones (die in one hit, half damage).
-  - Wave 5 — Raiju Serpent (HP 7000): flying segmented dragon (~16 segments) circling the arena just outside the rim at 2–4 m height, sometimes crossing over it in a figure-8, head leads. Sweeping breath beam (telegraph line), lightning pillar barrage (5–8 red circles), dive across the arena along a lane. Every segment is hittable; damage goes to one shared HP pool; the head takes ×1.5.
-- Bosses can't be pulled by Thunderclaw and receive reduced stuns (Q 0.6 s, E 0.4 s).
+  - Wave 1 — Iron Juggernaut (HP 3000): ~2.2× hero height, hulking but properly proportioned brute, horns, furnace chest, spiked club. Triple ground slam (three red circles in sequence toward the hero), charge across the arena to the rim (red lane telegraph; stunned 1.2 s when it crashes into the balustrade), shockwave stomp. Enrage at 60% HP: faster, chest flares.
+  - Wave 3 — Shadow Fox (HP 4500): tall agile ninja mech, fox mask, 3 segmented tails, twin blades. Teleport-behind strike (magenta flash telegraph 0.5 s), triple dash-slash (three lane telegraphs, then fast dashes), tail spike fan (projectiles). At 60% HP: 2 shadow clones (die in one hit, half damage).
+  - Wave 5 — Storm Serpent (HP 7000): flying segmented dragon (~16 segments) circling the arena just outside the rim at 2–4 m height, sometimes crossing over it in a figure-8, head leads. Sweeping breath beam (telegraph line), lightning pillar barrage (5–8 red circles), dive across the arena along a lane. Every segment is hittable; damage goes to one shared HP pool; the head takes ×1.5.
+- Bosses can't be pulled by Storm Grapple and receive reduced stuns (Q 0.6 s, E 0.4 s).
 - After wave 5: "Demo clear" screen with stats and an option to continue endlessly (bosses repeat on every other wave with +60% HP and +25% damage per repeat).
 
 ## 10. Progression
 - EXP to next level: 40 + 25·(L−1).
 - Level-up: +8% ATK, +5% max HP, heal 25%, then the game pauses and shows 3 upgrade cards (pick one). Pool:
-  - Thunderclaw II/III/IV: +1 target and +0.5 m radius · −1 s cooldown · grabbed enemies take +30% damage while stunned.
-  - Shatter II/III/IV: Overdrive +0.4 s · Shatter range +1.5 m and width +0.4 m · Overdrive slashes chain lightning to one nearby enemy.
-  - Demontime II/III/IV: buff +2 s · release pulse ×2 damage and +2 m radius · kills during the buff extend it by 0.5 s (max +4 s).
+  - Storm Grapple II/III/IV: +1 target and +0.5 m radius · −1 s cooldown · grabbed enemies take +30% damage while stunned.
+  - Lightning Lance II/III/IV: Blade Storm +0.4 s · thrust range +1.5 m and width +0.4 m · Blade Storm slashes chain lightning to one nearby enemy.
+  - Zero Hour II/III/IV: buff +2 s · release pulse ×2 damage and +2 m radius · kills during the buff extend it by 0.5 s (max +4 s).
   - Passive II/III/IV: crit damage +30% · whip reach +1.5 m · crits heal 1% max HP.
   - Stats (up to 5 times each): ATK +10% · max HP +12% · attack speed +8%.
 - Maxed options leave the pool. Cards show icon, title, description, current → next rank.
@@ -139,7 +145,7 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 - Rendering: WebGLRenderer (antialias, ACES filmic tone mapping, sRGB output, PCF soft shadows from the moonlight, pixel ratio capped at 2). EffectComposer: RenderPass → UnrealBloomPass → custom GradePass → OutputPass.
 - GradePass uniforms: saturation, tint (color + strength, for Q slow-mo), vignette, chromaticAberration, flash (additive white), and a time-stop ring: ringCenter (screen UV), ringRadius, ringActive — pixels inside the ring become grayscale with a bright cyan line at the boundary. A hero mask (the hero rendered to a mask target) lets selected objects stay in color inside the ring.
 - Materials: opaque voxel parts use MeshStandardMaterial (vertexColors, flatShading). Emissive parts use MeshBasicMaterial (vertexColors, toneMapped: false) with vertex colors scaled above 1.0 so they bloom. The bloom threshold is high enough that only emissive parts glow.
-- Time system (GameTime): realDt (clamped to 1/20 s), worldScale, heroScale, paused, hitstop(duration), tweenScale(layer, target, duration), plus accumulated worldTime and heroTime. Enemies, projectiles, world particles, petals, tree sway and lantern flicker use the world clock; the hero, his skills, his FX and cooldowns use the hero clock; UI uses real time. Q targeting sets both scales to 0.15; the Demontime cast sets worldScale to 0; hitstop zeroes both briefly (except during the ult cast). Shader-driven animation (tree sway, seam pulse, mist) reads worldTime so it freezes too.
+- Time system (GameTime): realDt (clamped to 1/20 s), worldScale, heroScale, paused, hitstop(duration), tweenScale(layer, target, duration), plus accumulated worldTime and heroTime. Enemies, projectiles, world particles, petals, tree sway and lantern flicker use the world clock; the hero, his skills, his FX and cooldowns use the hero clock; UI uses real time. Q targeting sets both scales to 0.15; the Zero Hour cast sets worldScale to 0; hitstop zeroes both briefly (except during the ult cast). Shader-driven animation (tree sway, seam pulse, mist) reads worldTime so it freezes too.
 - Voxel builder: parts are lists of boxes in integer voxel units {p:[x,y,z], s:[w,h,d], c:'paletteKey', e?:emissiveIntensity}, merged into one geometry per part (one opaque mesh + one emissive mesh), with helpers mirrorX(boxes), deterministic per-box color jitter, and optional removal of fully hidden interior boxes. Every box snaps to its part's block grid (voxelSize per part: VOXEL, BOSS_VOXEL or ENV_VOXEL). The box list is kept on the part so death shatter can spawn chunks from it. Characters are rigid-skinned: all parts of a rig merge into one opaque + one emissive SkinnedMesh, each vertex bound to its part's joint, so named nodes are joints (2 draw calls per character).
 - Environment: static props merged per material, repeated props instanced, petals and particles in InstancedMesh pools.
 - Performance: 60 fps on a mid-range gaming laptop at 1080p. Pooled FX, no per-frame allocations in hot loops where avoidable.
@@ -161,5 +167,5 @@ lil-gui panel toggled with the backquote key, plus an FPS and draw-call counter.
 - Stage 1 — Map: the circular sakura shrine arena, trees, petals, sky, lighting, atmosphere.
 - Stage 2 — Models: blocky voxel hero and enemies, rigs, animation system, model viewer.
 - Stage 3 — Combat: combat core, whip-sword passive, FX library, enemy AI, waves, EXP.
-- Stage 4 — Skills: Thunderclaw, Shatter → Overdrive, Demontime.
+- Stage 4 — Skills: Storm Grapple, Lightning Lance → Blade Storm, Zero Hour.
 - Stage 5 — Finish: 3 bosses, level-up cards, full HUD, screens, polish, performance.

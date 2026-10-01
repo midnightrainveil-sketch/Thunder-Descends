@@ -883,3 +883,12 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - the plates assemble during the hold;
   - time returns at 2.0 s, and the buff starts at the end of the cast;
   - close-up frames of each phase; no errors.
+
+---
+
+## Renamed: Thunder Descends, English skill names
+
+- **Game:** *Thunder Descends*. Title screen (single-line title), browser tab, debug panel, package (`thunder-descends`), release zip (`release/ThunderDescends-<version>.zip`), launchers, READMEs. The dev console handle is now `window.THUNDER`; settings saved under the old key are migrated.
+- **Skills:** Q Storm Grapple, E Lightning Lance → Blade Storm, R Zero Hour, Shift Flash Step, passive Chain Blade. Used on the title controls, level-up cards, skill labels and the debug panel.
+- **Bosses** (shown in banners and the boss bar): Iron Juggernaut, Shadow Fox, Storm Serpent.
+- **Single source:** display names live in `CONFIG.names` and `CONFIG.bosses.*.name`. Internal ids, class and file names are unchanged.

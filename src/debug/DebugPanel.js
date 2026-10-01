@@ -165,7 +165,7 @@ export class DebugPanel {
   }
 
   _buildGui() {
-    const gui = new GUI({ title: 'KUROGANE debug' });
+    const gui = new GUI({ title: `${CONFIG.names.game} debug` });
     this.gui = gui;
     this.flags = { orbit: false, photo: false };
     const C = CONFIG;
@@ -349,9 +349,9 @@ export class DebugPanel {
     const sk = gui.addFolder('Skills');
     const S = this.game.hero.skills;
     sk.add({ f: () => S.resetCooldowns() }, 'f').name('Reset cooldowns (C)');
-    sk.add(S.q, 'rank', 1, 4, 1).name('Q Thunderclaw rank');
-    sk.add(S.e, 'rank', 1, 4, 1).name('E Shatter rank');
-    sk.add(S.r, 'rank', 1, 4, 1).name('R Demontime rank');
+    sk.add(S.q, 'rank', 1, 4, 1).name(`Q ${CONFIG.names.q} rank`);
+    sk.add(S.e, 'rank', 1, 4, 1).name(`E ${CONFIG.names.e} rank`);
+    sk.add(S.r, 'rank', 1, 4, 1).name(`R ${CONFIG.names.r} rank`);
     sk.add(CONFIG.skills.thunderclaw, 'aimScale', 0.05, 1, 0.01).name('Q aim time scale');
     sk.add(CONFIG.skills.shatter, 'slashEvery', 0.04, 0.2, 0.01).name('E overdrive slash every');
     sk.add(CONFIG.skills.demontime, 'ringMax', 10, 80, 1).name('R ring max (m)');

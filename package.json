@@ -1,9 +1,9 @@
 {
-  "name": "kurogane",
+  "name": "thunder-descends",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "KUROGANE — browser-based 3D voxel arena action demo",
+  "description": "Thunder Descends — browser-based 3D voxel arena action demo",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

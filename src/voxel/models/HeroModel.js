@@ -3,7 +3,7 @@ import { mirrorX } from '../VoxelBuilder.js';
 import { HERO_PALETTE } from '../palettes.js';
 import { Rig } from '../../anim/Rig.js';
 
-// KUROGANE — mecha samurai (spec §5; final look per the character reference sheet: navy armor,
+// The hero — mecha samurai (spec §5; final look per the character reference sheet: navy armor,
 // tan-gold trim, broad gold crescent horns, ō-sode shoulder guards sloping down and outward with a
 // serrated gold blade on top and a gold mon, two tall back thruster pods with cyan nozzles, wide cyan
 // V chest core framed by gold bars, red bead rope, long navy center panel between crimson strips,

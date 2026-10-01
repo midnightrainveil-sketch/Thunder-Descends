@@ -28,7 +28,7 @@ class Spring {
   }
 }
 
-// KUROGANE. Runs on the hero clock (time.heroDt).
+// The hero. Runs on the hero clock (time.heroDt).
 // Legs face the movement direction (within ±twistMax of the aim) or the aim when idle/backpedalling;
 // the upper body always twists toward the mouse ground point. Left mouse (hold) runs the 3-hit
 // combo: damage between the clip's hitStart / hitEnd (sector 2.4 m / 120°), or — on a crit — a

@@ -53,4 +53,4 @@ const loop = new Loop((rawDt) => {
 loop.start();
 
 // Handy for poking at things from the console during development.
-if (import.meta.env.DEV) window.KUROGANE = { CONFIG, engine, rig, time, input, postFX, game, ui, debug, loop };
+if (import.meta.env.DEV) window.THUNDER = { CONFIG, engine, rig, time, input, postFX, game, ui, debug, loop };

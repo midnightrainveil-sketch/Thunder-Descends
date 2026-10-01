@@ -11,7 +11,7 @@ const CSS = `
   .k-scr.on { display: flex; }
   .k-scr.dim { background: radial-gradient(ellipse at center, rgba(14,20,38,0.55), rgba(5,7,15,0.85)); }
   .k-title { background: linear-gradient(to bottom, rgba(5,7,15,0.0) 30%, rgba(5,7,15,0.75)); justify-content: flex-end; padding-bottom: 9vh; }
-  .k-title h1 { margin: 0; font: 700 min(12vw, 108px) var(--font-text); letter-spacing: .32em; padding-left: .32em; color: #f4f1ea;
+  .k-title h1 { margin: 0; font: 700 min(7.2vw, 92px) var(--font-text); letter-spacing: .22em; padding-left: .22em; text-align: center; color: #f4f1ea;
     text-shadow: 0 0 28px rgba(53,224,255,0.6), 0 4px 0 rgba(0,0,0,0.6); }
   .k-title .sub { font: 500 14px var(--font-text); letter-spacing: .5em; color: rgba(143,244,255,0.9); margin-top: 2px; }
   .k-title .ctl { display: grid; grid-template-columns: auto auto; gap: 4px 18px; margin: 26px 0 22px; padding: 12px 20px; font-size: 13px; }
@@ -66,12 +66,13 @@ export class Screens {
       root.appendChild(el);
       return el;
     };
+    const N = CONFIG.names;
     this.title = mk('k-title', `
       <div class="splash" style="background-image:linear-gradient(to bottom, rgba(5,7,15,0) 35%, rgba(5,7,15,0.85)), url(${SPLASH_ART})"></div>
-      <h1>KUROGANE</h1><div class="sub">THUNDER DESCENDS</div>
+      <h1>${CONFIG.names.game.toUpperCase()}</h1>
       <div class="ctl k-panel">
-        <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span><b>SHIFT</b><span>dash — invulnerable, 2 stacks</span>
-        <b>Q</b><span>Thunderclaw — aim, click to fire</span><b>E</b><span>Shatter — aim, click to thrust</span><b>R</b><span>Demontime</span>
+        <b>WASD</b><span>move</span><b>MOUSE</b><span>turn camera · aim at screen center</span><b>V</b><span>third-person ⇄ fixed camera</span><b>HOLD LMB</b><span>attack (crits become whip strikes)</span><b>SHIFT</b><span>${N.dash} — invulnerable dash, 2 stacks</span>
+        <b>Q</b><span>${N.q} — aim, click to fire</span><b>E</b><span>${N.e} — aim, click to thrust</span><b>R</b><span>${N.r} — stop time, upgrade the blade</span>
         <b>ESC / P</b><span>pause</span>
       </div>
       <div class="go">CLICK TO START</div>`);
@@ -106,7 +107,7 @@ export class Screens {
       light: { obj: CONFIG.lighting, key: 'brightness', fmt: (v) => `${Math.round(v * 100)}%`, apply: () => game.map.lighting.applySettings() },
     };
     let saved = {};
-    try { saved = JSON.parse(localStorage.getItem('kurogane.settings') || '{}'); } catch { /* storage blocked */ }
+    try { saved = JSON.parse(localStorage.getItem('thunder.settings') || localStorage.getItem('kurogane.settings') || '{}'); } catch { /* storage blocked */ }
     this._settings = { SET, saved };
     for (const [id, S] of Object.entries(SET)) {
       const input = this.pause.querySelector(`[data-s="${id}"]`);
@@ -120,7 +121,7 @@ export class Screens {
         out.textContent = S.fmt(+input.value);
         S.apply?.();
         saved[id] = +input.value;
-        try { localStorage.setItem('kurogane.settings', JSON.stringify(saved)); } catch { /* ignore */ }
+        try { localStorage.setItem('thunder.settings', JSON.stringify(saved)); } catch { /* ignore */ }
       });
     }
     this.onAction = null;
@@ -136,7 +137,7 @@ export class Screens {
     this.pause.querySelector(`[data-s="${id}"]`).value = v;
     this.pause.querySelector(`[data-v="${id}"]`).textContent = S.fmt(v);
     saved[id] = v;
-    try { localStorage.setItem('kurogane.settings', JSON.stringify(saved)); } catch { /* ignore */ }
+    try { localStorage.setItem('thunder.settings', JSON.stringify(saved)); } catch { /* ignore */ }
   }
 
   show(name) {

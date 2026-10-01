@@ -253,7 +253,7 @@ export class Shatter extends Skill {
 
   get label() {
     if (this.active && this.phase === 'aim') return 'aiming';
-    if (this.active) return this.phase === 'overdrive' || this.phase === 'final' ? 'OVERDRIVE' : 'active';
+    if (this.active) return this.phase === 'overdrive' || this.phase === 'final' ? CONFIG.names.overdrive.toUpperCase() : 'active';
     return super.label;
   }
 }
