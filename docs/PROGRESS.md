@@ -854,3 +854,9 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
   - knee lights.
 - **Cost:** 522 boxes, 6.0 k triangles. In-game check: idle, side view, attack. No errors.
 - **Follow-up after review:** removed the bottom shoulder-guard band (and the spike that hung under it). The ō-sode now has two bands.
+
+## Skill icon artwork
+
+- The HUD slots now use the supplied artwork instead of the SVG icons (`src/ui/skillIcons.js`): LMB = segmented whip-sword, Q = claw and chain, E = thrust, R = Demontime planted sword, Shift = dash boot.
+- Each image is cropped inside its own frame and downscaled to a 96 px JPEG data URI (about 30 KB total), inlined in the single-file build.
+- The cooldown sweep, seconds, rank pips and key labels draw on top.

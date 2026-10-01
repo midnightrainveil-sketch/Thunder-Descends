@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import { ICONS } from './icons.js';
+import { SKILL_ICONS } from './skillIcons.js';
 
 // Game HUD (spec §11, real time). Dark translucent indigo panels with cut corners and 1 px cyan
 // edges; crimson for HP and danger. Top-left: portrait, segmented HP bar, level badge, EXP bar.
@@ -39,6 +40,9 @@ const CSS = `
   .k-slot { position: relative; width: 58px; height: 58px; border: 1px solid rgba(53,224,255,0.4); background: rgba(8, 12, 26, 0.8); color: #35e0ff;
     clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
   .k-slot svg { position: absolute; inset: 9px; width: 40px; height: 40px; }
+  .k-slot .art { position: absolute; inset: 1px; width: calc(100% - 2px); height: calc(100% - 2px); object-fit: cover; opacity: 0.85; }
+  .k-slot.ready .art, .k-slot.active .art { opacity: 1; }
+  .k-slot .key { z-index: 1; text-shadow: 0 1px 2px #000; }
   .k-slot .sweep { position: absolute; inset: 0; background: conic-gradient(rgba(5,8,18,0.82) calc(var(--p) * 1turn), transparent 0); }
   .k-slot .sec { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: 700 16px var(--font-num); color: #f4f1ea; text-shadow: 0 1px 2px #000; }
   .k-slot .key { position: absolute; left: 3px; top: 1px; font: 400 10px var(--font-num); color: #e6e1d3; }
@@ -91,7 +95,7 @@ export class HUD {
         <div class="k-wave k-panel"><span class="wv">Wave 1</span><small class="wl"></small></div>
         <div class="k-boss k-panel"><div class="nm"></div><div class="bar"><u></u><b></b></div><div class="hpn"></div></div>
       </div>
-      <div class="k-skills k-panel">${SLOTS.map((s) => `<div class="k-slot" data-id="${s.id}">${ICONS[s.icon]}<div class="buff"></div><div class="sweep"></div><div class="sec"></div><span class="key">${s.key}</span><div class="pips">${s.id === 'lmb' ? '' : '<i></i>'.repeat(s.id === 'dash' ? CONFIG.hero.dash.charges : 4)}</div></div>`).join('')}</div>
+      <div class="k-skills k-panel">${SLOTS.map((s) => `<div class="k-slot" data-id="${s.id}"><img class="art" src="${SKILL_ICONS[s.icon]}" alt=""><div class="buff"></div><div class="sweep"></div><div class="sec"></div><span class="key">${s.key}</span><div class="pips">${s.id === 'lmb' ? '' : '<i></i>'.repeat(s.id === 'dash' ? CONFIG.hero.dash.charges : 4)}</div></div>`).join('')}</div>
       <div class="k-bl k-panel"><div class="ic">${ICONS.passive}</div><div><div class="t">CRIT</div><div class="v cr">50%</div></div></div>
       <div class="k-banner"><div class="big"></div><div class="small"></div></div>`;
     root.appendChild(this.el);
