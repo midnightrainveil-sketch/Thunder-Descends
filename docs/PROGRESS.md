@@ -951,3 +951,5 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - **Cards**: rarities, 7 special cards, one reroll, and deal/pick animations.
 - **Meta** (`src/game/{Save,Meta,Achievements}.js`): Thunder Cores, an Armory with 8 permanent upgrades, 17 achievements with toasts, saved bests, and a results screen.
 - All numbers are in `CONFIG.audio`, `CONFIG.score`, `CONFIG.meta`, `CONFIG.achievements` and `CONFIG.cards`.
+
+- **Camera pitch smoothing**: vertical look gets its own longer smoothing (`follow.pitchSmoothingMul`) and soft limits (`pitchSoftZoneDeg`). The rim tilt is blended with a smooth max (`rimBlendDeg`) and partially follows the player's look (`rimLookTilt`), which removes the old dead zone and jump when looking up or down near the arena edge.

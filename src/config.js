@@ -76,6 +76,10 @@ export const CONFIG = {
       sensitivity: 0.006, // rad per mouse pixel (pause-menu slider scales it)
       invertY: false,
       lookSmoothing: 0.022, // s, time constant of the light mouse-look smoothing (0 = raw; pause-menu slider)
+      pitchSmoothingMul: 2.2, // vertical look is smoothed this many times longer than horizontal (hand motion is less even up/down)
+      pitchSoftZoneDeg: 10, // look speed eases off within this many degrees of the up/down limits instead of hitting a wall
+      rimBlendDeg: 9, // degrees, width of the smooth hand-off between your look-down angle and the rim tilt
+      rimLookTilt: 0.6, // while the rim tilts the camera, this fraction of your extra look still tilts the view
       lockRetryMs: 1100, // ms, retry a refused pointer lock after Chrome's Esc cooldown
       maxLookJump: 1500, // px, a single mouse event larger than this is treated as corrupt and dropped
       linuxMouseFix: false, // Linux X11/Wayland workaround (drops ±1 px vertical bias + warp spikes); hurts Windows

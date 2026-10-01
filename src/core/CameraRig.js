@@ -237,7 +237,13 @@ export class CameraRig {
         if (this.skillAim) {
           // Mouse up = farther, down = nearer (along the ground).
           this.skillAimDist = THREE.MathUtils.clamp(this.skillAimDist - dy * F.aimDistPerPx * (F.invertY ? -1 : 1), F.aimMinDist, this.skillAimMax);
-        } else this.pitchT += dy * F.sensitivity * (F.invertY ? -1 : 1);
+        } else {
+          // Ease off near the limits instead of stopping dead against them.
+          const d = dy * F.sensitivity * (F.invertY ? -1 : 1);
+          const room = d > 0 ? F.pitchMaxDeg * DEG - this.pitchT : this.pitchT - F.pitchMinDeg * DEG;
+          const ease = THREE.MathUtils.clamp(room / (F.pitchSoftZoneDeg * DEG), 0.2, 1);
+          this.pitchT += d * ease;
+        }
         this.sinceLook = 0;
       }
       let k = 0;
@@ -259,7 +265,8 @@ export class CameraRig {
     const dYaw = wrap(this.yawT - this.yaw);
     this.yaw = wrap(this.yaw + dYaw * sk);
     this.yawT = this.yaw + (dYaw - dYaw * sk); // keep the target unwrapped relative to yaw
-    this.pitch += (this.pitchT - this.pitch) * sk;
+    const ps = F.lookSmoothing * F.pitchSmoothingMul;
+    this.pitch += (this.pitchT - this.pitch) * (ps > 0 ? 1 - Math.exp(-dt / ps) : 1);
 
     // Pivot chases the hero.
     if (!this._pivotReady) {
@@ -281,36 +288,44 @@ export class CameraRig {
     }
 
     // Boom.
-    const cp = Math.cos(pitch), sp = Math.sin(pitch);
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
-    const fwd = this._tmp.set(sy * cp, -sp, cy * cp);
-    const rx = -cy, rz = sy; // camera right on XZ (fwd × up)
+    const rx = -cy, rz = sy; // camera right on XZ
     const px = this.pivot.x + rx * shoulder;
     const pz = this.pivot.z + rz * shoulder;
     const py = this.pivot.y + height;
     // Near the rim the camera can't go far enough back on XZ (it stays inside maxRadius, clear of
     // the tree canopies), so it first rises and looks down more steeply at the pivot (up to
     // rimPitchMax) and only then shortens the boom — the hero never fills the screen.
+    // The pitch needed to fit is blended in with a smooth max (no dead zone where the mouse does
+    // nothing, then a jump); whatever look the rim overrides still tilts the view partly.
     const dist = distance;
-    let H = dist * cp; // horizontal back-off
-    let V = dist * sp; // height above the pivot
     const hx = -sy, hz = -cy; // horizontal "behind" direction
     const pd = px * hx + pz * hz;
     const disc = pd * pd - (px * px + pz * pz - F.maxRadius * F.maxRadius);
-    const hMax = disc >= 0 ? Math.max(0, -pd + Math.sqrt(disc)) : 0;
-    let raised = false;
-    if (H > hMax) {
-      H = Math.max(hMax, F.minDistance);
-      const steep = Math.max(pitch, F.rimPitchMaxDeg * DEG);
-      const pitch2 = Math.min(Math.acos(Math.min(1, H / dist)), steep);
-      const d2 = Math.min(dist, H / Math.cos(pitch2));
-      V = d2 * Math.sin(pitch2);
-      raised = true;
+    const hMax = Math.max(F.minDistance, disc >= 0 ? Math.max(0, -pd + Math.sqrt(disc)) : 0);
+    const pFit = Math.acos(Math.min(1, hMax / dist)); // pitch at which the full boom just fits
+    const kb = F.rimBlendDeg * DEG;
+    // Polynomial smooth max: exactly the player's pitch until the rim needs more, C1 blend between.
+    const hb = THREE.MathUtils.clamp(0.5 + (0.5 * (pFit - pitch)) / kb, 0, 1);
+    let pe = pitch * (1 - hb) + pFit * hb + kb * hb * (1 - hb);
+    const peCap = Math.max(pitch, F.rimPitchMaxDeg * DEG);
+    let H, V;
+    if (pe > peCap) {
+      // Tilt capped: shorten the boom instead.
+      H = Math.min(dist * Math.cos(peCap), hMax);
+      V = H * Math.tan(peCap);
+      pe = peCap;
+    } else {
+      H = dist * Math.cos(pe);
+      V = dist * Math.sin(pe);
     }
     const camY = Math.max(F.minHeight, py + V);
     this.followPosition.set(px + hx * H, camY, pz + hz * H);
-    if (raised) this._lookAt.set(px, py, pz); // look at the pivot from above
-    else this._lookAt.copy(this.followPosition).addScaledVector(fwd, dist); // straight along the look direction
+    // Look direction: at the pivot, tilted toward the player's own pitch by rimLookTilt of the difference.
+    const lookP = pe + (pitch - pe) * F.rimLookTilt;
+    const cpl = Math.cos(lookP), spl = Math.sin(lookP);
+    const L = Math.hypot(H, V) || dist;
+    this._lookAt.set(this.followPosition.x + sy * cpl * L, camY - spl * L, this.followPosition.z + cy * cpl * L);
     this._m.lookAt(this.followPosition, this._lookAt, UP);
     this.followQuaternion.setFromRotationMatrix(this._m);
 
