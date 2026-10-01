@@ -87,11 +87,12 @@ If nothing is in the radius, the hand still flies and the hero still dashes (it 
 3. If Shatter misses, nothing more happens (normal recovery).
 
 ### R — Demontime (cooldown 30 s) — ultimate
-Cast (2.2 s, hero invulnerable, input locked):
-- 0.00–0.40 s: the hero kneels and plants the sword point-down. A ring shockwave expands from the sword past the edge of the screen. Everything the ring passes turns grayscale and freezes (world time = 0: enemies, projectiles, particles, petals in mid-air, swaying trees, lantern flicker). Only the hero's clock runs and the hero stays in full color.
-- 0.40–1.60 s: nanobots (hundreds of tiny cyan emissive cubes) stream from both arms along curved paths into the sword; the sword visibly grows as extra blocky plates assemble onto it block by block.
-- 1.60–2.00 s: the grayscale ring collapses back into the sword; color and time return.
-- 2.00–2.20 s: release pulse (radius 5 m, 2.0×ATK, flash, shake, a big outward burst of petals); the hero stands with the upgraded blade.
+Cast (2.5 s, hero invulnerable, input locked; revised after review):
+- 0.00–0.20 s: the hero raises the sword overhead point-down in a two-handed grip and stabs it into the ground in front of him, standing straight (no kneel).
+- 0.20 s (the stab): a shockwave bursts out of the sword (shock rings, sparks, debris, dust, petal burst, flash, shake) and time stops. The grayscale time-stop ring sweeps out from the planted sword past the screen edge in 0.35 s. Everything it passes turns grayscale and freezes (world time = 0: enemies, projectiles, particles, petals in mid-air, swaying trees, lantern flicker). Only the hero's clock runs and the hero stays in full color.
+- 0.30–1.60 s: the sword stays planted, both hands on the hilt. Nanobots (hundreds of tiny cyan emissive cubes) stream from both arms along curved paths into the sword. The sword is upgraded: extra blocky plates assemble onto it block by block.
+- 1.60–2.00 s: the shockwave comes back. Inward shock rings converge on the sword as the grayscale ring rushes back into it, and color and time return.
+- 2.00–2.50 s: Excalibur. The hero draws the sword straight up out of the ground and lifts it aloft point-up. When the blade comes free (2.12 s): release pulse (radius 5 m, 2.0×ATK, flash, shake, a big outward burst of petals).
 
 Buff (7 s, on the hero clock): bulkier blade (≈1.6× thicker, extra plates along the spine, white-cyan edge, crimson core glow), attack speed +60%, cooldowns tick 2× faster, crit rate 100% (every basic attack is a whip strike), crackling cyan and crimson aura. When it ends, the extra plates dissolve into nanobot cubes.
 

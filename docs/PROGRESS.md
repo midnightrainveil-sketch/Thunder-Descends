@@ -866,3 +866,20 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - **Title screen:** the supplied splash art (full resolution, WebP) under a dark bottom gradient (`src/ui/art.js`).
 - **HUD portrait:** the supplied character art, cropped to the head and horns and downscaled to a 104 px JPEG (shown at 52 px).
 - The single-file build grew to about 1.7 MB, mostly the splash.
+
+---
+
+## Demontime cast reworked (after review)
+
+- **New sequence** (2.5 s, timeline in `CONFIG.skills.demontime`: `plantAt`, `ringOut`, `nanoStart`, `nanoEnd`, `restoreAt`, `pullFree`):
+  1. Raise the sword overhead point-down with both hands.
+  2. Stab it into the ground in front, standing straight. At that instant, a shockwave bursts out of the sword and time stops; the grayscale time-stop ring sweeps out from the sword.
+  3. The sword stays planted while the nanobots upgrade it (plates assemble).
+  4. The shockwave comes back: inward rings, and the time-stop ring rushes back into the sword as time resumes.
+  5. Excalibur pull: the sword is drawn straight up out of the ground and lifted aloft. The release pulse fires when the blade comes free.
+- **New clips** `demonPlant` and `demonPull` replace `demonKneel` / `demonRise`. Their four poses (raise, planted, drawn, aloft) were solved against the rig for the two-handed grip.
+- **Verified with a stepped run:**
+  - world time is 1 until the stab and 0 right after it;
+  - the plates assemble during the hold;
+  - time returns at 2.0 s, and the buff starts at the end of the cast;
+  - close-up frames of each phase; no errors.

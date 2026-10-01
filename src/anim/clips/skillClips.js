@@ -56,6 +56,12 @@ const makePoses = () => ({
   shatterThrust: merge(LUNGE_LEGS, { spine: [12, 22, 0], chest: [6, 12, 0], head: [-14, -30, 0], upperArmR: [-68, -44, 28], forearmR: [-30, 0, 0], handR: [0, 0, 0], weapon: [106, 121, 0], upperArmL: [30, 0, 30], forearmL: [-20, 0, 0] }),
   odA: merge(WIDE_LEGS, TWO_HAND_FINGERS, { spine: [10, 26, 0], chest: [6, 14, 0], head: [-12, -34, 0], upperArmR: [-59, -2, 5], forearmR: [-16, 0, 0], handR: [0, 0, 0], weapon: [70, 7, 0], upperArmL: [-66, -52, 0], forearmL: [0, 0, 0] }),
   odB: merge(WIDE_LEGS, TWO_HAND_FINGERS, { spine: [8, -26, 0], chest: [4, -14, 0], head: [-10, 34, 0], upperArmR: [-66, -18, 41], forearmR: [-7, 0, 0], handR: [0, 0, 0], weapon: [51, -41, 0], upperArmL: [-66, -34, 0], forearmL: [-5, 0, 0] }),
+  // Demontime (solved against the rig with the two-handed grip): raise overhead point-down, stab
+  // into the ground in front while standing straight, then pull it out and hold it aloft.
+  demonRaise: merge(STANCE_LEGS, TWO_HAND_FINGERS, { spine: [-3, 0, 0], chest: [-3, 0, 0], head: [-10, 0, 0], upperArmR: [-74, 35, 20], forearmR: [-79, 0, 0], handR: [60, 15, -60], weapon: [179, 1, 0], upperArmL: [-52, -90, 90], forearmL: [-80, 0, 0], clawHand: [0, 0, 0] }),
+  demonPlant: merge(STANCE_LEGS, TWO_HAND_FINGERS, { spine: [2, 0, 0], chest: [0, 0, 0], head: [-6, 0, 0], upperArmR: [-19, 31, 20], forearmR: [-82, 0, 0], handR: [43, 7, -35], weapon: [147, -9, 0], upperArmL: [8, -73, 85], forearmL: [-97, 0, 0], clawHand: [41, 22, -50] }),
+  demonDrawn: merge(STANCE_LEGS, TWO_HAND_FINGERS, { spine: [-4, 0, 0], chest: [-4, 0, 0], head: [-14, 0, 0], upperArmR: [-138, 23, 10], forearmR: [0, 0, 0], handR: [45, -8, 45], weapon: [176, 3, 0], upperArmL: [-144, -28, -10], forearmL: [0, 0, 0], clawHand: [0, 0, 0] }),
+  demonAloft: merge(STANCE_LEGS, TWO_HAND_FINGERS, { spine: [-8, 0, 0], chest: [-6, 0, 0], head: [-18, 0, 0], upperArmR: [-144, 58, 0], forearmR: [-15, 0, 0], handR: [34, -37, 20], weapon: [38, -9, 0], upperArmL: [-118, -67, 0], forearmL: [-53, 0, 0], clawHand: [0, 0, 0] }),
   plant: merge(KNEEL_LEGS, TWO_HAND_FINGERS, { spine: [12, 0, 0], chest: [4, 0, 0], head: [6, 0, 0], upperArmR: [-51, -1, 49], forearmR: [-93, 0, 0], handR: [0, 0, 0], weapon: [28, -134, 0], upperArmL: [-75, -50, -1], forearmL: [-74, 0, 0] }),
   rise: merge(STANCE_LEGS, { spine: [-6, 0, 0], chest: [-4, 0, 0], head: [-14, 0, 0], upperArmR: [-97, -60, 66], forearmR: [-72, 0, 0], handR: [0, 0, 0], weapon: [105, 35, 0], upperArmL: [-20, 0, 40], forearmL: [-40, 0, 0] }),
 });
@@ -85,7 +91,14 @@ export function skillClips() {
       { t: 0.55, ease: 'snap', pose: merge(POSES.odA, { spine: [16, 40, 0], chest: [8, 20, 0] }) },
       { t: 1, ease: 'inOut', pose: POSES.guard },
     ]),
-    clip('demonKneel', D.freezeAt, [{ t: 0, pose: POSES.guard }, { t: 0.7, ease: 'snap', pose: POSES.plant }, { t: 1, ease: 'out', pose: merge(POSES.plant, { spine: [14, 0, 0] }) }]),
-    clip('demonRise', D.cast - D.restoreAt, [{ t: 0, pose: POSES.plant }, { t: 0.6, ease: 'snap', pose: POSES.rise }, { t: 1, ease: 'out', pose: POSES.rise }]),
+    // Raise overhead (point down) → stab into the ground at plantAt (holds while planted).
+    clip('demonPlant', D.plantAt, [{ t: 0, pose: POSES.guard }, { t: 0.6, ease: 'out', pose: POSES.demonRaise }, { t: 1, ease: 'snap', pose: POSES.demonPlant }]),
+    // Excalibur: draw straight up out of the ground, then lift it aloft point up.
+    clip('demonPull', D.cast - D.restoreAt, [
+      { t: 0, pose: POSES.demonPlant },
+      { t: (D.pullFree - D.restoreAt) / (D.cast - D.restoreAt), ease: 'in', pose: POSES.demonDrawn },
+      { t: 0.7, ease: 'out', pose: POSES.demonAloft },
+      { t: 1, ease: 'linear', pose: POSES.demonAloft },
+    ]),
   ];
 }

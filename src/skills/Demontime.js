@@ -12,12 +12,17 @@ const SEG_LEN = HERO_SEG_LEN_M;
 const ARM_BONES = ['upperArmL', 'forearmL', 'clawHand', 'upperArmR', 'forearmR', 'handR'];
 
 /**
- * R — Demontime (spec §7). Cast 2.2 s (hero invulnerable, input locked, hitstop locked):
- *  0.0–0.4  kneel and plant the sword; world time → 0; the grade pass's time-stop ring expands
- *           from the sword (grayscale inside, the hero and his FX stay in color via the hero mask).
- *  0.4–1.6  nanobots stream from both arms into the blade; the bladeUlt plates appear one by one.
- *  1.6–2.0  the ring collapses back into the sword, color and world time return.
- *  2.0–2.2  pull the sword out: 5 m pulse (2.0×ATK), shockwaves, flash, petal burst.
+ * R — Demontime (spec §7). Cast 2.5 s (hero invulnerable, input locked, hitstop locked):
+ *  0.0–0.2  raise the sword overhead point down with both hands and stab it into the ground in
+ *           front, standing straight. On impact a shockwave bursts out of the sword and time stops:
+ *           world time → 0 and the grade pass's time-stop ring sweeps outward from the sword
+ *           (grayscale inside; the hero and his FX stay in color via the hero mask).
+ *  0.3–1.6  the sword stays planted; nanobots stream from both arms into the blade and the
+ *           bladeUlt plates assemble one by one (the upgrade).
+ *  1.6–2.0  the shockwave rushes back into the sword (ring collapses, inward shock rings), color
+ *           and world time return.
+ *  2.0–2.5  Excalibur: he draws the sword straight up out of the ground and lifts it aloft; when
+ *           the blade comes free (2.12 s): 5 m pulse (2.0×ATK), shockwaves, flash, petal burst.
  * Buff (7 s, hero clock): thicker blade with the ult plates, +60% attack speed, cooldowns ×2,
  * crit 100% (every basic attack is a whip), cyan + crimson aura. At the end the plates dissolve.
  */
@@ -50,15 +55,13 @@ export class Demontime extends Skill {
     this.startCooldown();
     Object.assign(h.control, { lockMove: true, lockAim: true, lockAttack: true, baseOwned: true, invulnerable: true, noKnockback: true });
     h.velocity.set(0, 0, 0);
-    h.base.play('demonKneel', { fade: 0.06 });
+    h.base.play('demonPlant', { fade: 0.04 });
     g.time.hitstopRemaining = 0;
     g.time.hitstopLocked = true;
-    g.time.tweenScale('world', 0, C.freezeAt);
     this.shown = 0;
     this.nanoAcc = 0;
     this.phaseFlags = {};
     for (let i = 0; i < HERO_BLADE_SEGMENTS; i++) h.rig.setBoneVisible(`bladeUlt_${i}`, false);
-    g.map.petalImpulse(h.position, 3, 3);
   }
 
   _swordCenter(out) {
@@ -75,28 +78,48 @@ export class Demontime extends Skill {
     h.rig.group.updateMatrixWorld(true);
     this._swordCenter(this.center);
 
-    // Time-stop ring: expand → hold → collapse, centered on the planted sword.
-    let r = 0;
-    if (t < C.freezeAt) r = C.ringMax * easeOut(t / C.freezeAt);
-    else if (t < C.nanoEnd) r = C.ringMax;
-    else if (t < C.restoreAt) r = C.ringMax * (1 - easeIn((t - C.nanoEnd) / (C.restoreAt - C.nanoEnd)));
-    if (t < C.restoreAt) g.postFX.setTimeRing(this.center, Math.max(0.05, r), 1);
-    if (!f.plant && t >= C.freezeAt * 0.7) {
+    // The stab: shockwave out of the sword, time stops.
+    if (!f.plant && t >= C.plantAt) {
       f.plant = true;
-      g.fx.shock.ring(this.center, { r0: 0.2, r1: 3, duration: 0.3, color: '#bff6ff', intensity: 2.4, thickness: 0.2, clock: 'hero' });
-      g.fx.particles.sparks(_v.copy(this.center).setY(0.1), _w.set(0, 1, 0), 20, { speed: 6, life: 0.3, clock: 'hero' });
-      g.rig.shake(0.25, 0.25);
+      g.time.tweenScale('world', 0, C.freezeTween);
+      const ground = _b.copy(h.position).addScaledVector(_w.set(Math.sin(h.aimYaw), 0, Math.cos(h.aimYaw)), 0.45).setY(0.05);
+      this.ground = this.ground || new THREE.Vector3();
+      this.ground.copy(ground);
+      g.fx.shock.ring(ground, { r0: 0.2, r1: 9, duration: 0.35, color: '#bff6ff', intensity: 3, thickness: 0.25, clock: 'hero' });
+      g.fx.shock.ring(ground, { r0: 0.1, r1: 4, duration: 0.22, color: '#ffffff', intensity: 2.6, thickness: 0.4, clock: 'hero' });
+      g.fx.particles.sparks(_v.copy(ground).setY(0.15), _w.set(0, 1, 0), 30, { speed: 9, spread: 1.2, life: 0.35, clock: 'hero' });
+      g.fx.particles.debris(_v.copy(ground).setY(0.1), 12, { speed: 4 });
+      g.fx.particles.dust(ground, 14, { speed: 4, clock: 'hero' });
+      g.map.petalImpulse(ground, 6, 9);
+      g.postFX.flash(0.35, 0.2, 0xdffbff);
+      g.rig.shake(0.45, 0.3);
+      g.rig.punch(0.05, 0.25);
+    }
+    // Time-stop ring: sweep out from the sword → hold → rush back into it.
+    let r = 0;
+    if (t >= C.plantAt) {
+      if (t < C.plantAt + C.ringOut) r = C.ringMax * easeOut((t - C.plantAt) / C.ringOut);
+      else if (t < C.nanoEnd) r = C.ringMax;
+      else if (t < C.restoreAt) r = C.ringMax * (1 - easeIn((t - C.nanoEnd) / (C.restoreAt - C.nanoEnd)));
+      if (t < C.restoreAt) g.postFX.setTimeRing(this.ground || this.center, Math.max(0.05, r), 1);
+    }
+    // The shockwave comes back: inward rings converging on the sword.
+    if (!f.back && t >= C.nanoEnd) {
+      f.back = true;
+      const d = C.restoreAt - C.nanoEnd;
+      g.fx.shock.ring(this.ground || this.center, { r0: 12, r1: 0.3, duration: d, color: '#bff6ff', intensity: 2.4, thickness: 0.22, clock: 'hero' });
+      g.fx.shock.ring(this.ground || this.center, { r0: 6, r1: 0.2, duration: d * 0.8, color: '#ff5a6e', intensity: 1.8, thickness: 0.14, clock: 'hero' });
     }
 
     // Nanobots stream into the blade; ult plates assemble one by one.
-    if (t >= C.freezeAt && t < C.nanoEnd) {
+    if (t >= C.nanoStart && t < C.nanoEnd) {
       this.nanoAcc += C.nanoRate * dt;
       while (this.nanoAcc >= 1) {
         this.nanoAcc -= 1;
         this._emitNano();
       }
     }
-    const plateStart = C.freezeAt + 0.05;
+    const plateStart = C.nanoStart + 0.05;
     const plateStep = (C.nanoEnd - plateStart - 0.1) / HERO_BLADE_SEGMENTS;
     while (this.shown < HERO_BLADE_SEGMENTS && t >= plateStart + this.shown * plateStep) {
       const name = `bladeUlt_${this.shown}`;
@@ -111,17 +134,21 @@ export class Demontime extends Skill {
       const k = Math.min(1, (t - appear) / 0.12);
       h.rig.bones[`bladeUlt_${i}`].scale.setScalar(k < 1 ? 0.3 + 1.1 * Math.sin((k * Math.PI) / 1.2) : 1);
     }
-    h.rig.setGlow('ult', 1 + 0.8 * Math.min(1, Math.max(0, (t - C.freezeAt) / (C.nanoEnd - C.freezeAt))));
+    h.rig.setGlow('ult', 1 + 0.8 * Math.min(1, Math.max(0, (t - C.nanoStart) / (C.nanoEnd - C.nanoStart))));
 
     if (!f.restore && t >= C.nanoEnd) {
       f.restore = true;
       g.time.tweenScale('world', 1, C.restoreAt - C.nanoEnd);
     }
-    if (!f.release && t >= C.restoreAt) {
-      f.release = true;
+    if (!f.pull && t >= C.restoreAt) {
+      f.pull = true;
       g.postFX.setTimeRing(null, 0, false);
       g.time.tweenScale('world', 1, 0);
-      h.base.play('demonRise', { fade: 0.04 });
+      h.base.play('demonPull', { fade: 0.03 });
+    }
+    // The blade comes free of the ground: release pulse.
+    if (!f.release && t >= C.pullFree) {
+      f.release = true;
       this._pulse();
     }
     if (t >= C.cast) this._endCast();

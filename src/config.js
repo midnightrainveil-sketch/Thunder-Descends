@@ -383,8 +383,12 @@ export const CONFIG = {
     },
     demontime: {
       cooldown: [30, 30, 30, 30],
-      cast: 2.2, // s total (hero clock, invulnerable, input locked)
-      freezeAt: 0.4, nanoEnd: 1.6, restoreAt: 2.0, // phase boundaries (s)
+      cast: 2.5, // s total (hero clock, invulnerable, input locked)
+      // Timeline (s): raise + two-handed stab → time-stop shockwave out of the sword at plantAt (ring
+      // expands over ringOut); nanobots + plates from nanoStart to nanoEnd; the shockwave rushes back
+      // into the sword until restoreAt (time resumes); Excalibur pull, the blade comes free at pullFree.
+      plantAt: 0.2, ringOut: 0.35, nanoStart: 0.3, nanoEnd: 1.6, restoreAt: 2.0, pullFree: 2.12,
+      freezeTween: 0.08, // s, world time → 0 at the stab
       ringMax: 45, // m: past the screen edge
       buff: [7, 9, 9, 9], // s (hero clock)
       pulseRadius: [5, 5, 7, 7], pulseMult: [2.0, 2.0, 4.0, 4.0],
