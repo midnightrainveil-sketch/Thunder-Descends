@@ -10,6 +10,9 @@ const _w = new THREE.Vector3();
 
 /**
  * E — Shatter → Overdrive (spec §7).
+ *  aim    (real time, like Thunderclaw): world + hero slow to ×0.15, blue tint; a lane on the floor
+ *         shows the thrust (length incl. lunge × width) toward the aim point. Click fires,
+ *         right-click / Esc cancels (no cooldown), auto-fire after 2.5 s.
  *  windup (0.12 s) → one-handed lunge thrust: 3.5 × 1.2 m rectangle, 1.8×ATK, 1 s stun, spear-like
  *  cyan burst from the blade tip. On a hit → Overdrive (1 s): two-handed stance, a slash every 0.08 s
  *  in a 120° / 3.2 m cone (0.45×ATK, each can crit), crescents at varied angles, afterimages, slow
@@ -23,22 +26,74 @@ export class Shatter extends Skill {
     this.slashT = 0;
     this.afterT = 0;
     this.slashN = 0;
+    this.realT = 0;
+    this.yaw = 0;
   }
 
   begin() {
     super.begin();
+    const C = this.cfg;
+    const g = this.game;
+    this.phase = 'aim';
+    this.realT = 0;
+    this.yaw = this.hero.aimYaw;
+    this.hero.control.lockAttack = true;
+    g.time.tweenScale('both', C.aimScale, C.aimTween);
+    g.postFX.setTint(C.aimTint, C.aimTintStrength, C.aimTween);
+    g.postFX.setSaturation(C.aimSaturation, C.aimTween);
+    g.fx.aim.showLane(true);
+    this._updateAim(g.input);
+  }
+
+  // Lane from the hero toward the aim point (the mouse ground point / screen center).
+  _updateAim(input) {
+    const C = this.cfg;
+    const h = this.hero.position;
+    if (input.groundValid) {
+      const dx = input.groundPoint.x - h.x;
+      const dz = input.groundPoint.z - h.z;
+      if (dx * dx + dz * dz > 0.04) this.yaw = Math.atan2(dx, dz);
+    }
+    this.game.fx.aim.setLane(h, this.yaw, this.r(C.length) + C.lunge, this.r(C.width));
+  }
+
+  _restoreTime(duration = this.cfg.aimTween) {
+    const g = this.game;
+    g.time.tweenScale('both', 1, duration);
+    g.postFX.setTint(null, 0, duration);
+    g.postFX.setSaturation(CONFIG.post.grade.saturation, duration);
+    g.fx.aim.showLane(false);
+  }
+
+  handleInput(input, time) {
+    if (this.phase !== 'aim') return;
+    this.realT += time.realDt;
+    this._updateAim(input);
+    if (input.wasButtonPressed(2) || input.wasPressed('Escape')) {
+      this._restoreTime();
+      this.phase = 'idle';
+      this.finish(); // no cooldown on cancel
+      return;
+    }
+    if (input.wasButtonPressed(0) || this.realT >= this.cfg.aimTimeout) this._fire();
+  }
+
+  _fire() {
     const h = this.hero;
+    this._restoreTime();
     this.startCooldown();
     this.phase = 'windup';
+    this.t = 0;
     Object.assign(h.control, { lockMove: true, lockAim: true, lockAttack: true, baseOwned: true });
     h.velocity.set(0, 0, 0);
+    h.aimYaw = this.yaw;
     h.base.play('shatterWindup', { fade: 0.05 });
-    this.yaw = h.aimYaw;
   }
 
   update(dt) {
     const C = this.cfg;
     const h = this.hero;
+    if (this.phase === 'aim' || this.phase === 'idle') return;
     this.t += dt;
     if (this.phase === 'windup') {
       if (this.t >= C.windup) this._thrust();
@@ -192,10 +247,12 @@ export class Shatter extends Skill {
 
   cancel() {
     if (!this.active) return;
+    if (this.phase === 'aim') this._restoreTime(0);
     this._end();
   }
 
   get label() {
+    if (this.active && this.phase === 'aim') return 'aiming';
     if (this.active) return this.phase === 'overdrive' || this.phase === 'final' ? 'OVERDRIVE' : 'active';
     return super.label;
   }

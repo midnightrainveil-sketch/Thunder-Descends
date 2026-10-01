@@ -135,7 +135,12 @@ export class Raiju extends Boss {
       }
       return;
     }
-    this.angle += this.dirSign * R.orbitSpeed * this.speedMul * dt;
+    // Unpredictable: random reversals and speed surges along the orbit.
+    if (Math.random() < R.flipRate * dt) this.dirSign = -this.dirSign;
+    if (Math.random() < R.surge.rate * dt) this.surgeT = R.surge.duration;
+    this.surgeT = Math.max(0, (this.surgeT ?? 0) - dt);
+    const surge = this.surgeT > 0 ? R.surge.mul : 1;
+    this.angle += this.dirSign * R.orbitSpeed * surge * this.speedMul * dt;
     this._orbitPoint(this.angle, this.t, _v);
     this._steerHead(_v, dt, 4);
     // Sometimes cross over the arena between attacks.

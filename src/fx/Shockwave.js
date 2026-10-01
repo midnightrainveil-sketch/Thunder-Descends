@@ -43,13 +43,13 @@ const SPEAR_FRAG = /* glsl */ `
   void main() {
     float y = vUv.y;
     if (y > uHead) discard;
-    float half = 0.5 * (1.0 - pow(y, 3.0));           // tapers to a point
+    float hw = 0.5 * (1.0 - pow(y, 3.0));           // tapers to a point
     float x = abs(vUv.x - 0.5);
-    if (x > half) discard;
-    float core = exp(-x * x / max(half * half, 1e-4) * 12.0);
+    if (x > hw) discard;
+    float core = exp(-x * x / max(hw * hw, 1e-4) * 12.0);
     float streaks = 0.6 + 0.4 * step(0.5, fract(vUv.x * 9.0 + y * 2.0));
     float head = smoothstep(0.15, 0.0, uHead - y);
-    float a = (core * 0.9 + 0.25 * streaks * (1.0 - x / half)) * (0.35 + 0.65 * y + head) * uFade;
+    float a = (core * 0.9 + 0.25 * streaks * (1.0 - x / hw)) * (0.35 + 0.65 * y + head) * uFade;
     vec3 c = mix(uColor, vec3(1.0), core * 0.6 + head * 0.4);
     gl_FragColor = vec4(c * uIntensity * a, a);
   }

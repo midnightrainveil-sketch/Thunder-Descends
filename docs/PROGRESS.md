@@ -782,3 +782,38 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - **Blade pointed into the ground while running.** This was not intended: the run clip swung the sword backward and down, and its tip reached the floor behind him. The run now keeps the guard grip, with the blade forward and to the right and its tip about 0.3 m above the floor, bobbing with the stride.
 - **Idle guard.** The tip measured 0.38 m below the floor, so the weapon pitch was lowered from 62° to 44°; the tip now sits about 0.25 m up. Attacks and skills that start from the guard pose pick this up.
 - **Whip-crit curve reversed.** Chain points nearer the hand now sample the sweep *ahead* in time (`tf = t + lag·(1−f)…`), so the hilt leads and the chain trails back toward where the tip has been. The tip keeps its own timing, so the hit arc, reach and timing are unchanged.
+
+---
+
+## Faster, unpredictable bosses · lifesteal · aimed E
+
+- **Bosses are much faster.**
+  - Tempo went from ×1.15 to ×1.45; enrage multiplies on top, capped at ×2.1 so telegraphs stay readable.
+  - Base walk speed: Juggernaut 2.1 → 2.8 m/s, Kitsune 4.2 → 5 m/s. Raiju orbit: 0.32 → 0.42 rad/s.
+- **Bosses are unpredictable** (`Boss.js`, `CONFIG.bosses`):
+  - **Per-attack tempo jitter:** ×0.8–1.35, so the same attack's telegraph is sometimes short, sometimes long.
+  - **Random recovery:** 0.1–0.95 s ÷ tempo, with a 35% chance to chain straight into the next attack.
+  - **Erratic footwork** for walking bosses and Kitsune clones, re-rolled every 0.35–1.1 s and after each attack:
+    - approach to keep distance;
+    - circle-strafe either way;
+    - flank dash at ×3.2 speed to a point 60–130° around the hero, kicking up dust;
+    - back-step.
+  - **Raiju:** randomly reverses its orbit (0.22/s), surges ×2.2 for 0.6 s (0.3/s) and crosses over the arena 45% of the time (was 30%).
+- **Lifesteal:** the hero heals 4% of the damage he deals (`CONFIG.hero.lifesteal`). Blocked hits don't count. It is on the debug Hero folder.
+- **E aims like Q.**
+  - Pressing E enters slow-mo (×0.15) with the blue tint and desaturation.
+  - A new cyan lane decal (`AimRings.lane`: bright edges, chevrons flowing outward) shows the thrust's length (with the lunge) and width toward the aim point.
+  - Left-click fires along the lane. Right-click / Esc cancels with no cooldown. It auto-fires after 2.5 s. The cooldown starts on firing.
+- **Debug:** the Bosses folder gained tempo cap, chain chance and attack jitter min/max.
+- **Rim camera.**
+  - Near the rim the follow camera used to pull in until the hero filled the screen. Now `follow.maxRadius` is 14 m (past the lanterns, clear of the canopies), and when the boom doesn't fit the camera first rises and tilts down toward the pivot (up to `rimPitchMaxDeg` 48°) before shortening.
+  - Verified at the back, side, tree and front rim: the camera stays about 7.5 m from the hero.
+  - Tree blocks within 6 m of the camera dither out, fully gone at 2.5 m (`map.trees.camFade`, screen-door discard in the sway material; shadows unchanged).
+- **Fixed: the E spear burst never drew.** Its shader declared a variable named `half`, which is reserved in GLSL ES 3.0, so the program failed to compile. Renamed to `hw`.
+- **Verified with fixed-step tests:**
+  - Juggernaut, over 20 s: footwork split approach 376 / flank 306 / strafe 290 frames, 9 attacks at tempos 1.34–1.86.
+  - Kitsune: all four footwork modes appear, 11 attacks in 15 s.
+  - Raiju: reverses its orbit.
+  - Lifesteal: a 61-damage hit healed 2.4 HP.
+  - E: aim → world ×0.21 with the lane shown; right-click cancels with no cooldown; click fires (cooldown 10 s); auto-fires at 2.5 s.
+  - No shader or page errors.

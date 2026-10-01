@@ -17,7 +17,7 @@ CONTROLS
   Hold left mouse . 3-hit combo (crits become whip strikes)
   Shift ........... dash (invulnerable, 2 stacks, one every 3 s)
   Q ............... Thunderclaw (aim, click to fire, right-click/Esc cancels)
-  E ............... Shatter -> Overdrive      R ... Demontime
+  E ............... Shatter (aim like Q, click to thrust) -> Overdrive   R ... Demontime
   1 / 2 / 3 ....... pick a level-up card      Esc / P ... pause (frees the mouse)
   Enter ........... retry after defeat
 

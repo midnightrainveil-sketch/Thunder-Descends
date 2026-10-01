@@ -15,7 +15,7 @@ three.js; the production build is a single self-contained `dist/index.html`.
 | Hold left mouse | 3-hit combo — about half the swings crit into a **whip strike** |
 | Shift | Dash — invulnerable, afterimages, 2 stacks (one every 3 s) |
 | Q | Thunderclaw: aim (time slows), click to fire, right-click / Esc cancels |
-| E | Shatter → Overdrive on hit |
+| E | Shatter: aim (time slows), click to thrust, right-click / Esc cancels → Overdrive on hit |
 | R | Demontime (freeze time, 7 s power buff) |
 | 1 / 2 / 3 or click | Pick a level-up card |
 | Esc / P | Pause (Esc also frees the mouse; click the game to grab it again) |

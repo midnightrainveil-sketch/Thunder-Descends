@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
 // Persistent floor rings for skill aiming (real time): a dashed range ring around the hero and a
-// target circle with a soft fill and crosshair ticks. Additive, above the gameplay decals.
+// target circle with a soft fill and crosshair ticks (Q), and a lane from the hero with bright
+// edges and chevrons flowing toward the tip (E). Additive, above the gameplay decals.
 const VERT = /* glsl */ `
   varying vec2 vUv;
   void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
@@ -21,6 +22,24 @@ const FRAG = /* glsl */ `
     float fill = uFill * (0.25 + 0.75 * d * d) * (0.8 + 0.2 * sin(uTime * 8.0));
     float cross = uFill > 0.0 ? (step(abs(p.x), 0.012) + step(abs(p.y), 0.012)) * step(0.55, d) * step(d, 0.8) : 0.0;
     float a = (ring * dash + fill + cross * 0.8) * uAlpha;
+    gl_FragColor = vec4(uColor * a * 1.8, a);
+  }
+`;
+
+const LANE_FRAG = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uTime, uAlpha, uLen, uWid;
+  varying vec2 vUv;
+  void main() {
+    float along = 1.0 - vUv.y;               // 0 at the hero, 1 at the tip
+    float ax = abs(vUv.x * 2.0 - 1.0);         // 0 on the center line, 1 at the edges
+    float ew = 0.06 / uWid;                     // ~6 cm edge lines
+    float edge = smoothstep(1.0 - ew * 2.0, 1.0 - ew * 0.5, ax);
+    float tip = smoothstep(1.0 - 0.08 / uLen, 1.0, along);
+    float c = fract(along * uLen / 0.9 - ax * 0.35 - uTime * 1.6);
+    float chevron = smoothstep(0.0, 0.08, c) * smoothstep(0.24, 0.12, c) * 0.55;
+    float fill = 0.1 + 0.1 * along;
+    float a = (edge + tip + chevron + fill) * smoothstep(0.0, 0.1, along) * uAlpha;
     gl_FragColor = vec4(uColor * a * 1.8, a);
   }
 `;
@@ -51,6 +70,38 @@ export class AimRings {
     };
     this.range = make(48, 0, 0.012);
     this.target = make(0, 0.18, 0.05);
+    // E lane: unit plane from z = 0 (hero) to z = 1 (tip), scaled to width × length, turned to the aim.
+    this.lane = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0, 0, 0.5),
+      new THREE.ShaderMaterial({
+        vertexShader: VERT,
+        fragmentShader: LANE_FRAG,
+        uniforms: { uColor: { value: new THREE.Color(CONFIG.skills.shatter.laneColor) }, uTime: { value: 0 }, uAlpha: { value: 1 }, uLen: { value: 5 }, uWid: { value: 1.2 } },
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        toneMapped: false,
+      }),
+    );
+    this.lane.visible = false;
+    this.lane.renderOrder = 5;
+    this.lane.frustumCulled = false;
+    this.lane.name = 'fx:aimLane';
+    scene.add(this.lane);
+    postFX?.addToMask(this.lane);
+  }
+
+  showLane(on) {
+    this.lane.visible = on;
+  }
+
+  setLane(origin, yaw, length, width) {
+    this.lane.position.set(origin.x, CONFIG.fx.decalY + 0.012, origin.z);
+    this.lane.rotation.y = yaw;
+    this.lane.scale.set(width, 1, length);
+    const u = this.lane.material.uniforms;
+    u.uLen.value = length;
+    u.uWid.value = width;
   }
 
   show(on) {
@@ -66,6 +117,6 @@ export class AimRings {
   }
 
   update(realDt) {
-    for (const m of [this.range, this.target]) m.material.uniforms.uTime.value += realDt;
+    for (const m of [this.range, this.target, this.lane]) m.material.uniforms.uTime.value += realDt;
   }
 }

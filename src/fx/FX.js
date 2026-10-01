@@ -66,5 +66,6 @@ export class FX {
     this.afterimages.clear();
     this.nanobots.clear();
     this.aim.show(false);
+    this.aim.showLane(false);
   }
 }

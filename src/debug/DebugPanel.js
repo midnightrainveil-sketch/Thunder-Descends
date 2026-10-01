@@ -318,6 +318,7 @@ export class DebugPanel {
     hero.add(C.hero.anim, 'breathDeg', 0, 5, 0.1).name('breathing°');
     hero.add(H, 'attackSpeed', 0.25, 3, 0.05).name('attack speed');
     hero.add(this.game, 'godMode').name('god mode (G)').listen();
+    hero.add(C.hero, 'lifesteal', 0, 0.5, 0.01).name('lifesteal');
     hero.add(this.game.hero.stats, 'critRate', 0, 1, 0.05).name('crit rate').listen();
     hero.add({ f: () => this.game.progression.levelUp() }, 'f').name('Level up (L)');
     hero.add({ f: () => this.game.hero.heal(1e6) }, 'f').name('Full heal');
@@ -382,6 +383,10 @@ export class DebugPanel {
     bo.add(C.bosses, 'hpMul', 0.2, 4, 0.05).name('HP × (next spawn)');
     bo.add(C.bosses, 'tempo', 0.5, 2, 0.05).name('tempo × (next spawn)');
     bo.add(C.bosses, 'enrageAt', 0, 1, 0.05).name('enrage at HP');
+    bo.add(C.bosses, 'maxTempo', 1, 3, 0.05).name('tempo cap');
+    bo.add(C.bosses, 'chainChance', 0, 1, 0.05).name('chain attack chance');
+    bo.add(C.bosses.attackJitter, '0', 0.5, 1.5, 0.05).name('attack jitter min');
+    bo.add(C.bosses.attackJitter, '1', 0.5, 2, 0.05).name('attack jitter max');
     bo.add({ f: () => this.game.boss && (this.game.boss.dmgScale = C.bosses.damageMul * (1 + C.bosses.loopDamage * this.game.boss.loop)) }, 'f').name('Apply damage × to current');
     bo.close();
     en.close();

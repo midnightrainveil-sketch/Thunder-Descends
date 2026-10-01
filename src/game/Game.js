@@ -348,7 +348,8 @@ export class Game {
     const mode = this.mode;
     if (mode === 'title' && (input.wasButtonPressed(0) || input.wasPressed('Enter'))) this.startRun();
     else if (mode === 'play') {
-      const aiming = this.hero.skills.q.active && this.hero.skills.q.phase === 'aim';
+      const sk = this.hero.skills;
+      const aiming = (sk.q.active && sk.q.phase === 'aim') || (sk.e.active && sk.e.phase === 'aim');
       if ((input.wasPressed('Escape') && !aiming) || input.wasPressed('KeyP')) this.setPaused(true);
     } else if (mode === 'paused') {
       // The Esc that broke the pointer lock must not also resume.

@@ -55,6 +55,8 @@ export class Combat {
     _d.multiplyScalar(1 / len);
     const kb = (opts.knockback ?? 2) * (blocked ? C.blockedKnockback : 1);
     const killed = enemy.takeDamage(dmg, { dirX: _d.x, dirZ: _d.z, knockback: kb, stun: blocked ? 0 : opts.stun ?? 0, blocked, skill: opts.skill ?? null });
+    // Lifesteal: a small share of damage dealt (blocked hits don't feed it).
+    if (!blocked && !hero.dead) hero.heal(dmg * CONFIG.hero.lifesteal);
     // Passive IV: crits heal 1% max HP.
     if (opts.crit && hero.passiveRank >= 4) hero.heal(S.maxHp * CONFIG.cards.passiveHeal);
 

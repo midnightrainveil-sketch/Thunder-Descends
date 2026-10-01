@@ -14,7 +14,7 @@ const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 //   the map composition (moon, pagoda, canopy check) is placed with (`compositionCamera`).
 // • Third-person follow pose: a boom behind the hero's back, turned by mouse look (pointer
 //   lock) or ← →, pulled in so it never leaves `follow.maxRadius`. The aim ray goes through
-//   the screen center.
+//   the screen center. Near the rim the boom rises instead of shortening.
 // Shake and zoom punches are applied on top of whichever pose is active (real time).
 export class CameraRig {
   constructor() {
@@ -229,23 +229,29 @@ export class CameraRig {
     const px = this.pivot.x + rx * F.shoulder;
     const pz = this.pivot.z + rz * F.shoulder;
     const py = this.pivot.y + F.height;
-    let dist = F.distance;
-    // Pull in so the camera stays inside maxRadius on XZ: |p − t·f| ≤ R.
-    const bx = -fwd.x, bz = -fwd.z;
-    const a = bx * bx + bz * bz;
-    if (a > 1e-6) {
-      const b = 2 * (px * bx + pz * bz);
-      const c = px * px + pz * pz - F.maxRadius * F.maxRadius;
-      const disc = b * b - 4 * a * c;
-      if (disc >= 0) {
-        const tMax = (-b + Math.sqrt(disc)) / (2 * a);
-        dist = Math.min(dist, Math.max(F.minDistance, tMax));
-      } else dist = F.minDistance;
+    // Near the rim the camera can't go far enough back on XZ (it stays inside maxRadius, clear of
+    // the tree canopies), so it first rises and looks down more steeply at the pivot (up to
+    // rimPitchMax) and only then shortens the boom — the hero never fills the screen.
+    const dist = F.distance;
+    let H = dist * cp; // horizontal back-off
+    let V = dist * sp; // height above the pivot
+    const hx = -sy, hz = -cy; // horizontal "behind" direction
+    const pd = px * hx + pz * hz;
+    const disc = pd * pd - (px * px + pz * pz - F.maxRadius * F.maxRadius);
+    const hMax = disc >= 0 ? Math.max(0, -pd + Math.sqrt(disc)) : 0;
+    let raised = false;
+    if (H > hMax) {
+      H = Math.max(hMax, F.minDistance);
+      const steep = Math.max(this.pitch, F.rimPitchMaxDeg * DEG);
+      const pitch2 = Math.min(Math.acos(Math.min(1, H / dist)), steep);
+      const d2 = Math.min(dist, H / Math.cos(pitch2));
+      V = d2 * Math.sin(pitch2);
+      raised = true;
     }
-    const camY = Math.max(F.minHeight, py - fwd.y * dist);
-    this.followPosition.set(px - fwd.x * dist, camY, pz - fwd.z * dist);
-    // Aim straight along the look direction even when the floor clamp lifted the camera.
-    this._lookAt.copy(this.followPosition).addScaledVector(fwd, dist);
+    const camY = Math.max(F.minHeight, py + V);
+    this.followPosition.set(px + hx * H, camY, pz + hz * H);
+    if (raised) this._lookAt.set(px, py, pz); // look at the pivot from above
+    else this._lookAt.copy(this.followPosition).addScaledVector(fwd, dist); // straight along the look direction
     this._m.lookAt(this.followPosition, this._lookAt, UP);
     this.followQuaternion.setFromRotationMatrix(this._m);
 

@@ -143,7 +143,18 @@ function injectSway(shader) {
     .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += swayOffset();');
 }
 
+// Trees dither out near the camera (the follow camera can sit under a canopy at the rim).
+const camFadeUniforms = {
+  uCamFadeNear: { value: CONFIG.map.trees.camFade.near },
+  uCamFadeFar: { value: CONFIG.map.trees.camFade.far },
+};
+export function applyTreeCamFade() {
+  camFadeUniforms.uCamFadeNear.value = CONFIG.map.trees.camFade.near;
+  camFadeUniforms.uCamFadeFar.value = CONFIG.map.trees.camFade.far;
+}
+
 // Standard voxel material with sway; `lift` adds a tiny self-light from the vertex color.
+// Fragments closer to the camera than camFade.far are dithered away (all gone at camFade.near).
 export function makeSwayMaterial(name, lift = 0) {
   const mat = new THREE.MeshStandardMaterial({
     vertexColors: true,
@@ -156,9 +167,21 @@ export function makeSwayMaterial(name, lift = 0) {
   mat.userData.liftUniforms = uniforms;
   mat.onBeforeCompile = (shader) => {
     injectSway(shader);
-    Object.assign(shader.uniforms, uniforms);
+    Object.assign(shader.uniforms, uniforms, camFadeUniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vFadeWorld;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvFadeWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uLift;')
+      .replace('#include <common>', '#include <common>\nuniform float uLift;\nuniform float uCamFadeNear;\nuniform float uCamFadeFar;\nvarying vec3 vFadeWorld;')
+      .replace(
+        'void main() {',
+        `void main() {
+        {
+          float k = smoothstep(uCamFadeNear, uCamFadeFar, distance(vFadeWorld, cameraPosition));
+          float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+          if (ign > k) discard;
+        }`,
+      )
       .replace(
         '#include <emissivemap_fragment>',
         '#include <emissivemap_fragment>\n#ifdef USE_COLOR\ntotalEmissiveRadiance += vColor.rgb * uLift;\n#endif',

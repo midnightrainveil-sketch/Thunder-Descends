@@ -47,7 +47,7 @@ export const CONFIG = {
       zoomStep: 0.1, // scroll wheel: ×1.1 distance per notch
       zoomMin: 4, zoomMax: 16, // m, wheel / slider range
       pitchLock: 0.3, // vertical look ignored while |dy| < 0.3·|dx| in a frame (sideways sweeps stay level)
-      minDistance: 1.6, // m, shortest boom when pulled in at the rim
+      minDistance: 1.6, // m, shortest horizontal back-off at the rim
       height: 2.5, // m, pivot above the hero's feet (upper back / neck)
       shoulder: 0.85, // m, pivot shifted right so the hero doesn't hide the aim point
       pitchDeg: 20, // starting look-down angle
@@ -57,7 +57,8 @@ export const CONFIG = {
       invertY: false,
       keyTurnRate: 2.4, // rad/s, ← → arrow keys turn the camera (no-mouse fallback)
       followRate: 14, // 1/s, pivot catch-up (exponential smoothing)
-      maxRadius: ARENA_RADIUS + 1.1, // m, camera XZ stays inside this circle (boom pulls in): past the balustrade, short of the lanterns
+      maxRadius: ARENA_RADIUS + 3, // m, camera XZ stays inside this circle: past the lanterns (the camera is well above them), clear of the canopies
+      rimPitchMaxDeg: 48, // at the rim the camera tilts down up to this before the boom shortens
       minHeight: 0.5, // m, camera never goes below this above the floor
       recenter: true, // swing behind the hero's back while he runs roughly forward
       recenterDelay: 0.9, // s without mouse look before recentering starts
@@ -183,6 +184,7 @@ export const CONFIG = {
     critRate: 0.5,
     critDamage: 2.0,
     hurtIFrames: 0.4, // s
+    lifesteal: 0.04, // share of damage dealt (not blocked) healed back
     // Movement feel
     radius: 0.4, // m, body radius for arena clamping
     accel: 42, // m/s², towards the input velocity
@@ -372,6 +374,10 @@ export const CONFIG = {
       drift: 1.5, // m/s toward the aim
       afterimageEvery: 0.05,
       chain: [false, false, false, true], // rank IV: slashes chain lightning to one nearby enemy
+      // Aim like Thunderclaw: slow-mo, tint, a lane on the floor; click fires, right-click / Esc cancels.
+      aimScale: 0.15, aimTween: 0.12, aimTimeout: 2.5, // ×, s (real), s (real) → auto-fire
+      aimTint: '#3f6dff', aimTintStrength: 0.5, aimSaturation: 0.6,
+      laneColor: '#35e0ff',
       chainRange: 4, chainMult: 0.3,
     },
     demontime: {
@@ -555,6 +561,7 @@ export const CONFIG = {
       colorBalance: 0.62, // 0 = pale/white, 1 = saturated pink
       greenCubes: [1, 3], // min/max green cubes per tree
       emissiveLift: 0.07, // very low self-light so blossoms read in moonlight (never blooms)
+      camFade: { near: 2.5, far: 6 }, // m from the camera: tree blocks dither out inside this range (follow camera at the rim)
       topShade: 1.07, // brighter top faces (moonlit tops)
       bottomShade: 0.72,
       barkTopShade: 1.45, // lighter bark top faces
@@ -677,11 +684,20 @@ export const CONFIG = {
     loopDamage: 0.25, // endless: +25% damage per repeat
     hpMul: 1.15, // all bosses: HP multiplier on the base values below
     damageMul: 1.6, // all bosses: damage multiplier (melee, slams, beams, spikes)
-    tempo: 1.15, // all bosses: base speed of movement, attacks and telegraphs (enrage multiplies on top)
+    tempo: 1.45, // all bosses: base speed of movement, attacks and telegraphs (enrage multiplies on top)
+    maxTempo: 2.1, // cap on tempo × enrage × per-attack jitter (telegraphs stay readable)
+    // Unpredictability.
+    attackJitter: [0.8, 1.35], // each attack runs at a random tempo multiplier (telegraph lengths vary)
+    chainChance: 0.35, // chance to go straight into the next attack (no recovery)
+    // Walking bosses switch movement modes at random: approach, circle-strafe, flank dash, back-step.
+    moveSwitch: [0.35, 1.1], // s between mode changes
+    moveWeights: { approach: 3, strafe: 3, flank: 1.6, backstep: 1 },
+    flank: { speed: 3.2, duration: [0.22, 0.38], angleDeg: [60, 130] }, // × walk speed, s, around the hero
+    backstep: { speed: 1.6, duration: [0.2, 0.35] }, // × walk speed, s
     expBurst: 2, // EXP multiplier on the boss's exp value (fewer waves → bosses carry the levelling)
-    recover: [0.45, 0.85], // s between attacks (random range, ÷ tempo)
+    recover: [0.1, 0.95], // s between attacks (random range, ÷ tempo)
     juggernaut: {
-      name: 'Oni Juggernaut', hp: 3000, exp: 150, radius: 1.3, speed: 2.1, keepDist: 3.2,
+      name: 'Oni Juggernaut', hp: 3000, exp: 150, radius: 1.3, speed: 2.8, keepDist: 3.2,
       slam: { damage: 40, radius: 2.2, first: 0.85, next: 0.45, spacing: [2.4, 4.6, 6.8] },
       charge: { damage: 55, telegraph: 0.9, speed: 15, width: 2.6, stun: 1.2, knockback: 12 },
       stomp: { damage: 35, radius: 4.5, telegraph: 0.8 },
@@ -689,7 +705,7 @@ export const CONFIG = {
       weights: { slam: 3, charge: 2, stomp: 2 },
     },
     kitsune: {
-      name: 'Kage Kitsune', hp: 4500, exp: 220, radius: 0.55, speed: 4.2, keepDist: 4.5,
+      name: 'Kage Kitsune', hp: 4500, exp: 220, radius: 0.55, speed: 5.0, keepDist: 4.5,
       blink: { damage: 30, flash: 0.5, behind: 1.4, reach: 2.2, arcDeg: 150 },
       dash: { damage: 28, telegraph: 0.8, speed: 26, width: 1.3, count: 3, length: 7 },
       fan: { damage: 18, telegraph: 0.6, count: 11, arcDeg: 90, speed: 11, range: 12 },
@@ -699,8 +715,10 @@ export const CONFIG = {
     },
     raiju: {
       name: 'Raiju Serpent', hp: 7000, exp: 320, segments: 16, spacing: 0.95, radius: 0.75, headMult: 1.5,
-      orbitRadius: 13.2, height: [2, 4], orbitSpeed: 0.32, // rad/s
-      crossChance: 0.3, // chance a move phase crosses over the arena (figure-8)
+      orbitRadius: 13.2, height: [2, 4], orbitSpeed: 0.42, // rad/s
+      flipRate: 0.22, // per second: chance to reverse the orbit direction
+      surge: { rate: 0.3, mul: 2.2, duration: 0.6 }, // random orbit speed bursts (per second, ×, s)
+      crossChance: 0.45, // chance a move phase crosses over the arena (figure-8)
       beam: { damage: 12, tick: 0.12, telegraph: 0.9, sweep: 1.0, arcDeg: 70, length: 16, width: 1.4 },
       pillars: { damage: 35, count: [5, 8], enragedCount: [8, 11], radius: 1.3, telegraph: 0.95, spread: 4.5 },
       dive: { damage: 45, telegraph: 1.0, speed: 17, width: 2.4, height: 1.0 },

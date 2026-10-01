@@ -7,6 +7,7 @@ import { clampToArena } from '../../world/ArenaBounds.js';
 import { wrapAngle as wrap } from '../../combat/Hitbox.js';
 
 const _v = new THREE.Vector3();
+const rand = (a, b) => a + Math.random() * (b - a);
 
 /**
  * Boss base (spec §9). Exposes the same interface as Enemy so combat, hero attacks and skills work
@@ -16,7 +17,10 @@ const _v = new THREE.Vector3();
  *  - telegraph helpers (floor decals are tracked so a stun / death cancels them) and an eye/glow tell;
  *  - intro (drops in, lands with shake + petal burst + name banner) and death (slow-mo, explosions,
  *    then a big shatter + EXP burst handled by Combat.killEnemy);
- *  - enrage below 60% HP (subclasses read `this.speedMul`: base tempo × enrage speed);
+ *  - enrage below 60% HP (subclasses read `this.speedMul`: base tempo × enrage speed × a random
+ *    per-attack jitter, so telegraph lengths vary);
+ *  - unpredictable rhythm: random recovery, a chance to chain straight into the next attack, and
+ *    erratic footwork between attacks (approach / circle-strafe / flank dash / back-step);
  *  - global difficulty knobs: hpMul, damageMul (applied in hitHero), tempo, plus endless loop scaling.
  * Subclasses implement startAttack(name) and updateAttack(dt) → true when finished, and may
  * override move(dt, hero). World clock.
@@ -56,7 +60,12 @@ export class Boss {
     this.alive = true;
     this.dying = false;
     this.enraged = false;
-    this.speedMul = B.tempo; // movement, attack timing and telegraphs (enrage multiplies on top)
+    this.tempoMul = B.tempo; // base tempo (enrage multiplies on top)
+    this.speedMul = B.tempo; // effective: movement, attack timing and telegraphs (tempo × per-attack jitter)
+    this.moveMode = 'approach';
+    this.moveT = 0;
+    this.moveDir = 1; // strafe / flank side
+    this.moveVec = new THREE.Vector3();
     this.state = 'intro';
     this.t = 0;
     this.introT = 0;
@@ -108,11 +117,17 @@ export class Boss {
 
   _enrage() {
     this.enraged = true;
-    this.speedMul = CONFIG.bosses.tempo * this.bcfg.enrage.speed;
-    this.animator.timeScale = this.speedMul;
+    this.tempoMul = CONFIG.bosses.tempo * this.bcfg.enrage.speed;
+    this._setTempo(1);
     this.ctx.hud.banner(this.name.toUpperCase(), 'enraged', 1.4);
     this.ctx.rig.shake(0.3, 0.3);
     this.onEnrage?.();
+  }
+
+  // Effective tempo = base tempo × jitter, capped; the animation follows it.
+  _setTempo(jitter) {
+    this.speedMul = Math.min(CONFIG.bosses.maxTempo, this.tempoMul * jitter);
+    this.animator.timeScale = this.speedMul;
   }
 
   // ── Telegraph helpers ───────────────────────────────────────────────────
@@ -195,8 +210,11 @@ export class Boss {
         this.attack = null;
         this.decalList.length = 0;
         this.state = 'idle';
+        this._setTempo(1);
+        // Unpredictable rhythm: random recovery, sometimes straight into the next attack.
         const [a, b] = B.recover;
-        this.recoverT = (a + Math.random() * (b - a)) / this.speedMul;
+        this.recoverT = Math.random() < B.chainChance ? 0.05 : rand(a, b) / this.speedMul;
+        this.moveT = 0; // pick a fresh movement mode
       }
     } else {
       this.move(dt, hero);
@@ -204,6 +222,7 @@ export class Boss {
       if (this.recoverT <= 0 && !hero.dead) {
         this.state = 'attack';
         this.velocity.set(0, 0, 0);
+        this._setTempo(rand(...B.attackJitter));
         this.startAttack(this.pickAttack(), hero);
       }
     }
@@ -214,14 +233,37 @@ export class Boss {
     this._glow(dt);
   }
 
-  // Default: walk toward the hero, stop at keepDist, face him.
+  // Default: erratic footwork around the hero, switching at random between approaching (stop at
+  // keepDist), circle-strafing, a fast flank dash to his side and a back-step; always facing him.
   move(dt, hero) {
     const C = this.bcfg;
+    const B = CONFIG.bosses;
     _v.set(hero.position.x - this.position.x, 0, hero.position.z - this.position.z);
-    const d = _v.length();
-    const sp = d > C.keepDist ? this.speed * this.speedMul : 0;
-    const desired = _v.multiplyScalar(sp / Math.max(d, 1e-4));
-    this.velocity.lerp(desired, 1 - Math.exp(-6 * dt));
+    const d = Math.max(_v.length(), 1e-4);
+    const nx = _v.x / d, nz = _v.z / d; // toward the hero
+    const base = this.speed * this.speedMul;
+    this.moveT -= dt;
+    if (this.moveT <= 0) this._pickMove(hero, d);
+    const desired = this.moveVec;
+    if (this.moveMode === 'approach') {
+      const sp = d > C.keepDist ? base : 0;
+      desired.set(nx * sp, 0, nz * sp);
+    } else if (this.moveMode === 'strafe') {
+      // Tangent around the hero plus a pull back to keepDist.
+      const radial = THREE.MathUtils.clamp((d - C.keepDist) * 1.5, -base, base);
+      desired.set(-nz * this.moveDir * base * 0.9 + nx * radial, 0, nx * this.moveDir * base * 0.9 + nz * radial);
+    } else if (this.moveMode === 'flank') {
+      // Burst toward a point beside / behind the hero.
+      const tx = hero.position.x + this.flankX - this.position.x;
+      const tz = hero.position.z + this.flankZ - this.position.z;
+      const tl = Math.hypot(tx, tz) || 1;
+      const sp = tl > 0.4 ? base * B.flank.speed : 0;
+      desired.set((tx / tl) * sp, 0, (tz / tl) * sp);
+      if (Math.random() < 0.5) this.ctx.fx.particles.dust(this.position, 1, { speed: 2 });
+    } else {
+      desired.set(-nx * base * B.backstep.speed, 0, -nz * base * B.backstep.speed);
+    }
+    this.velocity.lerp(desired, 1 - Math.exp(-(this.moveMode === 'flank' ? 14 : 6) * dt));
     this.position.addScaledVector(this.velocity, dt);
     clampToArena(this.position, this.radius);
     this.faceTo(hero.position.x, hero.position.z, dt);
@@ -229,6 +271,35 @@ export class Boss {
     const w = Math.min(1, this.velocity.length() / Math.max(0.1, this.speed));
     this.walkBlend += (w - this.walkBlend) * (1 - Math.exp(-8 * dt));
     this.base.setBlend({ idle: 1 - this.walkBlend, walk: this.walkBlend });
+  }
+
+  _pickMove(hero, d) {
+    const B = CONFIG.bosses;
+    const W = B.moveWeights;
+    // Far away → mostly close in; already close → mostly strafe / flank.
+    const w = { ...W };
+    if (d > this.bcfg.keepDist * 2) (w.approach *= 2.5), (w.backstep = 0);
+    if (d < this.bcfg.keepDist * 0.8) w.approach *= 0.3;
+    const sum = Object.values(w).reduce((s, x) => s + x, 0);
+    let r = Math.random() * sum;
+    let mode = 'approach';
+    for (const k in w) {
+      r -= w[k];
+      if (r <= 0) {
+        mode = k;
+        break;
+      }
+    }
+    this.moveMode = mode;
+    this.moveDir = Math.random() < 0.5 ? -1 : 1;
+    if (mode === 'flank') {
+      const a = Math.atan2(this.position.x - hero.position.x, this.position.z - hero.position.z) + this.moveDir * rand(B.flank.angleDeg[0], B.flank.angleDeg[1]) * (Math.PI / 180);
+      const r2 = this.bcfg.keepDist * 0.9 + this.radius;
+      this.flankX = Math.sin(a) * r2;
+      this.flankZ = Math.cos(a) * r2;
+      this.moveT = rand(...B.flank.duration);
+    } else if (mode === 'backstep') this.moveT = rand(...B.backstep.duration);
+    else this.moveT = rand(...B.moveSwitch);
   }
 
   // Default intro: drop from the sky onto the spawn point, land with impact.
