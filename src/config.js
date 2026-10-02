@@ -85,6 +85,7 @@ export const CONFIG = {
       aimMinDist: 1.2, // m, aim point at least this far ahead of the hero
       crosshairY: 0.2, // NDC y of the aim ray and crosshair: above the hero's head so he never hides the aim point
       blendTime: 0.7, // s, glide between fixed and follow poses
+      lockRetryMs: 1100, // ms, retry a refused pointer lock after Chrome's Esc cooldown
     },
   },
 
@@ -455,6 +456,19 @@ export const CONFIG = {
       // Timeline (s): raise + two-handed stab → time-stop shockwave out of the sword at plantAt (ring
       // expands over ringOut); nanobots + plates from nanoStart to nanoEnd; the shockwave rushes back
       // into the sword until restoreAt (time resumes); Excalibur pull, the blade comes free at pullFree.
+      // Spectacle (no extra shake): sky lightning into the sword, crackling arcs while time is
+      // stopped, a radial lightning burst and gold ring on release, chromatic pulses.
+      show: {
+        skyBolts: 4, skyHeight: 16, skySpread: 1.2, // bolts from the sky into the sword at the stab (m)
+        groundArcs: 8, groundArcLen: [3, 6], // radial ground arcs at the stab (m)
+        holdArcEvery: 0.05, holdArcRadius: [1.5, 5.5], // s between crackles while time is stopped; m reach
+        holdSparkEvery: 0.03, // s between rising cyan motes around the hero
+        releaseBolts: 10, releaseSky: 5, // radial bolts out to the pulse radius + sky bolts on the release
+        gold: '#ffd36b', crimson: '#ff3a4f',
+        chromatic: 0.9, chromaticHold: 0.35, chromaticTime: 0.5, // aberration pulse (stab / hold / fade s)
+        flashStab: 0.18, flashRelease: 0.3, // capped by ui.flashMax (kept low so the hero stays visible)
+        skyIntensity: 2.6, skyWidth: [0.09, 0.05], // sky bolt brightness, main / fork width (m)
+      },
       plantAt: 0.2, ringOut: 0.35, nanoStart: 0.3, nanoEnd: 1.6, restoreAt: 2.0, pullFree: 2.12,
       freezeTween: 0.08, // s, world time → 0 at the stab
       camBackAt: 2.2, // s, the cinematic close-up starts easing back to the player's camera
@@ -476,7 +490,7 @@ export const CONFIG = {
     particles: { glow: 700, solid: 300, gravity: 14 }, // cube particle pools
     shatter: { max: 260, life: 2.2, fade: 0.5, bounce: 0.35, friction: 0.7, speed: 4.5, up: 4, spin: 9 },
     slashArcs: 10, // crescent pool
-    lightningBolts: 48, // bolt pool
+    lightningBolts: 80, // bolt pool (Zero Hour sky strikes need headroom)
     lightningPoints: 9, // points per bolt
     decals: 16, // telegraph decal pool
     rings: 12, // shockwave ring pool
@@ -742,7 +756,7 @@ export const CONFIG = {
   ui: {
     showHint: false, // Stage 0 controls hint (replaced by the title screen)
     crosshair: { color: 'rgba(143, 244, 255, 0.85)', length: 6, gap: 4 }, // px, follow-camera screen-center crosshair (ticks + dot)
-    cardDelay: 0.7, // s (real) after a level-up before the cards open
+    cardDelay: 0.7, // s (real) into the break after a wave is cleared before the level-up cards open (cards wait for the end of the wave)
     hpSegments: 12, // segmented HP bar
     flashMax: 0.45, // cap on full-screen flashes (polish)
     hpLow: 0.3, // HP share: red pulsing vignette + pulsing bar at or below this

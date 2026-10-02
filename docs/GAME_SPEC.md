@@ -129,6 +129,7 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 - After wave 5: "Demo clear" screen with stats and an option to continue endlessly (bosses repeat on every other wave with +60% HP and +25% damage per repeat).
 
 ## 10. Progression
+- **Level-up cards wait for the end of the wave (revised after review):** levelling up mid-wave queues the upgrade; the cards open during the break after the wave is cleared (or the run intro for Head Start cards), one screen per queued level.
 - EXP to next level: 40 + 25·(L−1).
 - Level-up: +8% ATK, +5% max HP, heal 25%, then the game pauses and shows 3 upgrade cards (pick one). Pool:
   - Storm Grapple II/III/IV: +1 target and +0.5 m radius · −1 s cooldown · grabbed enemies take +30% damage while stunned.
@@ -144,6 +145,8 @@ All enemies are rust-red/black/bronze armored robots with adult proportions (~0.
 - **Cards** have a rarity (common / rare / epic / legendary). Stat cards roll a rarity that scales their bonus. Special cards: Vampiric Edge, Thunder Lunge, Spare Capacitor, Thunder Step, Time Thief, Storm Caller, Second Wind. There is one reroll per level-up. Cards are dealt and picked with animations and sounds.
 - **Thunder Cores** are earned per run (score / 250, plus a bonus per boss killed). They are spent in the **Armory** (from the title screen) on 8 permanent upgrades with rising costs. Achievements (17) pay out cores. Bests, runs and the wallet are saved in localStorage (`thunder.save`).
 - The results screen shows score, best, rank, combo, cores earned, NEW BEST and achievements unlocked this run.
+
+- **Zero Hour spectacle (revised after review):** sky lightning strikes the sword at the stab, lightning crackles off the planted blade and cyan motes rise while time is stopped, and the release fires a radial lightning burst (cyan + crimson), a gold ring and sky bolts, with chromatic-aberration pulses. Screen shake stays minimal (`CONFIG.skills.demontime.show`).
 
 ## 11b. Audio (revised after review)
 - Fully procedural Web Audio, no audio files (`src/audio`). Buses: hero, world (low-passed during Zero Hour's time stop), ui and music, through one compressor. Volume sliders are in settings.

@@ -974,3 +974,9 @@ Now:
 
 ### How to test
 Look up and down anywhere in the arena, including at the rim looking inward: the view follows every count. The debug stats line shows the boom shortening instead.
+
+## Update — Card hang fix, end-of-wave cards, flashier Zero Hour
+- **Hang fix:** the aim overhaul dropped `camera.follow.lockRetryMs`, so after a card pick the pointer-lock retry fired in a 0 ms loop and play stayed held. The value is restored and has a fallback. The card click now grabs the mouse itself (it is a user gesture), so play resumes without another click.
+- **Card flow hardened:** a card whose `apply()` throws, or an empty re-roll while upgrades are queued, now always returns to play instead of leaving the game in `cards`. The lock prompt only shows in `play`.
+- **Cards at the end of the wave:** `pendingUpgrades` queue during the wave; the cards open in the break (or intro).
+- **Zero Hour:** new `demontime.show` block (sky bolts, ground arcs, crackle while time is stopped, release burst, gold ring, chromatic pulses). The lightning pool grew to 80.

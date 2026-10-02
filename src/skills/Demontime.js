@@ -96,7 +96,13 @@ export class Demontime extends Skill {
       g.fx.particles.debris(_v.copy(ground).setY(0.1), 12, { speed: 4 });
       g.fx.particles.dust(ground, 14, { speed: 4, clock: 'hero' });
       g.map.petalImpulse(ground, 6, 9);
-      g.postFX.flash(0.35, 0.2, 0xdffbff);
+      g.postFX.flash(C.show.flashStab, 0.25, 0xdffbff);
+      this._skyStrike(this.center, C.show.skyBolts, '#e8fdff');
+      this._radialArcs(ground, C.show.groundArcs, C.show.groundArcLen, '#8ff4ff');
+      g.fx.shock.ring(ground, { r0: 0.3, r1: 6, duration: 0.5, color: C.show.gold, intensity: 2.4, thickness: 0.12, clock: 'hero' });
+      g.postFX.setChromatic(C.show.chromatic, 0.05);
+      this._arcT = 0;
+      this._sparkT = 0;
       g.rig.shake(C.plantShake, 0.3);
       g.rig.punch(0.05, 0.25);
     }
@@ -107,6 +113,26 @@ export class Demontime extends Skill {
       else if (t < C.nanoEnd) r = C.ringMax;
       else if (t < C.restoreAt) r = C.ringMax * (1 - easeIn((t - C.nanoEnd) / (C.restoreAt - C.nanoEnd)));
       if (t < C.restoreAt) g.postFX.setTimeRing(this.ground || this.center, Math.max(0.05, r), 1);
+    }
+    // While time is stopped: lightning crackles off the planted sword, motes rise around him.
+    if (f.plant && t < C.restoreAt) {
+      const S = C.show;
+      if (t > C.plantAt + 0.12) g.postFX.setChromatic(S.chromaticHold, 0.2);
+      this._arcT += dt;
+      while (this._arcT >= S.holdArcEvery) {
+        this._arcT -= S.holdArcEvery;
+        const a = Math.random() * Math.PI * 2;
+        const d = S.holdArcRadius[0] + Math.random() * (S.holdArcRadius[1] - S.holdArcRadius[0]);
+        const end = _w.set(h.position.x + Math.sin(a) * d, 0.05 + Math.random() * 0.4, h.position.z + Math.cos(a) * d);
+        g.fx.lightning.bolt(this.center, end, { life: 0.07, width: 0.05, jitter: 0.3, color: Math.random() < 0.25 ? S.gold : '#8ff4ff', intensity: 3.6 });
+      }
+      this._sparkT += dt;
+      while (this._sparkT >= S.holdSparkEvery) {
+        this._sparkT -= S.holdSparkEvery;
+        const a = Math.random() * Math.PI * 2;
+        const d = 0.6 + Math.random() * 2.2;
+        g.fx.particles.sparks(_v.set(h.position.x + Math.sin(a) * d, 0.1, h.position.z + Math.cos(a) * d), _b.set(0, 1, 0), 1, { color: '#8ff4ff', intensity: 3, speed: 3 + Math.random() * 3, spread: 0.2, life: 0.6, size: 0.06, clock: 'hero' });
+      }
     }
     // The shockwave comes back: inward rings converging on the sword.
     if (!f.back && t >= C.nanoEnd) {
@@ -209,9 +235,37 @@ export class Demontime extends Skill {
     fx.particles.sparks(_v, _w, 24, { color: '#ff3a4f', intensity: 3, speed: 10, spread: 1.4, life: 0.45, clock: 'hero' });
     fx.particles.dust(h.position, 16, { speed: 5, size: 0.18, clock: 'hero' });
     g.map.petalImpulse(h.position, R + 4, 14);
-    g.postFX.flash(0.55, 0.3, 0xdffbff);
+    g.postFX.flash(C.show.flashRelease, 0.35, 0xdffbff);
+    this._skyStrike(_v.set(h.position.x, 1.2, h.position.z), C.show.releaseSky, '#ffffff');
+    this._radialArcs(h.position, C.show.releaseBolts, [R * 0.7, R], '#8ff4ff');
+    this._radialArcs(h.position, Math.ceil(C.show.releaseBolts / 2), [R * 0.4, R * 0.8], C.show.crimson);
+    fx.shock.ring(h.position, { r0: 0.2, r1: R * 1.6, duration: 0.7, color: C.show.gold, intensity: 2.6, thickness: 0.1, clock: 'hero' });
+    fx.particles.sparks(_v.copy(h.position).setY(0.4), _w.set(0, 1, 0), 30, { color: C.show.gold, intensity: 3.5, speed: 14, spread: 1.2, life: 0.6, clock: 'hero' });
+    g.postFX.setChromatic(C.show.chromatic, 0.04);
+    setTimeout(() => g.postFX.setChromatic(CONFIG.post.grade.chromatic ?? 0, C.show.chromaticTime), 90);
     g.rig.shake(C.releaseShake, 0.45);
     g.rig.punch(0.06, 0.3);
+  }
+
+  // Forked lightning from high in the sky down to `target`.
+  _skyStrike(target, n, color) {
+    const S = this.cfg.show;
+    for (let i = 0; i < n; i++) {
+      const top = _b.set(target.x + (Math.random() - 0.5) * 2 * S.skySpread * (1 + i), S.skyHeight, target.z + (Math.random() - 0.5) * 2 * S.skySpread * (1 + i));
+      this.game.fx.lightning.bolt(top, target, { life: 0.16 + i * 0.03, width: i === 0 ? S.skyWidth[0] : S.skyWidth[1], jitter: 0.6, color, intensity: S.skyIntensity });
+    }
+  }
+
+  // Bolts running out along the ground from `center`, evenly spaced with a random twist.
+  _radialArcs(center, n, [d0, d1], color) {
+    const a0 = Math.random() * Math.PI * 2;
+    for (let i = 0; i < n; i++) {
+      const a = a0 + (i / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      const d = d0 + Math.random() * (d1 - d0);
+      const from = _v.set(center.x, 0.15, center.z);
+      const to = _w.set(center.x + Math.sin(a) * d, 0.08, center.z + Math.cos(a) * d);
+      this.game.fx.lightning.bolt(from, to, { life: 0.14, width: 0.07, jitter: 0.35, color, intensity: 3.8 });
+    }
   }
 
   _endCast() {
@@ -220,6 +274,7 @@ export class Demontime extends Skill {
     g.time.hitstopLocked = false;
     g.time.tweenScale('world', 1, 0);
     g.postFX.setTimeRing(null, 0, false);
+    g.postFX.setChromatic(CONFIG.post.grade.chromatic ?? 0, 0.3);
     this._startBuff();
     this.finish();
   }
@@ -305,6 +360,7 @@ export class Demontime extends Skill {
     g.postFX.setTimeRing(null, 0, false);
     g.fx.nanobots.clear();
     this.endBuff(false);
+    this.game.postFX.setChromatic(CONFIG.post.grade.chromatic ?? 0, 0);
     this.finish();
   }
 

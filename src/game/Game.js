@@ -131,7 +131,7 @@ export class Game {
     input.onLockError = () => {
       // Chrome refuses a re-lock within ~1 s of the player pressing Esc: retry once after that.
       clearTimeout(this._lockRetry);
-      this._lockRetry = setTimeout(() => this.awaitLock && this.input.requestLock(), CONFIG.camera.follow.lockRetryMs);
+      this._lockRetry = setTimeout(() => this.awaitLock && this.input.requestLock(), CONFIG.camera.follow.lockRetryMs || 1100);
     };
     input.onLockChange = (locked) => {
       if (locked) return;
@@ -146,7 +146,8 @@ export class Game {
   _wantLock() {
     // No pointer-lock support at all (rare embeds): play without it rather than wait forever.
     const canLock = !!this.engine.renderer.domElement.requestPointerLock;
-    return canLock && CONFIG.camera.mode === 'follow' && this.mode === 'play' && !this.lockBlocked && !this.rig.override;
+    const picking = this.mode === 'cards' && this.pickT > 0; // lock grabbed by the card click
+    return canLock && CONFIG.camera.mode === 'follow' && (this.mode === 'play' || picking) && !this.lockBlocked && !this.rig.override;
   }
 
   // Give the cursor back without pausing (debug panel, menus).
@@ -172,7 +173,7 @@ export class Game {
     this.rig.followWanted = follow && this.mode !== 'title';
     const want = this._wantLock();
     if (!want && this.input.locked) this.releasePointer();
-    const need = want && !this.input.locked;
+    const need = want && !this.input.locked && this.mode === 'play';
     if (need && !this.awaitLock) {
       this.awaitLock = true;
       this.time.paused = true;
@@ -220,7 +221,9 @@ export class Game {
   openCards() {
     const cards = rollCards(this);
     if (!cards.length) {
+      // Nothing left to offer: drop the queue and make sure play resumes.
       this.progression.pendingUpgrades = 0;
+      if (this.mode === 'cards') this._closeCards();
       return;
     }
     this.cards = cards;
@@ -243,7 +246,13 @@ export class Game {
   pickCard(i) {
     if (this.mode !== 'cards' || this.pickT > 0 || !this.cards?.[i]) return;
     const c = this.cards[i];
-    c.apply();
+    try {
+      c.apply();
+    } catch (err) {
+      console.error(err); // a broken card must never strand the player on this screen
+    }
+    // Grab the mouse inside this click (a user gesture), so play resumes without another click.
+    if (CONFIG.camera.mode === 'follow' && !this.input.locked) this.input.requestLock();
     audio.play('cardPick', { rarity: c.rarity });
     if (c.rarity === 'legendary') this.achievements.unlock('legendary');
     this.screens.markPicked(i);
@@ -253,7 +262,20 @@ export class Game {
   _afterPick() {
     this.progression.pendingUpgrades = Math.max(0, this.progression.pendingUpgrades - 1);
     this.cards = null;
-    if (this.progression.pendingUpgrades > 0) return this.openCards(); // queued level-ups
+    this.pickT = 0;
+    if (this.progression.pendingUpgrades > 0) {
+      try {
+        return this.openCards(); // queued level-ups
+      } catch (err) {
+        console.error(err);
+        this.progression.pendingUpgrades = 0;
+      }
+    }
+    this._closeCards();
+  }
+
+  _closeCards() {
+    this.cards = null;
     this.mode = 'play';
     this.time.paused = false;
     this.screens.show(null);
@@ -511,8 +533,10 @@ export class Game {
       this.hero.dash.handleInput(inp, time);
       this.runTime += time.realDt;
       this.score.update(time.heroDt);
-      // Level-up cards open shortly after the level-up burst.
-      if (this.progression.pendingUpgrades > 0) {
+      // Level-up cards wait for the end of the wave (the break between waves, or the run intro
+      // for Head Start cards), then open shortly after.
+      const ws = this.waves.state;
+      if (this.progression.pendingUpgrades > 0 && (ws === 'break' || ws === 'intro')) {
         this.cardT += time.realDt;
         if (this.cardT >= CONFIG.ui.cardDelay) this.openCards();
       } else this.cardT = 0;
