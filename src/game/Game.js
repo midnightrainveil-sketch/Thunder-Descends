@@ -203,6 +203,9 @@ export class Game {
       const S = CONFIG.camera.shake;
       S.enabled = !S.enabled;
       this.screens.setShakeLabel(S.enabled);
+    } else if (a === 'raw') {
+      CONFIG.input.rawMouse = !CONFIG.input.rawMouse; // takes effect at the next mouse capture (Resume)
+      this.screens.setRawLabel(CONFIG.input.rawMouse, true);
     }
   }
 
@@ -497,6 +500,11 @@ export class Game {
     this._audio(time);
     if (input.wasPressed('KeyV') && this.mode !== 'title') this.toggleCameraMode();
     this._syncCamera();
+    // Safety net: the vertical mouse only drives the Storm Grapple distance while Q is aiming.
+    const q = this.hero.skills.q;
+    if (this.rig.skillAim && !(q.active && q.phase === 'aim')) this.rig.endSkillAim();
+    const rig = this.rig;
+    this.hud.setCrosshair(this.mode === 'play' && rig.following && input.locked && !rig.override && !rig.skillAim && rig.cineK < 0.5 && !this.hero.dead);
     const inp = this.mode === 'play' && !this.awaitLock ? input : NO_INPUT;
     if (this.mode === 'play' && !this.hero.dead) {
       this.hero.skills.handleInput(inp, time);

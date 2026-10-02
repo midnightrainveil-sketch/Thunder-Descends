@@ -157,7 +157,8 @@ export class Screens {
       <button class="k-btn interactive" data-a="resume">Resume</button>
       <button class="k-btn interactive" data-a="restart">Restart</button>
       <button class="k-btn interactive" data-a="shake">Screen shake: on</button>
-      <label class="k-sl interactive">Mouse sensitivity <b data-v="sens"></b><input type="range" data-s="sens" min="0.001" max="0.02" step="0.0005"></label>
+      <button class="k-btn interactive" data-a="raw">Raw mouse input: on</button>
+      <label class="k-sl interactive">Mouse sensitivity <b data-v="sens"></b><input type="range" data-s="sens" min="0.0003" max="0.02" step="0.0001"></label>
       <label class="k-sl interactive">Mouse smoothing <b data-v="smooth"></b><input type="range" data-s="smooth" min="0" max="0.08" step="0.002"></label>
       <label class="k-sl interactive">Camera distance <b data-v="dist"></b><input type="range" data-s="dist" min="4" max="16" step="0.25"></label>
       <label class="k-sl interactive">Brightness <b data-v="light"></b><input type="range" data-s="light" min="0.5" max="3" step="0.05"></label>
@@ -209,6 +210,13 @@ export class Screens {
     };
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem('thunder.settings') || localStorage.getItem('kurogane.settings') || '{}'); } catch { /* storage blocked */ }
+    // v2 (aim overhaul): look smoothing is off by default now, so an older saved value is dropped.
+    if (saved.v !== 2) {
+      delete saved.smooth;
+      saved.v = 2;
+      try { localStorage.setItem('thunder.settings', JSON.stringify(saved)); } catch { /* ignore */ }
+    }
+    if (typeof saved.raw === 'boolean') CONFIG.input.rawMouse = saved.raw;
     this._settings = { SET, saved };
     for (const [id, S] of Object.entries(SET)) {
       const input = this.pause.querySelector(`[data-s="${id}"]`);
@@ -225,6 +233,7 @@ export class Screens {
         try { localStorage.setItem('thunder.settings', JSON.stringify(saved)); } catch { /* ignore */ }
       });
     }
+    this.setRawLabel(CONFIG.input.rawMouse);
     this.onAction = null;
     this.onPick = null;
     this.current = null;
@@ -251,6 +260,14 @@ export class Screens {
     const map = { title: this.title, pause: this.pause, over: this.over, clear: this.clear, cards: this.cardsEl, armory: this.armory };
     if (name === 'title') this.refreshTitle();
     for (const k in map) map[k].classList.toggle('on', k === name);
+  }
+
+  setRawLabel(on, save = false) {
+    this.pause.querySelector('[data-a="raw"]').textContent = `Raw mouse input: ${on ? 'on' : 'off'}`;
+    if (!save) return;
+    const { saved } = this._settings;
+    saved.raw = on;
+    try { localStorage.setItem('thunder.settings', JSON.stringify(saved)); } catch { /* ignore */ }
   }
 
   setShakeLabel(on) {

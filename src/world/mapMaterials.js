@@ -153,6 +153,40 @@ export function applyTreeCamFade() {
   camFadeUniforms.uCamFadeFar.value = CONFIG.map.trees.camFade.far;
 }
 
+// Fragments closer to the camera than camFade.far are dithered away (all gone at camFade.near).
+function injectCamFade(shader) {
+  Object.assign(shader.uniforms, camFadeUniforms);
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vFadeWorld;')
+    .replace('#include <project_vertex>', '#include <project_vertex>\nvFadeWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nuniform float uCamFadeNear;\nuniform float uCamFadeFar;\nvarying vec3 vFadeWorld;')
+    .replace(
+      'void main() {',
+      `void main() {
+        {
+          float k = smoothstep(uCamFadeNear, uCamFadeFar, distance(vFadeWorld, cameraPosition));
+          float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+          if (ign > k) discard;
+        }`,
+    );
+}
+
+// Plain voxel material (like VoxelBuilder's opaque one) that dithers out near the camera: the
+// shrine props behind the back rim, which the follow camera can pass close to.
+export function makeCamFadeMaterial(name) {
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    flatShading: true,
+    roughness: CONFIG.voxel.roughness,
+    metalness: CONFIG.voxel.metalness,
+  });
+  mat.name = name;
+  mat.onBeforeCompile = injectCamFade;
+  mat.customProgramCacheKey = () => `camFade:${name}`;
+  return mat;
+}
+
 // Standard voxel material with sway; `lift` adds a tiny self-light from the vertex color.
 // Fragments closer to the camera than camFade.far are dithered away (all gone at camFade.near).
 export function makeSwayMaterial(name, lift = 0) {
@@ -167,21 +201,10 @@ export function makeSwayMaterial(name, lift = 0) {
   mat.userData.liftUniforms = uniforms;
   mat.onBeforeCompile = (shader) => {
     injectSway(shader);
-    Object.assign(shader.uniforms, uniforms, camFadeUniforms);
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vFadeWorld;')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvFadeWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    Object.assign(shader.uniforms, uniforms);
+    injectCamFade(shader);
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uLift;\nuniform float uCamFadeNear;\nuniform float uCamFadeFar;\nvarying vec3 vFadeWorld;')
-      .replace(
-        'void main() {',
-        `void main() {
-        {
-          float k = smoothstep(uCamFadeNear, uCamFadeFar, distance(vFadeWorld, cameraPosition));
-          float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
-          if (ign > k) discard;
-        }`,
-      )
+      .replace('#include <common>', '#include <common>\nuniform float uLift;')
       .replace(
         '#include <emissivemap_fragment>',
         '#include <emissivemap_fragment>\n#ifdef USE_COLOR\ntotalEmissiveRadiance += vColor.rgb * uLift;\n#endif',

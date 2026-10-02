@@ -9,6 +9,14 @@ import { PORTRAIT_ART } from './art.js';
 // (basic attack, Q, E, R: icon, key, conic cooldown sweep + seconds, rank pips, ready glow; R buff
 // ring; Shift dash: one pip per stack, sweep + seconds while out of stacks). Bottom-left: passive icon with crit %. Center banners (wave / boss / level).
 const CSS = `
+  .k-cross { position: absolute; left: 50%; top: 50%; width: 0; height: 0; opacity: 0; transition: opacity .12s; }
+  .k-cross.on { opacity: 1; }
+  .k-cross i { position: absolute; background: var(--k-cross-color); box-shadow: 0 0 2px rgba(0,0,0,.9); }
+  .k-cross .dot { width: 3px; height: 3px; left: -1.5px; top: -1.5px; border-radius: 50%; }
+  .k-cross .h { height: 2px; top: -1px; width: var(--k-cross-len); }
+  .k-cross .v { width: 2px; left: -1px; height: var(--k-cross-len); }
+  .k-cross .l { right: var(--k-cross-gap); } .k-cross .r { left: var(--k-cross-gap); }
+  .k-cross .t { bottom: var(--k-cross-gap); } .k-cross .b { top: var(--k-cross-gap); }
   .k-hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--font-text); color: #e6e1d3; transition: opacity .3s; }
   .k-hud.hidden { opacity: 0; }
   .k-panel { background: rgba(14, 20, 38, 0.75); border: 1px solid rgba(53, 224, 255, 0.45);
@@ -128,6 +136,7 @@ export class HUD {
     this.el.className = 'k-hud hidden';
     this.el.innerHTML = `
       <div class="k-lowhp"></div>
+      <div class="k-cross"><i class="dot"></i><i class="h l"></i><i class="h r"></i><i class="v t"></i><i class="v b"></i></div>
       <div class="k-tl k-panel">
         <div class="k-portrait"><img src="${PORTRAIT_ART}" alt="" style="width:100%;height:100%;display:block;object-fit:cover"></div>
         <div class="k-bars">
@@ -152,6 +161,13 @@ export class HUD {
       <div class="k-toast k-panel"><div class="ic">${ICONS.core}</div><div><div class="t">ACHIEVEMENT</div><div class="n"></div></div><div class="r"></div></div>`;
     root.appendChild(this.el);
     const q = (s) => this.el.querySelector(s);
+    const X = CONFIG.ui.crosshair;
+    this.cross = q('.k-cross');
+    this.cross.style.setProperty('--k-cross-color', X.color);
+    this.cross.style.setProperty('--k-cross-len', `${X.length}px`);
+    this.cross.style.setProperty('--k-cross-gap', `${X.gap}px`);
+    this.cross.style.top = `${50 - CONFIG.camera.follow.crosshairY * 50}%`; // on the aim ray
+    this._crossOn = false;
     this.lvl = q('.k-lvl');
     this.hpSegs = [...this.el.querySelectorAll('.k-hp i')];
     this.hpn = q('.hpn');
@@ -247,6 +263,13 @@ export class HUD {
 
   toast(def) {
     this.toastQ.push(def);
+  }
+
+  // Screen-center crosshair (follow camera): where the view, and so the aim, points.
+  setCrosshair(on) {
+    if (on === this._crossOn) return;
+    this._crossOn = on;
+    this.cross.classList.toggle('on', on);
   }
 
   update(realDt, game) {

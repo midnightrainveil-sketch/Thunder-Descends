@@ -63,40 +63,48 @@ export const CONFIG = {
     },
     follow: {
       fov: 56, // vertical FOV, degrees
-      distance: 9.5, // m, boom length from the pivot
+      distance: 9.5, // m, boom length from the pivot (scroll wheel / pause-menu slider)
       zoomStep: 0.1, // scroll wheel: ×1.1 distance per notch
       zoomMin: 4, zoomMax: 16, // m, wheel / slider range
-      pitchLock: 0.3, // vertical look ignored while |dy| < 0.3·|dx| in a frame (sideways sweeps stay level)
-      minDistance: 1.6, // m, shortest horizontal back-off at the rim
+      zoomRate: 16, // 1/s, the boom eases to a new zoom distance (zoom only — never the look)
       height: 2.5, // m, pivot above the hero's feet (upper back / neck)
       shoulder: 0.85, // m, pivot shifted right so the hero doesn't hide the aim point
-      pitchDeg: 20, // starting look-down angle
-      pitchMinDeg: -8, // looking up limit
-      pitchMaxDeg: 62, // looking down limit
-      sensitivity: 0.006, // rad per mouse pixel (pause-menu slider scales it)
+      pitchDeg: 24, // starting look-down angle
+      pitchMinDeg: -10, // looking up limit
+      pitchMaxDeg: 65, // looking down limit
+      sensitivity: 0.006, // rad per mouse count, same on both axes (pause-menu slider)
       invertY: false,
-      lookSmoothing: 0.022, // s, time constant of the light mouse-look smoothing (0 = raw; pause-menu slider)
-      pitchSmoothingMul: 2.2, // vertical look is smoothed this many times longer than horizontal (hand motion is less even up/down)
-      pitchSoftZoneDeg: 10, // look speed eases off within this many degrees of the up/down limits instead of hitting a wall
-      rimBlendDeg: 9, // degrees, width of the smooth hand-off between your look-down angle and the rim tilt
-      rimLookTilt: 0.6, // while the rim tilts the camera, this fraction of your extra look still tilts the view
-      lockRetryMs: 1100, // ms, retry a refused pointer lock after Chrome's Esc cooldown
-      maxLookJump: 1500, // px, a single mouse event larger than this is treated as corrupt and dropped
-      linuxMouseFix: false, // Linux X11/Wayland workaround (drops ±1 px vertical bias + warp spikes); hurts Windows
-      aimDistPerPx: 0.035, // m per mouse pixel: Storm Grapple target distance while aiming (follow camera)
+      lookSmoothing: 0, // s, optional look smoothing time constant (0 = off: the view turns exactly with the mouse; pause-menu slider)
+      aimDistPerPx: 0.035, // m per mouse count: Storm Grapple target distance while aiming (follow camera)
       keyTurnRate: 2.4, // rad/s, ← → arrow keys turn the camera (no-mouse fallback)
-      followRate: 14, // 1/s, pivot catch-up (exponential smoothing)
-      maxRadius: ARENA_RADIUS + 3, // m, camera XZ stays inside this circle: past the lanterns (the camera is well above them), clear of the canopies
-      rimPitchMaxDeg: 48, // at the rim the camera tilts down up to this before the boom shortens
-      minHeight: 0.5, // m, camera never goes below this above the floor
-      recenter: true, // swing behind the hero's back while he runs roughly forward
-      recenterDelay: 0.9, // s without mouse look before recentering starts
-      recenterRate: 1.0, // 1/s
-      recenterMaxDeg: 40, // only recenter when the hero faces within this of the camera (diagonals don't spiral)
+      followRate: 18, // 1/s, pivot catch-up (exponential smoothing of the hero's position only)
+      boundRadius: ARENA_RADIUS + 4.5, // m, the camera stays inside this circle: the boom shortens along the view ray instead of turning the view (props near the camera dither out)
+      minHeight: 0.9, // m, looking up shortens the boom so the camera stays above this
+      minBoom: 1.5, // m, shortest boom
       aimMaxDist: 13, // m, aim point distance cap from the hero (looking at the horizon)
       aimMinDist: 1.2, // m, aim point at least this far ahead of the hero
-      crosshairY: 0.0, // NDC y of the aim ray (0 = screen center)
+      crosshairY: 0.2, // NDC y of the aim ray and crosshair: above the hero's head so he never hides the aim point
       blendTime: 0.7, // s, glide between fixed and follow poses
+    },
+  },
+
+  // Mouse input under pointer lock (src/core/Input.js look()).
+  input: {
+    rawMouse: true, // ask for raw, unaccelerated mouse counts where supported (Chrome/Edge on Windows); pause-menu toggle, applies at the next capture
+    maxJump: 1500, // counts, a single event bigger than this is corrupt and dropped
+    spike: {
+      min: 80, // counts, a warp spike is at least this big...
+      ratio: 5, // ...and this many times the current motion, pointing back against it
+      movingMin: 2, // counts per event of current motion before spikes are checked (never from rest)
+      avgWeight: 0.3, // per-event weight of the current-motion average
+      restMs: 120, // ms without events → motion average forgotten
+    },
+    driftGuard: 'auto', // 'auto' = on for Linux only, true / false to force (debug panel)
+    drift: {
+      window: 32, // recent sideways events examined
+      minDx: 3, // counts: an event is "sideways" with |dx| ≥ this and |dy| ≤ 1
+      minShare: 0.25, // ±1 vertical counts on at least this share of them...
+      consistency: 0.9, // ...almost all of the same sign → that ±1 is OS drift and is removed
     },
   },
 
@@ -264,7 +272,8 @@ export const CONFIG = {
       attackFade: 0.07, // s, crossfade into an attack
       upperFadeOut: 0.2, // s, upper layer fade back to locomotion
       legTurnRate: 9, // 1/s, legs turn toward the move/aim direction
-      aimTurnRate: 22, // 1/s, upper body follows the aim
+      aimTurnRate: 22, // 1/s, upper body turns toward the movement direction (out of combat)
+      aimTurnSpeed: 40, // rad/s, while attacking / casting the body tracks the aim exactly, turning at most this fast (big flips take < 0.08 s)
       twistMaxDeg: 60, // max upper-body twist relative to the legs
       twistSplit: [0.3, 0.5, 0.2], // share of the twist on spine / chest / head
       backpedalDeg: 110, // moving more than this away from the aim → legs face aim, run backwards
@@ -732,6 +741,7 @@ export const CONFIG = {
 
   ui: {
     showHint: false, // Stage 0 controls hint (replaced by the title screen)
+    crosshair: { color: 'rgba(143, 244, 255, 0.85)', length: 6, gap: 4 }, // px, follow-camera screen-center crosshair (ticks + dot)
     cardDelay: 0.7, // s (real) after a level-up before the cards open
     hpSegments: 12, // segmented HP bar
     flashMax: 0.45, // cap on full-screen flashes (polish)

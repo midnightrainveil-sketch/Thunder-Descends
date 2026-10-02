@@ -412,7 +412,7 @@ export class Hero {
       }
     }
 
-    // Aim: upper body follows the mouse ground point quickly.
+    // Aim: while attacking the upper body tracks the aim point exactly (rate-limited for flips).
     // Facing: the hero faces where he moves (screen-relative WASD under the fixed camera). He turns
     // toward the mouse only while attacking, whipping or using a skill (attacks / skills aim there);
     // standing still he keeps his last facing.
@@ -426,7 +426,14 @@ export class Hero {
       } else if (wish.lengthSq() > 0) {
         target = Math.atan2(wish.x, wish.z);
       }
-      if (target !== null) this.aimYaw += wrap(target - this.aimYaw) * (1 - Math.exp(-A.aimTurnRate * dt));
+      if (target !== null) {
+        const d = wrap(target - this.aimYaw);
+        if (combat) {
+          // Attacking / casting: track the aim exactly; only big flips are spread over a few frames.
+          const step = A.aimTurnSpeed * dt;
+          this.aimYaw += Math.abs(d) <= step ? d : Math.sign(d) * step;
+        } else this.aimYaw += d * (1 - Math.exp(-A.aimTurnRate * dt));
+      }
     }
     this.aim.set(Math.sin(this.aimYaw), 0, Math.cos(this.aimYaw));
 

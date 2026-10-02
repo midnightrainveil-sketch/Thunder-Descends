@@ -44,7 +44,9 @@ export class DebugPanel {
       this._extraT = now;
       const d = this.game.map.countDrawCalls();
       const v = this.game.map.grove.violationCount;
-      this._extra = `env calls ${d.main} + ${d.shadow} shadow` + (CONFIG.map.debug.canopyCheck ? `\ncanopy over play ${v}` : '');
+      const m = this.input.mouseStats;
+      const look = `\nmouse ${this.input.locked ? 'locked' : 'free'}${m.raw ? ' raw' : ''} · ev ${m.events} · spikes ${m.dropped}` + (m.guard ? ` · drift ${m.bias > 0 ? '+1' : m.bias < 0 ? '−1' : '0'} fixed ${m.straightened}` : '') + ` · boom ${this.rig.boom.toFixed(1)} m`;
+      this._extra = `env calls ${d.main} + ${d.shadow} shadow` + look + (CONFIG.map.debug.canopyCheck ? `\ncanopy over play ${v}` : '');
     }
     return this._extra;
   }
@@ -198,13 +200,26 @@ export class DebugPanel {
     cam.add(FC, 'distance', 2, 12, 0.1).name('follow distance');
     cam.add(FC, 'height', 0.5, 3, 0.05).name('follow height');
     cam.add(FC, 'shoulder', -1.5, 1.5, 0.05).name('follow shoulder');
-    cam.add(FC, 'sensitivity', 0.0005, 0.008, 0.0001).name('mouse sensitivity');
-    cam.add(FC, 'invertY').name('invert Y');
-    cam.add(FC, 'recenter').name('auto recenter');
-    cam.add(FC, 'recenterRate', 0, 6, 0.1).name('recenter rate');
-    cam.add(FC, 'maxRadius', 8, 20, 0.1).name('follow max radius');
+    cam.add(FC, 'boundRadius', 11, 24, 0.1).name('follow bound radius');
+    cam.add(FC, 'minHeight', 0.2, 3, 0.05).name('follow min height');
     cam.add(this.flags, 'orbit').name('Orbit camera (O)').onChange((v) => this.toggleOrbit(v)).listen();
     cam.add(this.flags, 'photo').name('Photo mode (F)').onChange((v) => this.togglePhoto(v)).listen();
+
+    // Mouse (pointer-lock look; live counters in the stats overlay)
+    const mouse = gui.addFolder('Mouse');
+    const IN = C.input;
+    mouse.add(FC, 'sensitivity', 0.0003, 0.02, 0.0001).name('sensitivity (rad/count)').listen();
+    mouse.add(FC, 'invertY').name('invert Y');
+    mouse.add(FC, 'lookSmoothing', 0, 0.08, 0.002).name('look smoothing s').listen();
+    mouse.add(FC, 'pitchMinDeg', -40, 0, 1).name('pitch min°');
+    mouse.add(FC, 'pitchMaxDeg', 30, 85, 1).name('pitch max°');
+    mouse.add(IN, 'rawMouse').name('raw input (next capture)').listen();
+    mouse.add(IN, 'driftGuard', { auto: 'auto', on: true, off: false }).name('drift guard');
+    mouse.add(IN.spike, 'min', 10, 400, 1).name('spike min counts');
+    mouse.add(IN.spike, 'ratio', 2, 20, 0.5).name('spike ratio');
+    mouse.add(IN.drift, 'consistency', 0.5, 1, 0.01).name('drift consistency');
+    mouse.add(C.hero.anim, 'aimTurnSpeed', 5, 80, 1).name('hero aim turn rad/s');
+    mouse.add({ reset: () => Object.assign(this.input.mouseStats, { events: 0, dropped: 0, straightened: 0 }) }, 'reset').name('Reset counters');
 
     // Post
     const post = gui.addFolder('Post');

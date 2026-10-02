@@ -12,9 +12,10 @@ const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 //   fits the viewport at any aspect, with a lens shift (off-axis projection) so the arena sits
 //   low in the frame with headroom above it. It frames the title screen and is the reference
 //   the map composition (moon, pagoda, canopy check) is placed with (`compositionCamera`).
-// • Third-person follow pose: a boom behind the hero's back, turned by mouse look (pointer
-//   lock) or ← →, pulled in so it never leaves `follow.maxRadius`. The aim ray goes through
-//   the screen center. Near the rim the boom rises instead of shortening.
+// • Third-person follow pose: a boom behind the hero's back, turned 1:1 by mouse look (pointer
+//   lock) or ← →. The boom shortens along the view ray so the camera never leaves
+//   `follow.boundRadius`; the view direction itself is only ever set by the player. The aim ray
+//   goes through the screen center.
 // Shake and zoom punches are applied on top of whichever pose is active (real time).
 export class CameraRig {
   constructor() {
@@ -47,7 +48,8 @@ export class CameraRig {
     this.pivot = new THREE.Vector3();
     this.followPosition = new THREE.Vector3();
     this.followQuaternion = new THREE.Quaternion();
-    this.sinceLook = 0; // s since the last mouse look (recenter delay)
+    this.zoom = F.distance; // current boom length before the bound (eases to F.distance)
+    this.boom = F.distance; // boom length actually used this frame
     // Cinematic shot (Zero Hour cast): blends the boom to a front-side close-up of the hero.
     this.cineWanted = false;
     this.cineK = 0;
@@ -200,7 +202,7 @@ export class CameraRig {
     this.skillAim = false;
     this.pivot.copy(hero.position);
     this._pivotReady = true;
-    this.sinceLook = 0;
+    this.zoom = CONFIG.camera.follow.distance;
     this.cineWanted = false;
     this.cineK = 0;
   }
@@ -222,53 +224,45 @@ export class CameraRig {
     this.cineK = cineTarget > this.cineK ? Math.min(1, this.cineK + cineStep) : Math.max(0, this.cineK - cineStep);
     const ck = this.cineK * this.cineK * (3 - 2 * this.cineK); // smoothstep
 
-    // Look input.
-    this.sinceLook += dt;
-    if (allowLook && this.followWanted && ck === 0) {
-      const dx = input.lookDX;
-      // Linux workaround only: mostly-horizontal motion this frame → no pitch change.
-      const dy = F.linuxMouseFix && Math.abs(input.lookDY) < Math.abs(dx) * F.pitchLock ? 0 : input.lookDY;
+    // Look: every mouse count turns the view by exactly `sensitivity` radians, on both axes, at
+    // every spot in the arena. Nothing else ever rotates the player's view (no recentering, no
+    // rim tilt); during the Zero Hour close-up the input still lands, the shot just covers it.
+    if (allowLook && this.followWanted) {
       if (input.wheel) {
         F.distance = THREE.MathUtils.clamp(F.distance * Math.pow(1 + F.zoomStep, input.wheel), F.zoomMin, F.zoomMax);
         this.onZoom?.(F.distance);
       }
-      if (dx !== 0 || dy !== 0) {
-        this.yawT -= dx * F.sensitivity;
-        if (this.skillAim) {
-          // Mouse up = farther, down = nearer (along the ground).
-          this.skillAimDist = THREE.MathUtils.clamp(this.skillAimDist - dy * F.aimDistPerPx * (F.invertY ? -1 : 1), F.aimMinDist, this.skillAimMax);
-        } else {
-          // Ease off near the limits instead of stopping dead against them.
-          const d = dy * F.sensitivity * (F.invertY ? -1 : 1);
-          const room = d > 0 ? F.pitchMaxDeg * DEG - this.pitchT : this.pitchT - F.pitchMinDeg * DEG;
-          const ease = THREE.MathUtils.clamp(room / (F.pitchSoftZoneDeg * DEG), 0.2, 1);
-          this.pitchT += d * ease;
-        }
-        this.sinceLook = 0;
-      }
+      const dx = input.lookDX;
+      const dy = input.lookDY * (F.invertY ? -1 : 1);
+      this.yawT -= dx * F.sensitivity;
+      // Skill aiming (Storm Grapple): vertical slides the target along the ground instead.
+      if (this.skillAim) this.skillAimDist = THREE.MathUtils.clamp(this.skillAimDist - dy * F.aimDistPerPx, F.aimMinDist, this.skillAimMax);
+      else this.pitchT += dy * F.sensitivity;
       let k = 0;
       if (input.isDown('ArrowLeft')) k += 1;
       if (input.isDown('ArrowRight')) k -= 1;
-      if (k !== 0) {
-        this.yawT += k * F.keyTurnRate * dt;
-        this.sinceLook = 0;
-      }
-      // Recenter behind the back while he runs roughly away from the camera.
-      if (F.recenter && !this.skillAim && this.sinceLook > F.recenterDelay && hero.velocity.lengthSq() > 1) {
-        const d = wrap(hero.aimYaw - this.yawT);
-        if (Math.abs(d) < F.recenterMaxDeg * DEG) this.yawT += d * (1 - Math.exp(-F.recenterRate * dt));
-      }
+      this.yawT += k * F.keyTurnRate * dt;
     }
+    // Clamp the target itself, so reversing at a limit responds on the very next count.
     this.pitchT = THREE.MathUtils.clamp(this.pitchT, F.pitchMinDeg * DEG, F.pitchMaxDeg * DEG);
-    // Light smoothing evens out uneven mouse-event / frame timing without noticeable lag.
-    const sk = F.lookSmoothing > 0 ? 1 - Math.exp(-dt / F.lookSmoothing) : 1;
-    const dYaw = wrap(this.yawT - this.yaw);
-    this.yaw = wrap(this.yaw + dYaw * sk);
-    this.yawT = this.yaw + (dYaw - dYaw * sk); // keep the target unwrapped relative to yaw
-    const ps = F.lookSmoothing * F.pitchSmoothingMul;
-    this.pitch += (this.pitchT - this.pitch) * (ps > 0 ? 1 - Math.exp(-dt / ps) : 1);
+    if (F.lookSmoothing > 0) {
+      // Optional (pause menu), off by default.
+      const sk = 1 - Math.exp(-dt / F.lookSmoothing);
+      this.yaw += (this.yawT - this.yaw) * sk;
+      this.pitch += (this.pitchT - this.pitch) * sk;
+    } else {
+      this.yaw = this.yawT;
+      this.pitch = this.pitchT;
+    }
+    // Keep both angles small without changing their difference.
+    if (Math.abs(this.yaw) > Math.PI * 4) {
+      const w = wrap(this.yaw) - this.yaw;
+      this.yaw += w;
+      this.yawT += w;
+    }
 
-    // Pivot chases the hero.
+    // Zoom eases (distance only); the pivot chases the hero.
+    this.zoom += (F.distance - this.zoom) * (1 - Math.exp(-F.zoomRate * dt));
     if (!this._pivotReady) {
       this.pivot.copy(hero.position);
       this._pivotReady = true;
@@ -277,55 +271,42 @@ export class CameraRig {
 
     // Boom parameters: the player's camera, blended toward the cinematic shot (camera in front of
     // the hero, off to his sword side, looking back at him and the ground in front).
-    let yaw = this.yaw, pitch = this.pitch, distance = F.distance, height = F.height, shoulder = F.shoulder;
+    let yaw = this.yaw, pitch = this.pitch, distance = this.zoom, height = F.height, shoulder = F.shoulder;
     if (ck > 0) {
       const cineYaw = hero.aimYaw + Math.PI + CC.sideDeg * DEG;
       yaw = this.yaw + wrap(cineYaw - this.yaw) * ck;
       pitch = THREE.MathUtils.lerp(this.pitch, CC.pitchDeg * DEG, ck);
-      distance = THREE.MathUtils.lerp(F.distance, CC.distance, ck);
+      distance = THREE.MathUtils.lerp(this.zoom, CC.distance, ck);
       height = THREE.MathUtils.lerp(F.height, CC.height, ck);
       shoulder = THREE.MathUtils.lerp(F.shoulder, 0, ck);
     }
 
-    // Boom.
+    // Boom: the camera sits on the view ray behind the pivot, so the view direction is always
+    // exactly (yaw, pitch). Where the full boom would leave `boundRadius` (past the rim, into the
+    // trees / torii) or dip under `minHeight` (looking up), the boom shortens along that same ray,
+    // like a collision camera — the position moves, the aim never does.
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
     const sy = Math.sin(yaw), cy = Math.cos(yaw);
+    const fx = sy * cp, fy = -sp, fz = cy * cp; // view direction
     const rx = -cy, rz = sy; // camera right on XZ
     const px = this.pivot.x + rx * shoulder;
     const pz = this.pivot.z + rz * shoulder;
     const py = this.pivot.y + height;
-    // Near the rim the camera can't go far enough back on XZ (it stays inside maxRadius, clear of
-    // the tree canopies), so it first rises and looks down more steeply at the pivot (up to
-    // rimPitchMax) and only then shortens the boom — the hero never fills the screen.
-    // The pitch needed to fit is blended in with a smooth max (no dead zone where the mouse does
-    // nothing, then a jump); whatever look the rim overrides still tilts the view partly.
-    const dist = distance;
-    const hx = -sy, hz = -cy; // horizontal "behind" direction
-    const pd = px * hx + pz * hz;
-    const disc = pd * pd - (px * px + pz * pz - F.maxRadius * F.maxRadius);
-    const hMax = Math.max(F.minDistance, disc >= 0 ? Math.max(0, -pd + Math.sqrt(disc)) : 0);
-    const pFit = Math.acos(Math.min(1, hMax / dist)); // pitch at which the full boom just fits
-    const kb = F.rimBlendDeg * DEG;
-    // Polynomial smooth max: exactly the player's pitch until the rim needs more, C1 blend between.
-    const hb = THREE.MathUtils.clamp(0.5 + (0.5 * (pFit - pitch)) / kb, 0, 1);
-    let pe = pitch * (1 - hb) + pFit * hb + kb * hb * (1 - hb);
-    const peCap = Math.max(pitch, F.rimPitchMaxDeg * DEG);
-    let H, V;
-    if (pe > peCap) {
-      // Tilt capped: shorten the boom instead.
-      H = Math.min(dist * Math.cos(peCap), hMax);
-      V = H * Math.tan(peCap);
-      pe = peCap;
-    } else {
-      H = dist * Math.cos(pe);
-      V = dist * Math.sin(pe);
+    let L = distance;
+    const a = fx * fx + fz * fz;
+    if (a > 1e-6) {
+      // |P − f·L|² = R² on XZ → a·L² − 2(P·f)·L + |P|² − R² = 0, larger root.
+      const R = F.boundRadius;
+      const b = px * fx + pz * fz;
+      const c = px * px + pz * pz - R * R;
+      const disc = b * b - a * c;
+      if (disc >= 0) L = Math.min(L, (b + Math.sqrt(disc)) / a);
     }
-    const camY = Math.max(F.minHeight, py + V);
-    this.followPosition.set(px + hx * H, camY, pz + hz * H);
-    // Look direction: at the pivot, tilted toward the player's own pitch by rimLookTilt of the difference.
-    const lookP = pe + (pitch - pe) * F.rimLookTilt;
-    const cpl = Math.cos(lookP), spl = Math.sin(lookP);
-    const L = Math.hypot(H, V) || dist;
-    this._lookAt.set(this.followPosition.x + sy * cpl * L, camY - spl * L, this.followPosition.z + cy * cpl * L);
+    if (fy > 1e-4) L = Math.min(L, (py - F.minHeight) / fy); // looking up: the camera goes down
+    L = Math.max(L, F.minBoom);
+    this.boom = L;
+    this.followPosition.set(px - fx * L, Math.max(F.minHeight, py - fy * L), pz - fz * L);
+    this._lookAt.set(this.followPosition.x + fx, this.followPosition.y + fy, this.followPosition.z + fz);
     this._m.lookAt(this.followPosition, this._lookAt, UP);
     this.followQuaternion.setFromRotationMatrix(this._m);
 

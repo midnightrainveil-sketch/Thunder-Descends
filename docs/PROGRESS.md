@@ -953,3 +953,24 @@ One section per stage. Spec: [GAME_SPEC.md](GAME_SPEC.md).
 - All numbers are in `CONFIG.audio`, `CONFIG.score`, `CONFIG.meta`, `CONFIG.achievements` and `CONFIG.cards`.
 
 - **Camera pitch smoothing**: vertical look gets its own longer smoothing (`follow.pitchSmoothingMul`) and soft limits (`pitchSoftZoneDeg`). The rim tilt is blended with a smooth max (`rimBlendDeg`) and partially follows the player's look (`rimLookTilt`), which removes the old dead zone and jump when looking up or down near the arena edge.
+
+## Update — Aim system overhaul (Windows + Linux)
+
+### What changed and why
+The previous camera rotated the view on its own in several ways, which read as "vertical aim stops working" and as left/right fighting the player:
+- **Rim tilt:** near the edge (anywhere more than ~5 m from the center, looking inward) the camera took over the pitch. Vertical mouse input did nothing until you looked down past a threshold, then the view jumped.
+- **Auto-recenter:** it swung the yaw behind the hero while he ran.
+- **Smoothing:** exponential smoothing on both axes added lag.
+- **Linux filters:** the old ones ate real vertical counts.
+- **Hidden aim point:** the aim point sat behind the hero's head.
+
+Now:
+- **Input** (`src/core/Input.js` `look()`, `CONFIG.input`): every count passes 1:1 except corrupt deltas, warp spikes (a big event reversing steady motion; tested so that real fast reversals and flicks from rest pass) and the Linux-only drift guard, which removes a consistent same-sign ±1 vertical count from sideways sweeps and never touches 2+ count or pure vertical motion. Raw input can be toggled in the pause menu (saved). Live counters appear in the stats overlay: lock/raw, events, spikes, drift, boom.
+- **Camera** (`CameraRig.follow`): yaw and pitch come only from input, with a hard pitch clamp on the target so reversing at a limit responds instantly. The boom is a collision camera along the view ray: bound circle `boundRadius` 15.5 m and `minHeight` when looking up. The torii, steps and shrine dither near the camera like the trees (`makeCamFadeMaterial`). Look input also lands during the Zero Hour close-up. Zoom eases; the look never does.
+- **Aim:** the aim ray and the new HUD crosshair sit at `crosshairY` 0.2 (above the hero's head). While attacking or casting, the hero tracks the aim exactly, rate-limited to `anim.aimTurnSpeed` 40 rad/s for flips.
+- **Safety net:** the Storm Grapple vertical-slide mode is switched off whenever Q isn't aiming.
+- **Settings:** smoothing defaults to off. Older saved smoothing values are dropped (settings v2). The sensitivity slider goes down to 0.3.
+- **Debug:** new Mouse folder with sensitivity, smoothing, pitch limits, raw, drift guard, spike/drift thresholds, hero aim turn speed and a counter reset. The Camera folder has bound radius and min height; the recenter controls are gone.
+
+### How to test
+Look up and down anywhere in the arena, including at the rim looking inward: the view follows every count. The debug stats line shows the boom shortening instead.

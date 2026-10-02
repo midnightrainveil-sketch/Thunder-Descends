@@ -8,7 +8,7 @@ three.js; the production build is a single self-contained `dist/index.html`.
 | Input | Action |
 |---|---|
 | WASD | Move (camera-relative; the hero faces where he moves) |
-| Mouse | Turn the third-person camera; attacks and skills aim at the screen center |
+| Mouse | Turn the third-person camera (1:1, no smoothing); attacks and skills aim at the crosshair |
 | ← → | Turn the camera (keyboard) |
 | Scroll wheel | Zoom the camera in / out |
 | V | Switch third-person ⇄ fixed overview camera |
@@ -23,6 +23,10 @@ three.js; the production build is a single self-contained `dist/index.html`.
 
 Five waves — boss, basic, boss, basic, boss (Iron Juggernaut, Shadow Fox, Storm Serpent) — to reach **Demo clear**,
 then continue endlessly.
+
+Mouse settings live in the pause menu: sensitivity, optional smoothing (off by default) and **Raw mouse
+input** (on: unaccelerated counts on Chrome/Edge for Windows; switch it off if you prefer your desktop
+pointer speed — it applies when you click back into the game).
 
 Debug (press `` ` `` to toggle the panel): 1/2/3 spawn enemies, 4/5/6 spawn bosses, K kill all,
 G god mode, N next wave, L level up, C reset cooldowns, M model viewer, T time scale, O orbit

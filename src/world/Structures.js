@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { CONFIG, ENV_BIG_VOXEL } from '../config.js';
 import { buildPart, getOpaqueMaterial, getEmissiveMaterial } from '../voxel/VoxelBuilder.js';
 import { MAP_PALETTE } from '../voxel/palettes.js';
+import { makeCamFadeMaterial } from './mapMaterials.js';
 import { toriiBoxes, stepsBoxes, shrineHallBoxes, pagodaBoxes } from '../voxel/models/ShrineProps.js';
 
 // Merge several built parts (already positioned via their origin) into one opaque + one emissive mesh.
@@ -64,6 +65,7 @@ export class Structures {
       name: 'shrine',
     });
     this.near = mergeParts([torii, steps, shrine], 'shrineNear');
+    this.near.opaque.material = makeCamFadeMaterial('shrineNear'); // dithers out near the follow camera
     this.group.add(this.near.group);
 
     // Pagoda on a far peak, placed at a screen position in the fixed camera (like the moon) so it

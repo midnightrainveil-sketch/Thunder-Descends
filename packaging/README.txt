@@ -11,7 +11,7 @@ Google Fonts when online; offline, built-in fallback fonts are used.
 
 CONTROLS
   WASD ............ move (the hero faces where he moves)
-  Mouse ........... turn the camera; attacks/skills aim at the screen center
+  Mouse ........... turn the camera (1:1); attacks/skills aim at the crosshair
   Left / Right .... turn the camera      V ... third-person <-> fixed camera
   Scroll wheel .... zoom in / out
   Hold left mouse . 3-hit combo (crits become whip strikes)
@@ -24,3 +24,6 @@ CONTROLS
   Enter ........... retry after defeat
 
 Five waves - boss, basic, boss, basic, boss - to reach Demo clear, then continue endlessly.
+
+Mouse feel: pause menu (Esc) -> Mouse sensitivity, Mouse smoothing (off by default) and
+Raw mouse input (on = unaccelerated, Chrome/Edge on Windows; off = your desktop pointer speed).
