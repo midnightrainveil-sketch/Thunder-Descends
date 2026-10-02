@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG, ARENA_RADIUS } from '../config.js';
 import { hitCircle } from './Hitbox.js';
+import { audio } from '../audio/Audio.js';
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();

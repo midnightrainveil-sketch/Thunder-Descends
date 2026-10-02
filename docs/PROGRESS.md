@@ -980,3 +980,8 @@ Look up and down anywhere in the arena, including at the rim looking inward: the
 - **Card flow hardened:** a card whose `apply()` throws, or an empty re-roll while upgrades are queued, now always returns to play instead of leaving the game in `cards`. The lock prompt only shows in `play`.
 - **Cards at the end of the wave:** `pendingUpgrades` queue during the wave; the cards open in the break (or intro).
 - **Zero Hour:** new `demontime.show` block (sky bolts, ground arcs, crackle while time is stopped, release burst, gold ring, chromatic pulses). The lightning pool grew to 80.
+
+## Fix — freezes after kills / Vampiric Edge HP
+- **Freeze:** `src/combat/Projectiles.js` called `audio.play('shot')` without importing `audio`. The first Teppo or Shadow Fox shot threw a ReferenceError, and since the rAF loop scheduled its next frame after running the current one, any error stopped the game for good. The import is added. `Loop` now schedules the next frame first and catches frame errors (counted in the debug stats as "FRAME ERRORS"; the input edges are still cleared). Each enemy's update is guarded so one bad enemy can't stall the frame.
+- **HP over the limit:** the HUD showed `ceil(hp) / round(maxHp)`, so lifesteal leaving e.g. 600.4 / 600 read "601 / 600". The display is clamped; `Hero.heal` also ignores NaN / negative / infinite amounts.
+- **Verified:** a scripted play fuzz (chases enemies, combo, Q/E/R/dash, all special cards ×3 incl. Vampiric Edge, waves 1–6 with all three bosses, ~18k frames over two seeds) runs with 0 errors.

@@ -6,6 +6,8 @@ export class Loop {
     this.running = false;
     this._last = 0;
     this._tick = this._tick.bind(this);
+    this.errors = 0; // frames that threw (shown in the debug stats)
+    this.onError = null;
   }
 
   start() {
@@ -21,9 +23,16 @@ export class Loop {
 
   _tick(now) {
     if (!this.running) return;
+    // Schedule the next frame first: an error in one frame must never freeze the game.
+    requestAnimationFrame(this._tick);
     const rawDt = (now - this._last) / 1000;
     this._last = now;
-    this.frame(rawDt);
-    requestAnimationFrame(this._tick);
+    try {
+      this.frame(rawDt);
+    } catch (err) {
+      this.errors++;
+      if (this.errors <= 20) console.error('[frame error]', err);
+      this.onError?.(err);
+    }
   }
 }

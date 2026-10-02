@@ -314,7 +314,7 @@ export class HUD {
         if (i === Math.floor(f)) el.style.setProperty('--k', `${((f % 1) * 100).toFixed(0)}%`);
       });
     });
-    this._set('hpn', `${Math.ceil(S.hp)} / ${Math.round(S.maxHp)}${game.godMode ? ' god' : ''}`, (v) => (this.hpn.textContent = v));
+    this._set('hpn', `${Math.min(Math.ceil(S.hp), Math.round(S.maxHp))} / ${Math.round(S.maxHp)}${game.godMode ? ' god' : ''}`, (v) => (this.hpn.textContent = v));
     // Big bar: fill, damage-lag trail (holds, then drains), colour by level, low-HP warning.
     const U = CONFIG.ui;
     if (hpK < this.hpPrev - 1e-4) this.hitT = U.hpHitFlash;
@@ -325,7 +325,7 @@ export class HUD {
     this.hitT = Math.max(0, this.hitT - realDt);
     this._set('hpbf', Math.round(hpK * 1000), (v) => (this.hpbFill.style.transform = `scaleX(${v / 1000})`));
     this._set('hpbl', Math.round(this.hpLag * 1000), (v) => (this.hpbLag.style.transform = `scaleX(${v / 1000})`));
-    this._set('hpbn', `${Math.ceil(S.hp)} / ${Math.round(S.maxHp)}`, (v) => (this.hpbNum.textContent = v));
+    this._set('hpbn', `${Math.min(Math.ceil(S.hp), Math.round(S.maxHp))} / ${Math.round(S.maxHp)}`, (v) => (this.hpbNum.textContent = v));
     const low = hpK > 0 && hpK <= U.hpLow;
     this.hpbBar.classList.toggle('mid', hpK > U.hpLow && hpK <= U.hpMid);
     this.hpb.classList.toggle('low', low);

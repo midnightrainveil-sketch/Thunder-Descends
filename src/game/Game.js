@@ -553,7 +553,16 @@ export class Game {
       }
     }
 
-    for (const e of this.enemies) if (!e.proxy) e.update(time.worldDt, this.hero, this.enemies);
+    for (const e of this.enemies) {
+      if (e.proxy) continue;
+      try {
+        e.update(time.worldDt, this.hero, this.enemies);
+      } catch (err) {
+        // One broken enemy must not stall the frame for everything else.
+        if (!e._errLogged) console.error('[enemy update]', e.type ?? e.constructor?.name, err);
+        e._errLogged = true;
+      }
+    }
     this._resolveOverlaps();
     this.projectiles.update(time.worldDt, this.hero);
     this.spikes.update(time.worldDt, this.hero);

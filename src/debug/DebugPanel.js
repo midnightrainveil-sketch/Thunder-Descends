@@ -45,7 +45,7 @@ export class DebugPanel {
       const d = this.game.map.countDrawCalls();
       const v = this.game.map.grove.violationCount;
       const m = this.input.mouseStats;
-      const look = `\nmouse ${this.input.locked ? 'locked' : 'free'}${m.raw ? ' raw' : ''} · ev ${m.events} · spikes ${m.dropped}` + (m.guard ? ` · drift ${m.bias > 0 ? '+1' : m.bias < 0 ? '−1' : '0'} fixed ${m.straightened}` : '') + ` · boom ${this.rig.boom.toFixed(1)} m`;
+      const look = `\nmouse ${this.input.locked ? 'locked' : 'free'}${m.raw ? ' raw' : ''} · ev ${m.events} · spikes ${m.dropped}` + (m.guard ? ` · drift ${m.bias > 0 ? '+1' : m.bias < 0 ? '−1' : '0'} fixed ${m.straightened}` : '') + ` · boom ${this.rig.boom.toFixed(1)} m` + (window.__loop?.errors ? `\nFRAME ERRORS ${window.__loop.errors} (see console)` : '');
       this._extra = `env calls ${d.main} + ${d.shadow} shadow` + look + (CONFIG.map.debug.canopyCheck ? `\ncanopy over play ${v}` : '');
     }
     return this._extra;

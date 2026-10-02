@@ -58,6 +58,8 @@ const loop = new Loop((rawDt) => {
   debug.stats.update(rawDt, engine.renderer, time, debug.statsExtra());
   input.endFrame();
 });
+window.__loop = loop;
+loop.onError = () => input.endFrame(); // a frame that threw still clears this frame's key / click edges
 loop.start();
 
 // Handy for poking at things from the console during development.

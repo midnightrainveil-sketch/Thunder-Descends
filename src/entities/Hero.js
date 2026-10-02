@@ -253,7 +253,7 @@ export class Hero {
   }
 
   heal(amount) {
-    if (this.dead) return;
+    if (this.dead || !(amount > 0) || !Number.isFinite(amount)) return; // NaN / negative never reach HP
     this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + amount);
   }
 
