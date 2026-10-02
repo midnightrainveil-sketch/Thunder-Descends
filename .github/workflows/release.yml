@@ -1,0 +1,61 @@
+# Every push to the main development branch builds the game and publishes it:
+#  • a GitHub Release whose assets keep the same names, so this link always gives the newest build:
+#    https://github.com/<owner>/<repo>/releases/latest/download/ThunderDescends.zip
+#  • the single-file game on the gh-pages branch (enable Pages → "Deploy from a branch" → gh-pages)
+#    so it can be played in the browser at https://<owner>.github.io/<repo>/
+name: Build & publish
+
+on:
+  push:
+    branches: [main, claude/wonderful-wozniak-5dvx7b]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build and package
+        run: |
+          npm ci
+          npm run package
+
+      - name: Publish release (stable asset names for the "latest" link)
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"
+          cp "release/ThunderDescends-${VERSION}.zip" release/ThunderDescends.zip
+          cp dist/index.html release/ThunderDescends.html
+          gh release create "$TAG" release/ThunderDescends.zip release/ThunderDescends.html \
+            --target "$GITHUB_SHA" \
+            --title "Thunder Descends ${VERSION} (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Unzip ThunderDescends.zip and run play-windows.bat (Windows) or ./play-linux.sh (Linux), or just open index.html in Chrome / Edge / Firefox. ThunderDescends.html is the same game as one file. Built from ${GITHUB_SHA}." \
+            --latest
+
+      - name: Update the browser-playable copy (gh-pages branch)
+        run: |
+          mkdir site
+          cp dist/index.html site/index.html
+          touch site/.nojekyll
+          cd site
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Deploy ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

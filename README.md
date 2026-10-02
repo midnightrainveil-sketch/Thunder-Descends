@@ -1,5 +1,10 @@
 # Thunder Descends
 
+**Download the latest version:** https://github.com/midnightrainveil-sketch/Thunder-Descends/releases/latest/download/ThunderDescends.zip  
+**Play in the browser:** https://midnightrainveil-sketch.github.io/Thunder-Descends/
+
+Both update automatically on every push (`.github/workflows/release.yml`).
+
 A browser 3D voxel arena action game: a mecha samurai with a whip-sword fights waves of robots
 and three bosses on a circular sakura shrine at night. Built with Vite, vanilla JavaScript and
 three.js; the production build is a single self-contained `dist/index.html`.
